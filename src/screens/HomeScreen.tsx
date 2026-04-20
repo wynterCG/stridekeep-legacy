@@ -7,9 +7,12 @@ import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
 import BuildButton from '../components/BuildButton';
 import SeasonBanner from '../components/SeasonBanner';
+import { useTeamsLiveSync } from '../hooks/useTeamsLiveSync';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function HomeScreen(): React.JSX.Element {
+  useTeamsLiveSync();
+
   const team = useGameStore((s) => s.team);
   const purse = useGameStore((s) => s.purse);
 

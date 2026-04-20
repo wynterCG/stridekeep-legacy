@@ -13,7 +13,6 @@ import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
 import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
-import { loadInitialTeams, subscribeTeams } from './src/lib/teams';
 import MilestoneCelebrationWatcher from './src/components/MilestoneCelebrationWatcher';
 
 SplashScreen.preventAutoHideAsync();
@@ -81,7 +80,6 @@ export default function App(): React.JSX.Element | null {
 
   useEffect(() => {
     let cancelled = false;
-    let channel: ReturnType<typeof subscribeTeams> | null = null;
 
     (async () => {
       try {
@@ -90,14 +88,9 @@ export default function App(): React.JSX.Element | null {
         const team = await fetchMyTeam();
         if (cancelled) return;
         useGameStore.getState().setTeam(team);
-
-        const totals = await loadInitialTeams();
-        if (cancelled) return;
-        useGameStore.getState().setTeamTotals(totals);
-
-        channel = subscribeTeams((color, total) => {
-          useGameStore.getState().setTeamTotal(color, total);
-        });
+        // Initial teamTotals load + ongoing realtime subscription is the
+        // responsibility of useTeamsLiveSync (called from HomeScreen) so the
+        // WebSocket only stays open while the user is actively watching.
       } catch (err) {
         console.warn('[stridekeep] backend bootstrap failed:', err);
       }
@@ -105,7 +98,6 @@ export default function App(): React.JSX.Element | null {
 
     return () => {
       cancelled = true;
-      if (channel) channel.unsubscribe();
     };
   }, []);
 
