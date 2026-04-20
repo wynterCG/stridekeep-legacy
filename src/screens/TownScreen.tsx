@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { MILESTONES } from '../data/cases';
 import SeasonBanner from '../components/SeasonBanner';
+import LiveFeed from '../components/LiveFeed';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function TownScreen(): React.JSX.Element {
@@ -28,6 +29,8 @@ export default function TownScreen(): React.JSX.Element {
             </Text>
           </View>
         )}
+
+        <LiveFeed />
 
         <View style={styles.timeline}>
           {MILESTONES.map((milestone, index) => {
