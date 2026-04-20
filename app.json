@@ -1,12 +1,12 @@
 {
   "expo": {
     "name": "Stridekeep",
-    "slug": "Stridekeep",
+    "slug": "stridekeep",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,6 +16,10 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "app.stridekeep",
+      "permissions": [
+        "android.permission.health.READ_STEPS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,7 +31,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "react-native-health-connect",
+      "./plugins/withHealthConnectRationale.js",
+      "./plugins/withHealthConnectMainActivity.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ]
   }
 }

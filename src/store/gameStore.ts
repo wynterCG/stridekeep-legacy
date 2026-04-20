@@ -4,10 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Team, CaseTier, Item, KeptItem, CaseState } from '../types';
 import { CASES, ITEMS_BY_TIER } from '../data/cases';
 import { BALANCE } from '../balance';
+import { todayKey } from '../native/healthConnect';
 
 interface GameState {
   team: Team | null;
   steps: number;
+  lastSyncedTotal: number | null;
+  lastSyncedDate: string | null;
   caseState: CaseState;
   purse: number;
   forTheTown: number;
@@ -20,6 +23,7 @@ interface GameState {
 
 interface GameActions {
   simulateWalk: () => void;
+  applyRealSteps: (total: number) => void;
   openCase: (tier: CaseTier) => Item | null;
   sellItem: (item: Item) => void;
   keepItem: (item: Item) => boolean;
@@ -84,6 +88,8 @@ export const useGameStore = create<GameStore>()(
     (set, get) => ({
       team: null,
       steps: 0,
+      lastSyncedTotal: null,
+      lastSyncedDate: null,
       caseState: defaultCaseState,
       purse: 0,
       forTheTown: 0,
@@ -92,6 +98,45 @@ export const useGameStore = create<GameStore>()(
       maxSlots: BALANCE.inventory.defaultSlots,
       strideLevel: 0,
       lastSimulateAt: 0,
+
+      applyRealSteps: (total: number) => {
+        // Defensive gate: App.tsx already waits for onFinishHydration before
+        // dispatching this action, but a future caller (e.g. an explicit refresh
+        // button) might fire pre-hydration. Without this guard a `total` would be
+        // diffed against the default lastSyncedTotal=null and silently re-anchor.
+        if (!useGameStore.persist.hasHydrated()) return;
+
+        const { lastSyncedTotal, lastSyncedDate, steps, caseState, purse, strideLevel } = get();
+        const today = todayKey();
+
+        // First sync after install OR first sync of a new local day:
+        // anchor lastSyncedTotal to the current Health Connect total without
+        // minting any cases. (Health Connect's daily Steps total resets at
+        // local midnight, so yesterday's anchor is meaningless today.)
+        // Use == null to also catch undefined from pre-Phase-2 persisted blobs.
+        if (lastSyncedTotal == null || lastSyncedDate !== today) {
+          set({ lastSyncedTotal: total, lastSyncedDate: today });
+          return;
+        }
+
+        const delta = Math.max(0, total - lastSyncedTotal);
+        if (delta === 0) return;
+
+        const earnedPurse = delta * (BALANCE.stride.baseValue + strideLevel);
+        const newCaseState: CaseState = {
+          starter: addStepsToCase(caseState, 'starter', delta),
+          premium: addStepsToCase(caseState, 'premium', delta),
+          luxury: addStepsToCase(caseState, 'luxury', delta),
+        };
+
+        set({
+          steps: steps + delta,
+          lastSyncedTotal: total,
+          lastSyncedDate: today,
+          caseState: newCaseState,
+          purse: purse + earnedPurse,
+        });
+      },
 
       simulateWalk: () => {
         const now = Date.now();
