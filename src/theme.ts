@@ -1,26 +1,33 @@
+// Slate & Brass — chosen 2026-04-20.
+// See design/slate-brass-deep-dive.html for the full role-named spec.
 export const colors = {
   bg: {
-    primary: '#2a1f17',
-    card: '#362a20',
-    overlay: '#1e160f',
+    primary: '#2b3138',
+    card: '#353c46',
+    cardHi: '#404853',
+    overlay: '#1f242a',
   },
   text: {
-    cream: '#f5ecdb',
-    muted: '#a89070',
-    dim: '#6b5540',
+    cream: '#f1ede4',
+    secondary: '#c8cdd4',
+    muted: '#8d959e',
+    dim: '#5b6068',
   },
   accent: {
-    brass: '#c8923c',
-    brassLight: '#f2c77a',
+    brass: '#c79c4a',
+    brassLight: '#f0d091',
+    brassDeep: '#8e6a2c',
   },
   team: {
-    red: '#c9452b',
-    blue: '#3b5998',
+    red: '#c44b3a',
+    redSoft: '#a13c2e',
+    blue: '#6589b8',
+    blueSoft: '#4f6e96',
   },
   ui: {
-    border: '#5a3f2a',
-    progressBg: '#1e160f',
-    buttonDisabled: '#4a3520',
+    border: '#4d5560',
+    progressBg: '#1f242a',
+    buttonDisabled: '#3a414a',
   },
 } as const;
 

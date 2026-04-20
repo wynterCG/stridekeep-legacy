@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stridekeep · Palette Concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;700&family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gutter: clamp(20px, 3vw, 48px);
+    --display: 'Playfair Display', serif;
+    --label:   'Bebas Neue', sans-serif;
+    --body:    'Outfit', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #1a1410;
+    color: #f5ecdb;
+    font-family: var(--body);
+    min-height: 100vh;
+    padding: var(--gutter);
+    background-image:
+      radial-gradient(at 8% 0%, rgba(200, 146, 60, 0.06), transparent 35%),
+      radial-gradient(at 92% 100%, rgba(59, 89, 152, 0.05), transparent 40%);
+  }
+
+  /* ------------- Page header ------------- */
+  .pagehead {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 1200px;
+    margin: 0 auto 64px;
+    border-bottom: 1px solid rgba(245, 236, 219, 0.1);
+    padding-bottom: 32px;
+  }
+  .pagehead .eyebrow {
+    font-family: var(--label);
+    letter-spacing: 0.32em;
+    font-size: 13px;
+    color: #c8923c;
+  }
+  .pagehead h1 {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: clamp(36px, 5vw, 56px);
+    margin: 0;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .pagehead p {
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 640px;
+    color: rgba(245, 236, 219, 0.7);
+    margin: 4px 0 0;
+  }
+
+  /* ------------- Concept grid ------------- */
+  .grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+    gap: 56px;
+  }
+  .concept {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 20px;
+  }
+  .concept .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .concept .meta .number {
+    font-family: var(--label);
+    letter-spacing: 0.32em;
+    font-size: 12px;
+    color: rgba(245, 236, 219, 0.5);
+  }
+  .concept .meta .name {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .concept .meta .desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(245, 236, 219, 0.7);
+    max-width: 460px;
+  }
+
+  /* ---- Palette swatches ---- */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-radius: 6px;
+    overflow: hidden;
+    height: 64px;
+    border: 1px solid rgba(245, 236, 219, 0.08);
+  }
+  .swatches > div {
+    position: relative;
+    cursor: default;
+  }
+  .swatches > div::after {
+    content: attr(data-hex);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 6px 4px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .swatches:hover > div::after { opacity: 1; }
+
+  /* ---- Phone mockup container ---- */
+  .phone {
+    width: 100%;
+    aspect-ratio: 9 / 18.5;
+    border-radius: 32px;
+    padding: 8px;
+    background: #2a201a;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 0 0 1px rgba(0,0,0,0.4),
+      0 30px 60px -20px rgba(0,0,0,0.7),
+      0 12px 24px -10px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone::after {
+    content: '';
+    position: absolute;
+    top: 16px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 18px;
+    border-radius: 12px;
+    background: #0a0807;
+    z-index: 5;
+  }
+  .screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 26px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- Shared screen interior ---- */
+  .scr-pad { padding: 56px 18px 0; }
+  .scr-flex { display: flex; flex-direction: column; gap: 14px; flex: 1; padding: 0 18px 14px; overflow: hidden; }
+  .scr-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 12px 0 16px;
+    gap: 0;
+  }
+  .tab { text-align: center; font-family: var(--label); font-size: 11px; letter-spacing: 0.2em; }
+  .tab .glyph { font-size: 18px; display: block; margin-bottom: 2px; line-height: 1; }
+  .tab.active { opacity: 1; }
+  .tab.dim { opacity: 0.4; }
+
+  .header-row { text-align: center; padding-top: 6px; }
+  .scr-title {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 1;
+    margin: 0 0 6px;
+  }
+  .scr-team {
+    font-family: var(--label);
+    letter-spacing: 0.2em;
+    font-size: 10px;
+  }
+
+  .stepblock { text-align: center; padding: 16px 0 6px; }
+  .stepblock .num {
+    font-family: var(--label);
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+  .stepblock .lbl {
+    font-family: var(--label);
+    letter-spacing: 0.2em;
+    font-size: 9px;
+    margin-top: 4px;
+  }
+
+  /* ---- Case card ---- */
+  .case {
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .case .icon { font-size: 22px; line-height: 1; }
+  .case .name { font-family: var(--label); letter-spacing: 0.16em; font-size: 11px; }
+  .case .progress { font-family: var(--label); font-size: 9px; opacity: 0.7; margin-top: 1px; letter-spacing: 0.1em; }
+  .case .pillopen {
+    font-family: var(--label);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    padding: 8px 14px;
+    border-radius: 999px;
+  }
+  .case .bar {
+    grid-column: 1 / -1;
+    height: 4px;
+    border-radius: 99px;
+    margin-top: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .case .bar > i { display: block; height: 100%; }
+
+  /* ---- Build button ---- */
+  .build {
+    margin-top: auto;
+    padding: 14px 16px;
+    border-radius: 14px;
+    text-align: center;
+    font-family: var(--label);
+    letter-spacing: 0.2em;
+    font-size: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .build::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 47%;
+    background: rgba(255,255,255,0.18);
+  }
+  .build span { position: relative; }
+
+  /* ============================================
+     CONCEPT 1 — CANDLELIGHT TAVERN
+     ============================================ */
+  .c1 .swatches > div:nth-child(1) { background: #2a1f17; }
+  .c1 .swatches > div:nth-child(2) { background: #3b2c20; }
+  .c1 .swatches > div:nth-child(3) { background: #f5ecdb; }
+  .c1 .swatches > div:nth-child(4) { background: #c8923c; }
+  .c1 .swatches > div:nth-child(5) { background: #f2c77a; }
+  .c1 .swatches > div:nth-child(6) { background: #c9452b; }
+  .c1 .swatches > div:nth-child(7) { background: #3b5998; }
+
+  .c1 .screen {
+    background:
+      radial-gradient(at 50% 30%, rgba(242,199,122,0.12), transparent 60%),
+      radial-gradient(at 50% 90%, rgba(201, 69, 43, 0.08), transparent 70%),
+      #2a1f17;
+    color: #f5ecdb;
+  }
+  .c1 .scr-title { color: #f5ecdb; }
+  .c1 .scr-team { color: #f2c77a; }
+  .c1 .scr-team::before { content: '◆ '; color: #c9452b; }
+  .c1 .stepblock .num { color: #f5ecdb; text-shadow: 0 0 24px rgba(242, 199, 122, 0.18); }
+  .c1 .stepblock .lbl { color: rgba(245, 236, 219, 0.55); }
+  .c1 .case { background: rgba(255,255,255,0.04); border: 1px solid rgba(245, 236, 219, 0.06); }
+  .c1 .case .name { color: #f5ecdb; }
+  .c1 .case .progress { color: rgba(245, 236, 219, 0.55); }
+  .c1 .case .pillopen { background: #c8923c; color: #2a1f17; }
+  .c1 .case .bar { background: rgba(255,255,255,0.06); }
+  .c1 .case .bar > i { background: linear-gradient(90deg, #c8923c, #f2c77a); width: 47%; }
+  .c1 .build {
+    background: linear-gradient(180deg, #c9452b, #a13520);
+    color: #f5ecdb;
+    box-shadow: 0 6px 14px -8px rgba(201, 69, 43, 0.7), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .c1 .build::before { background: linear-gradient(90deg, rgba(255,255,255,0), rgba(242,199,122,0.35)); }
+  .c1 .scr-tabs { border-top: 1px solid rgba(245, 236, 219, 0.06); }
+  .c1 .tab { color: #f5ecdb; }
+  .c1 .tab.active { color: #f2c77a; }
+
+  /* ============================================
+     CONCEPT 2 — FORGE & IRON
+     ============================================ */
+  .c2 .swatches > div:nth-child(1) { background: #15171b; }
+  .c2 .swatches > div:nth-child(2) { background: #25292f; }
+  .c2 .swatches > div:nth-child(3) { background: #d8d2c4; }
+  .c2 .swatches > div:nth-child(4) { background: #d96b1c; }
+  .c2 .swatches > div:nth-child(5) { background: #f2a855; }
+  .c2 .swatches > div:nth-child(6) { background: #b03a2e; }
+  .c2 .swatches > div:nth-child(7) { background: #4a6fa5; }
+
+  .c2 .screen {
+    background:
+      linear-gradient(180deg, #1c1f24 0%, #15171b 100%),
+      #15171b;
+    color: #d8d2c4;
+    position: relative;
+  }
+  .c2 .screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 6px);
+    pointer-events: none;
+  }
+  .c2 .scr-title { color: #d8d2c4; font-style: italic; }
+  .c2 .scr-team { color: #f2a855; letter-spacing: 0.32em; }
+  .c2 .scr-team::before { content: '※ '; color: #d96b1c; margin-right: 1px; }
+  .c2 .stepblock .num { color: #d8d2c4; }
+  .c2 .stepblock .num::before { content: ''; }
+  .c2 .stepblock .lbl { color: rgba(216, 210, 196, 0.4); letter-spacing: 0.36em; }
+  .c2 .case {
+    background: #1f2227;
+    border: 1px solid #2a2e35;
+    border-left: 2px solid #d96b1c;
+    border-radius: 4px;
+  }
+  .c2 .case .name { color: #d8d2c4; letter-spacing: 0.22em; }
+  .c2 .case .progress { color: #6b6e75; letter-spacing: 0.16em; }
+  .c2 .case .pillopen {
+    background: transparent;
+    color: #f2a855;
+    border: 1px solid #d96b1c;
+    border-radius: 2px;
+    letter-spacing: 0.28em;
+  }
+  .c2 .case .bar { background: #15171b; border-radius: 0; height: 2px; }
+  .c2 .case .bar > i {
+    background: linear-gradient(90deg, #d96b1c 0%, #f2a855 60%, #fff2d4 100%);
+    width: 47%;
+    box-shadow: 0 0 8px rgba(242, 168, 85, 0.6);
+  }
+  .c2 .build {
+    background: #b03a2e;
+    color: #fff2d4;
+    border-radius: 2px;
+    letter-spacing: 0.32em;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3), 0 6px 14px -10px rgba(176, 58, 46, 0.8);
+  }
+  .c2 .build::before { background: rgba(242, 168, 85, 0.45); width: 47%; }
+  .c2 .scr-tabs { border-top: 1px solid #2a2e35; }
+  .c2 .tab { color: #d8d2c4; letter-spacing: 0.32em; }
+  .c2 .tab.active { color: #f2a855; }
+
+  /* ============================================
+     CONCEPT 3 — MONASTIC VELLUM
+     ============================================ */
+  .c3 .swatches > div:nth-child(1) { background: #f0e5cf; }
+  .c3 .swatches > div:nth-child(2) { background: #d9caa6; }
+  .c3 .swatches > div:nth-child(3) { background: #2c2419; }
+  .c3 .swatches > div:nth-child(4) { background: #c79c3a; }
+  .c3 .swatches > div:nth-child(5) { background: #a4842a; }
+  .c3 .swatches > div:nth-child(6) { background: #7a1f1c; }
+  .c3 .swatches > div:nth-child(7) { background: #1f3262; }
+
+  .c3 .screen {
+    background:
+      radial-gradient(at 0% 0%, rgba(199, 156, 58, 0.16), transparent 35%),
+      radial-gradient(at 100% 100%, rgba(122, 31, 28, 0.08), transparent 30%),
+      #f0e5cf;
+    color: #2c2419;
+    position: relative;
+  }
+  .c3 .screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(rgba(124, 100, 56, 0.06) 1px, transparent 1px),
+      radial-gradient(rgba(124, 100, 56, 0.04) 1px, transparent 1px);
+    background-size: 3px 3px, 5px 5px;
+    background-position: 0 0, 1px 2px;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+  .c3 .scr-title { color: #2c2419; }
+  .c3 .scr-team {
+    color: #7a1f1c;
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+  .c3 .scr-team::before { content: '𓂀 · '; color: #c79c3a; }
+  .c3 .stepblock .num {
+    color: #7a1f1c;
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 56px;
+    letter-spacing: 0;
+  }
+  .c3 .stepblock .lbl { color: #6b5a3c; }
+  .c3 .case {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid #c79c3a;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
+    position: relative;
+  }
+  .c3 .case::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px dashed rgba(199, 156, 58, 0.35);
+    border-radius: 11px;
+    pointer-events: none;
+  }
+  .c3 .case .name { color: #2c2419; letter-spacing: 0.18em; }
+  .c3 .case .progress { color: #6b5a3c; }
+  .c3 .case .pillopen {
+    background: #1f3262;
+    color: #f0e5cf;
+    box-shadow: 0 2px 0 #122149;
+  }
+  .c3 .case .bar { background: rgba(44, 36, 25, 0.1); }
+  .c3 .case .bar > i { background: #c79c3a; width: 47%; }
+  .c3 .build {
+    background: #7a1f1c;
+    color: #f0e5cf;
+    border-radius: 4px;
+    box-shadow: 0 4px 0 #5a1311, 0 8px 14px -6px rgba(122, 31, 28, 0.45);
+  }
+  .c3 .build::before { background: rgba(199, 156, 58, 0.5); width: 47%; }
+  .c3 .scr-tabs { border-top: 1px solid rgba(44, 36, 25, 0.1); }
+  .c3 .tab { color: #2c2419; }
+  .c3 .tab.active { color: #7a1f1c; }
+  .c3 .tab.dim { color: rgba(44, 36, 25, 0.4); opacity: 1; }
+
+  /* ============================================
+     CONCEPT 4 — SLATE & BRASS
+     ============================================ */
+  .c4 .swatches > div:nth-child(1) { background: #2b3138; }
+  .c4 .swatches > div:nth-child(2) { background: #3a414a; }
+  .c4 .swatches > div:nth-child(3) { background: #f1ede4; }
+  .c4 .swatches > div:nth-child(4) { background: #b88a3e; }
+  .c4 .swatches > div:nth-child(5) { background: #e6c180; }
+  .c4 .swatches > div:nth-child(6) { background: #c44b3a; }
+  .c4 .swatches > div:nth-child(7) { background: #6589b8; }
+
+  .c4 .screen {
+    background:
+      linear-gradient(180deg, #313841 0%, #2b3138 100%);
+    color: #f1ede4;
+    position: relative;
+  }
+  .c4 .screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 30%);
+    pointer-events: none;
+  }
+  .c4 .scr-title { color: #f1ede4; font-weight: 900; }
+  .c4 .scr-team {
+    color: #e6c180;
+    letter-spacing: 0.36em;
+    font-size: 9px;
+  }
+  .c4 .scr-team::before { content: ''; }
+  .c4 .scr-team::after {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 1px;
+    background: #b88a3e;
+    margin: 6px auto 0;
+  }
+  .c4 .stepblock .num {
+    color: #f1ede4;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  .c4 .stepblock .lbl { color: #8d959e; letter-spacing: 0.36em; }
+  .c4 .case {
+    background: rgba(58, 65, 74, 0.5);
+    border: 1px solid rgba(184, 138, 62, 0.3);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+  }
+  .c4 .case .name { color: #f1ede4; letter-spacing: 0.18em; }
+  .c4 .case .progress { color: #8d959e; }
+  .c4 .case .pillopen {
+    background: transparent;
+    color: #e6c180;
+    border: 1px solid #b88a3e;
+    letter-spacing: 0.22em;
+  }
+  .c4 .case .bar { background: rgba(0,0,0,0.25); height: 3px; }
+  .c4 .case .bar > i { background: linear-gradient(90deg, #b88a3e, #e6c180); width: 47%; }
+  .c4 .build {
+    background: linear-gradient(180deg, #c44b3a, #9e3525);
+    color: #f1ede4;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.18),
+      0 8px 18px -10px rgba(196, 75, 58, 0.7);
+  }
+  .c4 .build::before {
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(230, 193, 128, 0.35));
+    width: 47%;
+  }
+  .c4 .scr-tabs { border-top: 1px solid rgba(141, 149, 158, 0.18); }
+  .c4 .tab { color: #f1ede4; }
+  .c4 .tab.active { color: #e6c180; }
+  .c4 .tab.dim { color: #8d959e; opacity: 1; }
+
+  /* ------------- Footer note ------------- */
+  .footnote {
+    max-width: 1200px;
+    margin: 80px auto 0;
+    padding-top: 32px;
+    border-top: 1px solid rgba(245, 236, 219, 0.08);
+    font-size: 12px;
+    color: rgba(245, 236, 219, 0.45);
+    line-height: 1.6;
+  }
+  .footnote span { color: #c8923c; font-family: var(--label); letter-spacing: 0.2em; font-size: 11px; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; gap: 48px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="pagehead">
+    <div class="eyebrow">STRIDEKEEP · DESIGN EXPLORATION · 2026-04-20</div>
+    <h1>Four palettes for a tavern, a forge, a scriptorium, a workshop.</h1>
+    <p>Each is faithful to the SKILL.md brief — medieval artisan, dignified working-class, never casino. They diverge in <em>which kind</em> of artisan: candlelit room of a tavern keeper, smoke-and-iron of a forge, vellum-and-gold of a monastic scriptorium, or slate-and-brass of a Victorian workshop. Hover any swatch row to read hex codes.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- ============================================
+         CONCEPT 1
+         ============================================ -->
+    <article class="concept c1">
+      <div class="meta">
+        <div class="number">01 · ANCHOR</div>
+        <div class="name">Candlelight Tavern</div>
+        <div class="desc">Refined version of the current direction. Warm espresso pooling around firelit cream, brass that catches highlights, brick-red CTAs, guild-indigo for Team Blue. The palette of someone telling stories at a long oak table.</div>
+      </div>
+      <div class="swatches" title="Hover for hex codes">
+        <div data-hex="#2a1f17"></div>
+        <div data-hex="#3b2c20"></div>
+        <div data-hex="#f5ecdb"></div>
+        <div data-hex="#c8923c"></div>
+        <div data-hex="#f2c77a"></div>
+        <div data-hex="#c9452b"></div>
+        <div data-hex="#3b5998"></div>
+      </div>
+      <div class="phone"><div class="screen">
+        <div class="scr-pad header-row">
+          <h2 class="scr-title">Stridekeep</h2>
+          <div class="scr-team">TEAM RED · YOUR TOWN</div>
+        </div>
+        <div class="scr-flex">
+          <div class="stepblock">
+            <div class="num">2,500</div>
+            <div class="lbl">STEPS TODAY</div>
+          </div>
+          <div class="case">
+            <div class="icon">📦</div>
+            <div>
+              <div class="name">BASIC SUPPLIES</div>
+              <div class="progress">100 / 200 STEPS</div>
+            </div>
+            <div class="pillopen">OPEN · 12</div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="build"><span>BUILD FOR RED · $2,500 → 🏥 HOSPITAL</span></div>
+        </div>
+        <div class="scr-tabs">
+          <div class="tab active"><span class="glyph">🏠</span>HOME</div>
+          <div class="tab dim"><span class="glyph">🎒</span>INVENTORY</div>
+          <div class="tab dim"><span class="glyph">🏛️</span>TOWN</div>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- ============================================
+         CONCEPT 2
+         ============================================ -->
+    <article class="concept c2">
+      <div class="meta">
+        <div class="number">02 · DARKER, COLDER</div>
+        <div class="name">Forge &amp; Iron</div>
+        <div class="desc">Smoked iron with hot-coal orange and pale ash. Sharper geometry, hairline rules, accent border on the case card. Reads as a 5am shift in a working forge — not flashy, but everything earns its weight. Kept the team red as muted heraldic brick.</div>
+      </div>
+      <div class="swatches" title="Hover for hex codes">
+        <div data-hex="#15171b"></div>
+        <div data-hex="#25292f"></div>
+        <div data-hex="#d8d2c4"></div>
+        <div data-hex="#d96b1c"></div>
+        <div data-hex="#f2a855"></div>
+        <div data-hex="#b03a2e"></div>
+        <div data-hex="#4a6fa5"></div>
+      </div>
+      <div class="phone"><div class="screen">
+        <div class="scr-pad header-row">
+          <h2 class="scr-title">Stridekeep</h2>
+          <div class="scr-team">TEAM RED · YOUR TOWN</div>
+        </div>
+        <div class="scr-flex">
+          <div class="stepblock">
+            <div class="num">2,500</div>
+            <div class="lbl">STEPS TODAY</div>
+          </div>
+          <div class="case">
+            <div class="icon">📦</div>
+            <div>
+              <div class="name">BASIC SUPPLIES</div>
+              <div class="progress">100 / 200 STEPS</div>
+            </div>
+            <div class="pillopen">OPEN · 12</div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="build"><span>BUILD FOR RED · $2,500 → 🏥 HOSPITAL</span></div>
+        </div>
+        <div class="scr-tabs">
+          <div class="tab active"><span class="glyph">🏠</span>HOME</div>
+          <div class="tab dim"><span class="glyph">🎒</span>INVENTORY</div>
+          <div class="tab dim"><span class="glyph">🏛️</span>TOWN</div>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- ============================================
+         CONCEPT 3
+         ============================================ -->
+    <article class="concept c3">
+      <div class="meta">
+        <div class="number">03 · LIGHTER, REVERENT</div>
+        <div class="name">Monastic Vellum</div>
+        <div class="desc">A LIGHT theme — the only one of the four. Aged parchment background with gold-leaf accents and oxblood for emphasis, indigo for the Open buttons (cold, calm, considered). Step counter in Playfair italic gold-script feels like an illuminated capital. The risk: lighter screens fight outdoor sun on long shifts.</div>
+      </div>
+      <div class="swatches" title="Hover for hex codes">
+        <div data-hex="#f0e5cf"></div>
+        <div data-hex="#d9caa6"></div>
+        <div data-hex="#2c2419"></div>
+        <div data-hex="#c79c3a"></div>
+        <div data-hex="#a4842a"></div>
+        <div data-hex="#7a1f1c"></div>
+        <div data-hex="#1f3262"></div>
+      </div>
+      <div class="phone"><div class="screen">
+        <div class="scr-pad header-row">
+          <h2 class="scr-title">Stridekeep</h2>
+          <div class="scr-team">Team Red · Your Town</div>
+        </div>
+        <div class="scr-flex">
+          <div class="stepblock">
+            <div class="num">2,500</div>
+            <div class="lbl">STEPS TODAY</div>
+          </div>
+          <div class="case">
+            <div class="icon">📦</div>
+            <div>
+              <div class="name">BASIC SUPPLIES</div>
+              <div class="progress">100 / 200 STEPS</div>
+            </div>
+            <div class="pillopen">OPEN · 12</div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="build"><span>BUILD FOR RED · $2,500 → 🏥 HOSPITAL</span></div>
+        </div>
+        <div class="scr-tabs">
+          <div class="tab active"><span class="glyph">🏠</span>HOME</div>
+          <div class="tab dim"><span class="glyph">🎒</span>INVENTORY</div>
+          <div class="tab dim"><span class="glyph">🏛️</span>TOWN</div>
+        </div>
+      </div></div>
+    </article>
+
+    <!-- ============================================
+         CONCEPT 4
+         ============================================ -->
+    <article class="concept c4">
+      <div class="meta">
+        <div class="number">04 · COOLER, MODERN</div>
+        <div class="name">Slate &amp; Brass</div>
+        <div class="desc">Cool blue-slate base with warm brass accents — a Victorian instrument-maker's bench. Subtle backdrop blur on cards, hairline brass borders, restrained gradients. Reads more <em>contemporary</em> than the others while staying material-honest. Best fit if the audience skews toward warehouse-tech / fulfillment-center workers who use modern apps daily.</div>
+      </div>
+      <div class="swatches" title="Hover for hex codes">
+        <div data-hex="#2b3138"></div>
+        <div data-hex="#3a414a"></div>
+        <div data-hex="#f1ede4"></div>
+        <div data-hex="#b88a3e"></div>
+        <div data-hex="#e6c180"></div>
+        <div data-hex="#c44b3a"></div>
+        <div data-hex="#6589b8"></div>
+      </div>
+      <div class="phone"><div class="screen">
+        <div class="scr-pad header-row">
+          <h2 class="scr-title">Stridekeep</h2>
+          <div class="scr-team">TEAM RED · YOUR TOWN</div>
+        </div>
+        <div class="scr-flex">
+          <div class="stepblock">
+            <div class="num">2,500</div>
+            <div class="lbl">STEPS TODAY</div>
+          </div>
+          <div class="case">
+            <div class="icon">📦</div>
+            <div>
+              <div class="name">BASIC SUPPLIES</div>
+              <div class="progress">100 / 200 STEPS</div>
+            </div>
+            <div class="pillopen">OPEN · 12</div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="build"><span>BUILD FOR RED · $2,500 → 🏥 HOSPITAL</span></div>
+        </div>
+        <div class="scr-tabs">
+          <div class="tab active"><span class="glyph">🏠</span>HOME</div>
+          <div class="tab dim"><span class="glyph">🎒</span>INVENTORY</div>
+          <div class="tab dim"><span class="glyph">🏛️</span>TOWN</div>
+        </div>
+      </div></div>
+    </article>
+
+  </div>
+
+  <footer class="footnote">
+    <span>NOTES</span><br/>
+    Mockups use the same content (2,500 steps, 12 pending starter cases) so the palette is the only variable. All show TEAM RED. Typography is locked to SKILL.md (Bebas Neue, Playfair Display Italic, Outfit) — the differentiation is purely color, texture, and shape language. The build button shows ~47% projected progress (white fill = current, gold/cream shimmer = projected addition) per SKILL.md §5.
+  </footer>
+
+</body>
+</html>
