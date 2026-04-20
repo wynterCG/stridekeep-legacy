@@ -1,27 +1,19 @@
 import React from 'react';
-import {
-  ScrollView,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import StepCounter from '../components/StepCounter';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
+import BuildButton from '../components/BuildButton';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function HomeScreen(): React.JSX.Element {
   const team = useGameStore((s) => s.team);
   const purse = useGameStore((s) => s.purse);
-  const forTheTown = useGameStore((s) => s.forTheTown);
-  const depositForTown = useGameStore((s) => s.depositForTown);
 
   const teamColor = team === 'red' ? colors.team.red : colors.team.blue;
   const teamLabel = team === 'red' ? 'RED' : 'BLUE';
-  const buildLabel = `BUILD FOR ${teamLabel} — $${forTheTown.toLocaleString()}`;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -49,19 +41,7 @@ export default function HomeScreen(): React.JSX.Element {
           <Text style={styles.purseValue}>${purse.toLocaleString()}</Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.buildBtn,
-            { borderColor: teamColor },
-            forTheTown === 0 && styles.buildBtnDisabled,
-          ]}
-          onPress={depositForTown}
-          disabled={forTheTown === 0}
-        >
-          <Text style={[styles.buildBtnText, forTheTown > 0 && { color: teamColor }]}>
-            {buildLabel}
-          </Text>
-        </TouchableOpacity>
+        <BuildButton />
 
         <SimulateWalkButton />
       </ScrollView>
@@ -121,21 +101,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bebasNeue,
     fontSize: 20,
     color: colors.accent.brassLight,
-  },
-  buildBtn: {
-    borderWidth: 2,
-    borderRadius: radii.card,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  buildBtnDisabled: {
-    borderColor: colors.ui.border,
-  },
-  buildBtnText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 18,
-    color: colors.text.dim,
-    letterSpacing: 1,
   },
 });

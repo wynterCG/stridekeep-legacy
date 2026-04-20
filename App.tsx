@@ -12,6 +12,8 @@ import RootTabs from './src/navigation/RootTabs';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
+import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
+import { loadInitialTeams, subscribeTeams } from './src/lib/teams';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -73,6 +75,36 @@ export default function App(): React.JSX.Element | null {
       cancelled = true;
       unsubHydrate();
       sub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof subscribeTeams> | null = null;
+
+    (async () => {
+      try {
+        await ensureSignedIn();
+        if (cancelled) return;
+        const team = await fetchMyTeam();
+        if (cancelled) return;
+        useGameStore.getState().setTeam(team);
+
+        const totals = await loadInitialTeams();
+        if (cancelled) return;
+        useGameStore.getState().setTeamTotals(totals);
+
+        channel = subscribeTeams((color, total) => {
+          useGameStore.getState().setTeamTotal(color, total);
+        });
+      } catch (err) {
+        console.warn('[stridekeep] backend bootstrap failed:', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) channel.unsubscribe();
     };
   }, []);
 

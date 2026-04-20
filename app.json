@@ -45,6 +45,10 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "supabaseUrl": "https://fdygeoihelpgjyhbvxgu.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkeWdlb2loZWxwZ2p5aGJ2eGd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjcwMDIsImV4cCI6MjA5MjI0MzAwMn0.IHjRb8LyzpzKR9_18NOOI9oQDy9YuiPTEU_Fsj55eEM"
+    }
   }
 }

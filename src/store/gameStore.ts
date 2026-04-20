@@ -5,6 +5,7 @@ import type { Team, CaseTier, Item, KeptItem, CaseState } from '../types';
 import { CASES, ITEMS_BY_TIER } from '../data/cases';
 import { BALANCE } from '../balance';
 import { todayKey } from '../native/healthConnect';
+import { serverDeposit } from '../lib/teams';
 
 interface GameState {
   team: Team | null;
@@ -27,7 +28,10 @@ interface GameActions {
   openCase: (tier: CaseTier) => Item | null;
   sellItem: (item: Item) => void;
   keepItem: (item: Item) => boolean;
-  depositForTown: () => void;
+  depositForTown: () => Promise<void>;
+  setTeam: (team: Team) => void;
+  setTeamTotals: (totals: { red: number; blue: number }) => void;
+  setTeamTotal: (color: 'red' | 'blue', total: number) => void;
   upgradeStridePower: () => void;
   upgradeSlots: () => void;
 }
@@ -198,19 +202,35 @@ export const useGameStore = create<GameStore>()(
         return true;
       },
 
-      depositForTown: () => {
-        const { forTheTown, team, teamTotals } = get();
-        if (!team || forTheTown <= 0) {
-          return;
+      depositForTown: async () => {
+        const { forTheTown, team } = get();
+        if (!team || forTheTown <= 0) return;
+        // Optimistic clear so the UI reads as instant. Realtime push from
+        // public.teams will reconcile teamTotals shortly after.
+        set({ forTheTown: 0 });
+        try {
+          const newTotal = await serverDeposit(forTheTown);
+          // Self-heal: apply the RPC return as a floor so we don't depend on
+          // the realtime push being delivered. The RPC result can only be
+          // ahead of (or equal to) the cached value.
+          const cur = get().teamTotals[team];
+          if (newTotal > cur) {
+            set({ teamTotals: { ...get().teamTotals, [team]: newTotal } });
+          }
+        } catch (err) {
+          // Roll back the optimistic clear so the player can retry.
+          set({ forTheTown });
+          console.warn('[stridekeep] deposit_for_town failed:', err);
         }
-        set({
-          teamTotals: {
-            ...teamTotals,
-            [team]: teamTotals[team] + forTheTown,
-          },
-          forTheTown: 0,
-        });
       },
+
+      setTeam: (team: Team) => set({ team }),
+
+      setTeamTotals: (totals: { red: number; blue: number }) =>
+        set({ teamTotals: totals }),
+
+      setTeamTotal: (color: 'red' | 'blue', total: number) =>
+        set((state) => ({ teamTotals: { ...state.teamTotals, [color]: total } })),
 
       upgradeStridePower: () => {
         const { strideLevel, purse } = get();
@@ -239,11 +259,9 @@ export const useGameStore = create<GameStore>()(
     {
       name: 'stridekeep-game-state',
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
-        if (state && state.team === null) {
-          state.team = Math.random() < 0.5 ? 'red' : 'blue';
-        }
-      },
+      // Team is no longer assigned client-side. The server is the source of
+      // truth (assigned by the handle_new_user trigger on signup) and App.tsx
+      // calls setTeam after the auth + fetch round-trip resolves.
     },
   ),
 );
