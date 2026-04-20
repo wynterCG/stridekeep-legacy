@@ -5,11 +5,16 @@ import { useGameStore } from '../store/gameStore';
 import { MILESTONES } from '../data/cases';
 import SeasonBanner from '../components/SeasonBanner';
 import LiveFeed from '../components/LiveFeed';
+import TradingChart from '../components/TradingChart';
+import { useTownFeed } from '../hooks/useTownFeed';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function TownScreen(): React.JSX.Element {
   const team = useGameStore((s) => s.team);
   const teamTotals = useGameStore((s) => s.teamTotals);
+  // Single poll source for both LiveFeed and TradingChart so we don't run
+  // two 30s polls in parallel.
+  const { deposits, loading } = useTownFeed();
 
   const teamTotal = team ? teamTotals[team] : 0;
   const isNew = teamTotal === 0;
@@ -30,7 +35,9 @@ export default function TownScreen(): React.JSX.Element {
           </View>
         )}
 
-        <LiveFeed />
+        <TradingChart deposits={deposits} />
+
+        <LiveFeed deposits={deposits} loading={loading} />
 
         <View style={styles.timeline}>
           {MILESTONES.map((milestone, index) => {

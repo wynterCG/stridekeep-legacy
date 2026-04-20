@@ -1,11 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useTownFeed, relativeTime } from '../hooks/useTownFeed';
+import { relativeTime } from '../hooks/useTownFeed';
+import type { DepositRow } from '../lib/deposits';
 import { colors, fonts, radii, spacing } from '../theme';
 
-export default function LiveFeed(): React.JSX.Element {
-  const { deposits, loading } = useTownFeed();
+interface Props {
+  deposits: DepositRow[];
+  loading: boolean;
+}
 
+export default function LiveFeed({ deposits, loading }: Props): React.JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.header}>

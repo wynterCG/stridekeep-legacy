@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadRecentDeposits, type DepositRow } from '../lib/deposits';
+import { loadInitialTeams } from '../lib/teams';
+import { useGameStore } from '../store/gameStore';
 
 const POLL_MS = 30_000;
 
@@ -29,10 +31,19 @@ export function useTownFeed(): { deposits: DepositRow[]; loading: boolean } {
         if (AppState.currentState !== 'active') return;
         try {
           setLoading(true);
-          const rows = await loadRecentDeposits();
-          if (activeRef) setDeposits(rows);
+          // Refresh both deposits AND teamTotals — the chart needs the
+          // current totals as its baseline, and Town isn't subscribed to
+          // realtime (Slice 3's cost architecture). One extra SELECT, same
+          // 30s cadence, no realtime fan-out.
+          const [rows, totals] = await Promise.all([
+            loadRecentDeposits(),
+            loadInitialTeams(),
+          ]);
+          if (!activeRef) return;
+          setDeposits(rows);
+          useGameStore.getState().setTeamTotals(totals);
         } catch (err) {
-          console.warn('[stridekeep] deposits load failed:', err);
+          console.warn('[stridekeep] town feed load failed:', err);
         } finally {
           if (activeRef) setLoading(false);
         }
