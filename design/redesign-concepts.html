@@ -1,0 +1,2372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stridekeep — Redesign Concepts (Slate & Brass)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,900;1,900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #2b3138;
+  --bg-card: #353c46;
+  --bg-card-hi: #404853;
+  --bg-overlay: #1f242a;
+  --bg-deep: #161a1f;
+  --text-cream: #f1ede4;
+  --text-secondary: #c8cdd4;
+  --text-muted: #8d959e;
+  --text-dim: #5b6068;
+  --brass: #c79c4a;
+  --brass-light: #f0d091;
+  --brass-deep: #8e6a2c;
+  --team-red: #c44b3a;
+  --team-red-soft: #a13c2e;
+  --team-blue: #6589b8;
+  --team-blue-soft: #4f6e96;
+  --border: #4d5560;
+  --progress-bg: #1f242a;
+  --serif: 'Playfair Display', Georgia, serif;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'Outfit', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-deep);
+  color: var(--text-cream);
+  font-family: var(--body);
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(199,156,74,0.06), transparent 45%),
+    radial-gradient(circle at 80% 100%, rgba(101,137,184,0.04), transparent 45%),
+    var(--bg-deep);
+  padding: 56px 24px 120px;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+  z-index: 0;
+}
+
+.page-header {
+  max-width: 1280px;
+  margin: 0 auto 64px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.page-header .kicker {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 6px;
+  color: var(--brass);
+  margin-bottom: 18px;
+}
+
+.page-header h1 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1.05;
+  color: var(--brass-light);
+  letter-spacing: -0.01em;
+}
+
+.page-header h1 em {
+  font-style: italic;
+  color: var(--text-cream);
+  font-weight: 400;
+  font-size: 0.62em;
+  display: block;
+  margin-top: 8px;
+}
+
+.page-header .meta {
+  margin-top: 22px;
+  font-family: var(--body);
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.page-header .meta span {
+  color: var(--brass-light);
+}
+
+.divider {
+  width: 60px;
+  height: 1px;
+  background: var(--brass-deep);
+  margin: 36px auto;
+  position: relative;
+}
+.divider::before, .divider::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  width: 5px; height: 5px;
+  background: var(--brass);
+  border-radius: 50%;
+}
+.divider::before { left: -10px; }
+.divider::after { right: -10px; }
+
+.board {
+  max-width: 1280px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.section {
+  margin-bottom: 96px;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-head .section-no {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: var(--brass);
+}
+
+.section-head h2 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 32px;
+  color: var(--text-cream);
+}
+
+.section-head .tag {
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.frame-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 56px;
+  align-items: start;
+}
+
+/* ───────── PHONE FRAME ───────── */
+.phone {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  background: #0a0c10;
+  border-radius: 38px;
+  padding: 12px;
+  box-shadow:
+    0 30px 70px -20px rgba(0,0,0,0.7),
+    inset 0 0 0 2px #1c2026,
+    inset 0 0 0 3px #2b3138;
+  position: relative;
+}
+
+.phone::before {
+  content: '';
+  position: absolute;
+  top: 22px; left: 50%;
+  transform: translateX(-50%);
+  width: 90px; height: 24px;
+  background: #0a0c10;
+  border-radius: 14px;
+  z-index: 5;
+}
+
+.phone .screen {
+  background: var(--bg-primary);
+  border-radius: 28px;
+  overflow: hidden;
+  aspect-ratio: 9/19.5;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.frame-cap {
+  text-align: center;
+  margin-top: 22px;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: var(--brass);
+}
+
+.frame-cap small {
+  display: block;
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* ───────── APP CHROME ───────── */
+.status-bar {
+  height: 24px;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: none;
+}
+.app-content::-webkit-scrollbar { display: none; }
+
+.tab-bar {
+  height: 56px;
+  background: var(--bg-primary);
+  border-top: 1px solid #3a2a1e;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--display);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+}
+
+.tab.active { color: var(--brass); }
+
+.tab-glyph {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ───────── TOP HEADER ───────── */
+.top-header {
+  background:
+    linear-gradient(180deg, rgba(199,156,74,0.08), transparent),
+    var(--bg-deep);
+  border-bottom: 1px solid var(--brass-deep);
+  padding: 10px 14px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--display);
+}
+
+.season-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.season-chip .crest-mini {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--team-red), var(--team-red-soft));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 1px rgba(196,75,58,0.5), 0 0 8px -1px rgba(196,75,58,0.6);
+}
+
+.season-chip .crest-mini svg {
+  width: 11px; height: 11px;
+  fill: var(--text-cream);
+}
+
+.season-chip .name {
+  color: var(--brass-light);
+  font-size: 15px;
+  letter-spacing: 2.5px;
+  line-height: 1;
+}
+
+.season-chip .meta {
+  color: var(--brass-deep);
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-top: 2px;
+  display: block;
+}
+
+.season-chip .stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.purse-chip {
+  color: var(--brass-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 19px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(240,208,145,0.25);
+}
+
+.purse-chip::before {
+  content: '◆';
+  color: var(--brass);
+  font-size: 13px;
+}
+
+.purse-chip .small {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-right: 4px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* ───────── TEAM PROGRESS STRIP ───────── */
+.team-progress {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-progress.hearth { border-left: 3px solid var(--team-red); }
+.team-progress.tide { border-left: 3px solid var(--team-blue); }
+
+.team-progress .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+
+.team-progress .crest {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-cream);
+}
+
+.team-progress .crest svg { width: 14px; height: 14px; }
+.team-progress.hearth .crest svg { fill: var(--team-red); }
+.team-progress.tide .crest svg { fill: var(--team-blue); }
+
+.team-progress .target {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.team-progress .target span {
+  color: var(--brass-light);
+}
+
+.bar-track {
+  height: 4px;
+  background: var(--progress-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-fill { height: 100%; }
+.hearth .bar-fill { background: linear-gradient(90deg, var(--team-red-soft), var(--team-red)); }
+.tide .bar-fill { background: linear-gradient(90deg, var(--team-blue-soft), var(--team-blue)); }
+
+/* ───────── BUILD BUTTON (hero) ───────── */
+.build-btn {
+  border: 2px solid var(--team-red);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.build-btn.idle.tide { border-color: var(--team-blue); }
+.build-btn.batching {
+  border-color: var(--brass);
+  background: linear-gradient(90deg, var(--brass-deep) 0%, var(--brass-deep) 60%, var(--bg-card) 60%);
+}
+
+.build-btn .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.build-btn .left {
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: 1.5px;
+  color: var(--team-red);
+}
+
+.build-btn.batching .left { color: var(--brass-light); }
+
+.build-btn .right {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  text-align: right;
+}
+.build-btn.batching .right { color: var(--brass-light); }
+
+.build-btn .micro-bar {
+  height: 5px;
+  background: var(--progress-bg);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+.build-btn .micro-bar .current {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--text-cream);
+}
+.build-btn .micro-bar .projected {
+  position: absolute; top: 0; bottom: 0;
+  background: var(--brass);
+  opacity: 0.85;
+}
+
+/* ───────── STEP STRIP (compressed) ───────── */
+.step-strip {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.step-strip .count {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--text-cream);
+  letter-spacing: 1px;
+}
+
+.step-strip .label {
+  font-family: var(--display);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.step-strip .stride {
+  font-family: var(--body);
+  font-size: 10px;
+  color: var(--brass);
+  font-weight: 700;
+}
+
+/* ───────── CASE CARDS — differentiated ───────── */
+.case {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 12px;
+  border-left: 4px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.case.starter { border-left-color: var(--brass); }
+
+.case.premium {
+  border-left-color: #7a9fd4;
+  background: linear-gradient(135deg, var(--bg-card) 0%, #3a4452 100%);
+}
+
+.case.luxury {
+  border-left-color: var(--brass-light);
+  background:
+    radial-gradient(circle at top right, rgba(240,208,145,0.10), transparent 60%),
+    linear-gradient(135deg, #3d3528 0%, var(--bg-card) 60%);
+  box-shadow: inset 0 0 0 1px rgba(199,156,74,0.25);
+}
+
+.case .head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.case .emoji { font-size: 22px; }
+
+.case .title {
+  flex: 1;
+}
+
+.case .title h3 {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: var(--text-cream);
+  font-weight: 400;
+}
+
+.case .title p {
+  font-family: var(--body);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.case .badge {
+  background: var(--brass);
+  color: var(--bg-primary);
+  font-family: var(--display);
+  font-size: 12px;
+  width: 22px; height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case.luxury .badge { background: var(--brass-light); }
+
+.case .progress-bar {
+  height: 4px;
+  background: var(--progress-bg);
+  border-radius: 2px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.case .progress-bar .fill { height: 100%; background: var(--brass); }
+.case.luxury .progress-bar .fill {
+  background: linear-gradient(90deg, var(--brass-deep), var(--brass-light));
+}
+
+.case .open-btn {
+  background: var(--brass);
+  color: var(--bg-primary);
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.case.luxury .open-btn {
+  background: linear-gradient(90deg, var(--brass), var(--brass-light));
+  box-shadow: 0 0 0 1px var(--brass-light) inset;
+}
+
+/* ───────── TOWN: NEXT UNLOCK CARD ───────── */
+.next-unlock {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px;
+  border-left: 4px solid var(--brass);
+  position: relative;
+  overflow: hidden;
+}
+
+.next-unlock::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at right, rgba(199,156,74,0.10), transparent 60%);
+  pointer-events: none;
+}
+
+.next-unlock .kicker {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--brass);
+  margin-bottom: 4px;
+}
+
+.next-unlock h3 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--brass-light);
+  margin-bottom: 6px;
+}
+
+.next-unlock .ribbon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.next-unlock .ribbon .big {
+  font-family: var(--display);
+  font-size: 14px;
+  color: var(--text-cream);
+  letter-spacing: 1px;
+}
+
+.next-unlock .preview-emoji {
+  position: absolute;
+  right: 12px; top: 12px;
+  font-size: 28px;
+  opacity: 0.9;
+}
+
+/* ───────── TRADING CHART (with axis labels) ───────── */
+.chart-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.chart-head .title {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--brass);
+  letter-spacing: 2px;
+}
+
+.chart-head .sub {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  text-transform: lowercase;
+}
+
+.chart-head .lead {
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--team-red);
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chart-svg {
+  width: 100%;
+  height: 96px;
+  display: block;
+  position: relative;
+}
+
+.chart-axis-label {
+  font-family: var(--body);
+  font-size: 8px;
+  fill: var(--text-muted);
+  font-weight: 700;
+}
+
+.chart-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--body);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.chart-foot .swatch-row {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--body);
+  font-weight: 700;
+  color: var(--text-cream);
+  font-size: 11px;
+}
+
+.chart-foot .swatch {
+  width: 8px; height: 8px; border-radius: 2px;
+}
+
+/* ───────── LIVE FEED (with live dot) ───────── */
+.feed {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.feed-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.feed-head .title {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--brass);
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  background: var(--team-red);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(196,75,58,0.7);
+  animation: pulse 1.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(196,75,58,0.7); }
+  100% { box-shadow: 0 0 0 8px rgba(196,75,58,0); }
+}
+
+.feed-row {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+  gap: 8px;
+}
+
+.feed-row.fresh {
+  background: rgba(199,156,74,0.08);
+  border-radius: 4px;
+  padding: 5px 4px;
+  margin: 0 -4px;
+  animation: fadeFresh 1.2s ease-out forwards;
+}
+
+@keyframes fadeFresh {
+  to { background: transparent; }
+}
+
+.feed-row .swatch {
+  width: 8px; height: 8px; border-radius: 2px;
+}
+
+.feed-row .nick {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-cream);
+}
+
+.feed-row .amt {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--brass-light);
+  margin-left: 4px;
+}
+
+.feed-row .time {
+  margin-left: auto;
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* ───────── MILESTONE PATH ───────── */
+.path {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px 14px 6px;
+}
+
+.path-head {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--brass);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.milestone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.milestone .pip {
+  width: 26px; height: 26px;
+  border-radius: 13px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  position: relative;
+  z-index: 2;
+}
+
+.milestone.done .pip {
+  background: var(--bg-overlay);
+  border-color: var(--brass);
+}
+
+.milestone.here .pip {
+  background: var(--brass);
+  border-color: var(--brass-light);
+  box-shadow: 0 0 0 4px rgba(240,208,145,0.18);
+}
+
+.milestone.here::after {
+  content: 'YOU ARE HERE';
+  position: absolute;
+  left: 36px; bottom: -8px;
+  font-family: var(--display);
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--brass-light);
+}
+
+.milestone .info {
+  flex: 1;
+}
+
+.milestone .name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--text-cream);
+}
+
+.milestone.done .name { color: var(--text-muted); }
+
+.milestone .threshold {
+  font-family: var(--body);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.milestone .pct {
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.milestone.done .pct { color: var(--brass); }
+.milestone.here .pct { color: var(--brass-light); font-size: 13px; }
+
+.connector {
+  position: absolute;
+  left: 12px; top: 26px; bottom: -2px;
+  width: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.milestone.done .connector { background: var(--brass-deep); }
+
+/* ───────── TEAM IDENTITY HERO ───────── */
+.identity-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(196,75,58,0.10), transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(101,137,184,0.10), transparent 50%),
+    var(--bg-card);
+  border-radius: 20px;
+  padding: 56px 48px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.identity-board::before {
+  content: 'VS';
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 96px;
+  color: var(--brass);
+  opacity: 0.18;
+  letter-spacing: -4px;
+}
+
+.identity {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.identity .crest {
+  width: 120px; height: 120px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+}
+
+.identity.hearth .crest {
+  background: radial-gradient(circle, var(--team-red-soft), var(--team-red));
+  box-shadow:
+    0 0 0 1px var(--team-red),
+    0 0 0 6px var(--bg-card),
+    0 0 0 7px var(--team-red),
+    0 12px 30px rgba(196,75,58,0.4);
+}
+
+.identity.tide .crest {
+  background: radial-gradient(circle, var(--team-blue-soft), var(--team-blue));
+  box-shadow:
+    0 0 0 1px var(--team-blue),
+    0 0 0 6px var(--bg-card),
+    0 0 0 7px var(--team-blue),
+    0 12px 30px rgba(101,137,184,0.4);
+}
+
+.identity .crest svg { width: 60px; height: 60px; fill: var(--bg-overlay); }
+
+.identity h3 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 56px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.identity.hearth h3 { color: var(--team-red); }
+.identity.tide h3 { color: var(--team-blue); }
+
+.identity .epithet {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.identity .motto {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 240px;
+  margin: 0 auto 24px;
+}
+
+.identity .swatches {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.identity .swatch-chip {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.identity .swatch-chip span {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+/* ───────── HOME v2 — HERO PANEL ───────── */
+.hero-panel {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 90%, rgba(240,208,145,0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg-overlay) 0%, var(--bg-card) 100%);
+  border-radius: 4px;
+  padding: 12px 12px 14px;
+  overflow: hidden;
+  border: 1px solid rgba(199,156,74,0.18);
+}
+
+.bracket {
+  position: absolute;
+  width: 14px; height: 14px;
+  border-color: var(--brass);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+.bracket.tl { top: 4px; left: 4px; border-top-width: 1.5px; border-left-width: 1.5px; }
+.bracket.tr { top: 4px; right: 4px; border-top-width: 1.5px; border-right-width: 1.5px; }
+.bracket.bl { bottom: 4px; left: 4px; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+.bracket.br { bottom: 4px; right: 4px; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+
+.town-art {
+  width: 100%;
+  height: 130px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.hero-cta {
+  background: var(--bg-deep);
+  border-radius: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--brass);
+  position: relative;
+  box-shadow: 0 4px 16px -4px rgba(199,156,74,0.25);
+}
+
+.hero-cta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.hero-cta-amount .hero-cta-label {
+  font-family: var(--display);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  margin-bottom: 1px;
+}
+
+.hero-cta-amount .hero-cta-num {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--brass-light);
+  line-height: 1;
+}
+
+.hero-cta-target {
+  text-align: right;
+}
+
+.hero-cta-target-label {
+  font-family: var(--display);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.hero-cta-target-name {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: var(--team-red);
+  margin-top: 2px;
+}
+
+.hero-cta-arc {
+  height: 6px;
+  background: var(--bg-overlay);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+
+.hero-cta-arc .seg-cur { background: var(--text-cream); }
+.hero-cta-arc .seg-proj { background: var(--brass); }
+
+.hero-cta-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.hero-cta-meta span.right {
+  color: var(--brass);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* ───────── ASYMMETRIC ROW (steps dial + stats) ───────── */
+.asym-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.steps-dial {
+  width: 92px; height: 92px;
+  position: relative;
+  background: radial-gradient(circle, var(--bg-card) 50%, transparent 70%);
+}
+
+.dial-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+}
+
+.dial-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dial-num {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--text-cream);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.dial-label {
+  font-family: var(--display);
+  font-size: 8px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.stat-tile {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-tile.wide { grid-column: span 2; }
+
+.stat-num {
+  font-family: var(--display);
+  font-size: 14px;
+  color: var(--brass-light);
+  letter-spacing: 0.5px;
+}
+
+.stat-num small {
+  font-family: var(--body);
+  font-size: 8px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-left: 3px;
+  letter-spacing: 1px;
+}
+
+.stat-label {
+  font-family: var(--display);
+  font-size: 8px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-top: 1px;
+}
+
+/* ───────── ORNAMENTAL DIVIDER ───────── */
+.ornament-div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.ornament-div .line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-deep) 50%, transparent);
+}
+
+.ornament-div em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 10px;
+  color: var(--brass);
+  letter-spacing: 4px;
+}
+
+.ornament-div .diamond {
+  width: 4px; height: 4px;
+  background: var(--brass);
+  transform: rotate(45deg);
+}
+
+/* ───────── LUXURY HERO CARD ───────── */
+.luxury-hero {
+  position: relative;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(240,208,145,0.18), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(199,156,74,0.10), transparent 50%),
+    linear-gradient(160deg, #4a3f2b 0%, #2f3540 60%);
+  border-radius: 2px;
+  padding: 16px 14px 12px;
+  border: 1px solid rgba(240,208,145,0.35);
+  text-align: center;
+  overflow: hidden;
+}
+
+.luxury-hero::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 0.5px solid rgba(240,208,145,0.15);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.luxury-medallion {
+  width: 52px; height: 52px;
+  margin: 0 auto 8px;
+  background: radial-gradient(circle, var(--brass), var(--brass-deep));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow:
+    0 0 0 1px var(--brass-light),
+    0 0 0 4px var(--bg-overlay),
+    0 0 0 5px rgba(240,208,145,0.4),
+    0 8px 20px -4px rgba(199,156,74,0.5);
+}
+
+.luxury-tier {
+  font-family: var(--display);
+  font-size: 9px;
+  color: var(--brass);
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+
+.luxury-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--brass-light);
+  margin-bottom: 10px;
+  line-height: 1.1;
+}
+
+.luxury-progress-num {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--text-cream);
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+}
+
+.luxury-progress-bar {
+  height: 3px;
+  background: var(--bg-overlay);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 auto 10px;
+  width: 70%;
+}
+
+.luxury-progress-bar div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass-deep), var(--brass-light));
+}
+
+.luxury-cta {
+  font-family: var(--display);
+  font-size: 10px;
+  color: var(--brass-light);
+  letter-spacing: 2.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--brass);
+  border-radius: 1px;
+  display: inline-block;
+}
+
+/* ───────── PREMIUM compact card ───────── */
+.premium-card {
+  background:
+    linear-gradient(135deg, rgba(122,159,212,0.10), transparent 60%),
+    var(--bg-card);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid #7a9fd4;
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.premium-emoji { font-size: 22px; text-align: center; }
+
+.premium-info .premium-name {
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--text-cream);
+  letter-spacing: 1.5px;
+}
+
+.premium-progress-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.premium-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-overlay);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.premium-bar div {
+  height: 100%;
+  background: #7a9fd4;
+}
+
+.premium-pct {
+  font-family: var(--display);
+  font-size: 10px;
+  color: #7a9fd4;
+  letter-spacing: 1px;
+}
+
+.premium-cta {
+  font-family: var(--display);
+  font-size: 10px;
+  color: #7a9fd4;
+  letter-spacing: 1.5px;
+  padding: 4px 8px;
+  border: 1px solid #7a9fd4;
+  border-radius: 12px;
+}
+
+/* ───────── STARTER pill (single-line) ───────── */
+.starter-pill {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 6px 6px 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(199,156,74,0.25);
+}
+
+.starter-pill .pill-emoji { font-size: 16px; }
+
+.starter-pill .pill-name {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--text-cream);
+  letter-spacing: 1.5px;
+  flex: 1;
+}
+
+.starter-pill .pill-meta {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.starter-pill .pill-badge {
+  background: var(--brass);
+  color: var(--bg-primary);
+  font-family: var(--display);
+  font-size: 11px;
+  width: 18px; height: 18px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.starter-pill .pill-cta {
+  font-family: var(--display);
+  font-size: 10px;
+  color: var(--bg-primary);
+  background: var(--brass);
+  letter-spacing: 1.5px;
+  padding: 5px 10px;
+  border-radius: 14px;
+}
+
+/* ───────── HOME v3 — RESTRAINED ───────── */
+.hero-clean {
+  background:
+    radial-gradient(ellipse at 50% 90%, rgba(240,208,145,0.10), transparent 60%),
+    linear-gradient(180deg, var(--bg-overlay) 0%, var(--bg-card) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(199,156,74,0.18);
+  padding: 0 0 14px;
+  overflow: visible;
+}
+
+.town-art-clean {
+  width: 100%;
+  height: 132px;
+  display: block;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.hero-cta-clean {
+  padding: 4px 16px 0;
+}
+
+.cta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.cta-amount .cta-label {
+  font-family: var(--display);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.cta-amount .cta-num {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 34px;
+  color: var(--brass-light);
+  line-height: 1;
+}
+
+.cta-target { text-align: right; }
+
+.cta-target-label {
+  font-family: var(--display);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.cta-target-name {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: var(--brass);
+  margin-top: 2px;
+}
+
+.cta-bar {
+  height: 5px;
+  background: var(--bg-overlay);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+.cta-bar .cur { background: var(--text-cream); }
+.cta-bar .proj { background: var(--brass); }
+
+.cta-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-family: var(--body);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.cta-meta .right {
+  color: var(--brass);
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+
+/* ───────── INFO STRIP (replaces stat tiles + dial) ───────── */
+.info-strip {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
+}
+
+.info-num {
+  font-family: var(--display);
+  font-size: 17px;
+  color: var(--text-cream);
+  letter-spacing: 0.5px;
+}
+
+.info-label {
+  font-family: var(--display);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-left: 3px;
+}
+
+.dot-sep {
+  color: var(--brass-deep);
+  font-size: 10px;
+  margin: 0 6px;
+}
+
+/* ───────── KICKER (small section dividers) ───────── */
+.section-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 0;
+}
+.section-kicker .line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(199,156,74,0.25) 50%, transparent);
+}
+.section-kicker em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--brass);
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* ───────── CASE ROWS (uniform shape, distinguished by detail) ───────── */
+.case-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 9px 10px 9px 9px;
+  border-left: 3px solid var(--border);
+}
+
+.case-row.tier-luxury {
+  border-left-color: var(--brass-light);
+  background:
+    linear-gradient(135deg, rgba(240,208,145,0.06), transparent 70%),
+    var(--bg-card);
+}
+.case-row.tier-premium {
+  border-left-color: #7a9fd4;
+  background:
+    linear-gradient(135deg, rgba(122,159,212,0.06), transparent 70%),
+    var(--bg-card);
+}
+.case-row.tier-starter { border-left-color: var(--brass); }
+
+.case-medallion {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg-overlay);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  border: 1px solid var(--border);
+}
+
+.tier-luxury .case-medallion {
+  background: radial-gradient(circle, rgba(240,208,145,0.35), var(--bg-overlay));
+  border-color: var(--brass-light);
+}
+.tier-premium .case-medallion {
+  background: radial-gradient(circle, rgba(122,159,212,0.30), var(--bg-overlay));
+  border-color: #7a9fd4;
+}
+.tier-starter .case-medallion {
+  background: radial-gradient(circle, rgba(199,156,74,0.25), var(--bg-overlay));
+  border-color: var(--brass);
+}
+
+.case-meta .case-name {
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--text-cream);
+  letter-spacing: 1.5px;
+  margin-bottom: 3px;
+}
+
+.case-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.case-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-overlay);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 90px;
+}
+
+.case-bar div { height: 100%; background: var(--brass); }
+.tier-premium .case-bar div { background: #7a9fd4; }
+.tier-luxury .case-bar div { background: linear-gradient(90deg, var(--brass-deep), var(--brass-light)); }
+
+.case-pct {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.case-action {
+  font-family: var(--display);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.case-action.ready {
+  background: var(--brass);
+  color: var(--bg-primary);
+  border-color: var(--brass);
+  font-weight: 400;
+}
+
+/* ───────── ANNOTATION CARDS ───────── */
+.annotations {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.annot {
+  background: var(--bg-card);
+  border-left: 3px solid var(--brass);
+  padding: 12px 14px;
+  border-radius: 6px;
+}
+
+.annot .ref {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--brass);
+  margin-bottom: 4px;
+}
+
+.annot p {
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+footer {
+  max-width: 1280px;
+  margin: 96px auto 0;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+footer span { color: var(--brass); }
+
+/* ───────── MOTION INTRO ───────── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: fadeUp 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.fade-up:nth-child(1) { animation-delay: 0.05s; }
+.fade-up:nth-child(2) { animation-delay: 0.18s; }
+.fade-up:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="kicker">REDESIGN BOARD · 2026·04·20</div>
+  <h1>Stridekeep<em>concepts in slate &amp; brass</em></h1>
+  <div class="meta">REVIEW DELIVERABLE · <span>BATCH A · B · C</span> · 4 CONCEPTS</div>
+  <div class="divider"></div>
+</header>
+
+<main class="board">
+
+  <!-- ═══════════ SECTION 01 — HOME REDESIGN v3 ═══════════ -->
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-no">CONCEPT 01 · v3</div>
+        <h2>Home — one hero, everything else recedes</h2>
+      </div>
+      <div class="tag">RESTRAINED · TOWN-ILLUSTRATION HERO</div>
+    </div>
+
+    <div class="frame-row" style="grid-template-columns: 1fr;">
+
+      <div class="fade-up">
+        <div class="phone">
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+
+            <div class="top-header">
+              <div class="season-chip">
+                <div class="crest-mini">
+                  <svg viewBox="0 0 24 24"><path d="M12 2C9 8 6 8 6 14a6 6 0 0012 0c0-3-2-4-3-7-1 2-2 2-3 0z"/></svg>
+                </div>
+                <div class="stack">
+                  <div class="name">HEARTH</div>
+                  <div class="meta">SEASON 1 · DAY 2</div>
+                </div>
+              </div>
+              <div class="purse-chip">
+                <span class="small">PURSE</span>$1,240
+              </div>
+            </div>
+
+            <div class="app-content">
+
+              <!-- ═══ ONE HERO — town illustration owns the screen ═══ -->
+              <div class="hero-clean">
+                <svg class="town-art-clean" viewBox="0 0 320 132" preserveAspectRatio="xMidYMax meet">
+                  <defs>
+                    <radialGradient id="sunGlow" cx="50%" cy="100%" r="55%">
+                      <stop offset="0%" stop-color="#f0d091" stop-opacity="0.35"/>
+                      <stop offset="100%" stop-color="#f0d091" stop-opacity="0"/>
+                    </radialGradient>
+                    <linearGradient id="hillGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#1f242a"/>
+                      <stop offset="100%" stop-color="#0f1216"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- sun glow rising from horizon -->
+                  <ellipse cx="160" cy="125" rx="140" ry="80" fill="url(#sunGlow)"/>
+                  <circle cx="160" cy="118" r="22" fill="#c79c4a" opacity="0.15"/>
+                  <circle cx="160" cy="118" r="14" fill="#f0d091" opacity="0.25"/>
+
+                  <!-- distant hills -->
+                  <path d="M0 110 Q60 96 130 104 Q220 112 320 100 L320 130 L0 130 Z" fill="#252a30" opacity="0.7"/>
+
+                  <!-- main hill -->
+                  <path d="M0 122 Q70 108 160 116 Q250 122 320 112 L320 130 L0 130 Z" fill="url(#hillGrad)"/>
+
+                  <!-- BUILT: Fountain (left) -->
+                  <g transform="translate(40, 95)">
+                    <rect x="0" y="14" width="22" height="14" rx="0.5" fill="#c79c4a"/>
+                    <circle cx="11" cy="10" r="6" fill="#c79c4a"/>
+                    <rect x="10" y="2" width="2" height="6" fill="#c79c4a"/>
+                    <circle cx="11" cy="2" r="1.5" fill="#f0d091"/>
+                  </g>
+
+                  <!-- BUILT: Cottage 1 -->
+                  <g transform="translate(85, 88)">
+                    <rect x="0" y="14" width="26" height="18" fill="#f0d091"/>
+                    <path d="M-3 14 L13 0 L29 14 Z" fill="#c79c4a"/>
+                    <rect x="9" y="22" width="6" height="10" fill="#1f242a"/>
+                    <rect x="3" y="18" width="4" height="3" fill="#1f242a"/>
+                    <rect x="19" y="18" width="4" height="3" fill="#1f242a"/>
+                  </g>
+
+                  <!-- BUILT: Cottage 2 (slightly different) -->
+                  <g transform="translate(135, 92)">
+                    <rect x="0" y="12" width="22" height="16" fill="#c79c4a"/>
+                    <path d="M-2 12 L11 0 L24 12 Z" fill="#8e6a2c"/>
+                    <rect x="8" y="20" width="5" height="8" fill="#1f242a"/>
+                  </g>
+
+                  <!-- BUILT: smaller hut -->
+                  <g transform="translate(175, 100)">
+                    <rect x="0" y="8" width="14" height="10" fill="#f0d091"/>
+                    <path d="M-2 8 L7 0 L16 8 Z" fill="#c79c4a"/>
+                  </g>
+
+                  <!-- GHOSTED NEXT: Chapel (with brass dashed outline + spire) -->
+                  <g transform="translate(225, 70)" fill="none" stroke="#c79c4a" stroke-width="1" opacity="0.85">
+                    <rect x="0" y="22" width="30" height="28" stroke-dasharray="2.5 2"/>
+                    <path d="M-3 22 L15 4 L33 22" stroke-dasharray="2.5 2"/>
+                    <line x1="15" y1="4" x2="15" y2="-8" stroke-dasharray="1.5 1.5"/>
+                    <line x1="11" y1="-4" x2="19" y2="-4" stroke-dasharray="1.5 1.5"/>
+                    <rect x="11" y="34" width="8" height="16" stroke-dasharray="1.5 1.5"/>
+                  </g>
+
+                  <!-- "NEXT" pointer -->
+                  <g opacity="0.9">
+                    <text x="240" y="60" text-anchor="middle" font-family="Bebas Neue" font-size="9" fill="#c79c4a" letter-spacing="2">NEXT</text>
+                    <line x1="240" y1="63" x2="240" y2="68" stroke="#c79c4a" stroke-width="0.8"/>
+                    <polygon points="237,67 243,67 240,71" fill="#c79c4a"/>
+                  </g>
+
+                  <!-- foreground stars/sparkles -->
+                  <circle cx="20" cy="20" r="0.6" fill="#f0d091" opacity="0.7"/>
+                  <circle cx="55" cy="14" r="0.4" fill="#f0d091" opacity="0.5"/>
+                  <circle cx="280" cy="28" r="0.6" fill="#f0d091" opacity="0.6"/>
+                  <circle cx="305" cy="18" r="0.4" fill="#f0d091" opacity="0.5"/>
+                </svg>
+
+                <!-- Clean CTA — typography-driven, no nested box -->
+                <div class="hero-cta-clean">
+                  <div class="cta-row">
+                    <div class="cta-amount">
+                      <div class="cta-label">DEPOSIT</div>
+                      <div class="cta-num">$340</div>
+                    </div>
+                    <div class="cta-target">
+                      <div class="cta-target-label">UNLOCKS NEXT</div>
+                      <div class="cta-target-name">⛪ OLD CHAPEL</div>
+                    </div>
+                  </div>
+                  <div class="cta-bar">
+                    <div class="cur" style="width:24%"></div>
+                    <div class="proj" style="width:12%"></div>
+                  </div>
+                  <div class="cta-meta">
+                    <span>$1,200 of $5,000</span>
+                    <span class="right">TAP TO BUILD →</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- One quiet info strip — no boxes, no grid -->
+              <div class="info-strip">
+                <span class="info-num">8,420</span><span class="info-label">STEPS</span>
+                <span class="dot-sep">·</span>
+                <span class="info-num">$2</span><span class="info-label">/STEP</span>
+                <span class="dot-sep">·</span>
+                <span class="info-num">+$340</span><span class="info-label">TODAY</span>
+              </div>
+
+              <!-- Section kicker — quiet brass label with hairline rules -->
+              <div class="section-kicker">
+                <div class="line"></div>
+                <em>materials</em>
+                <div class="line"></div>
+              </div>
+
+              <!-- THREE UNIFORM ROWS — same shape, distinguished by tier color + medallion glow -->
+              <div class="case-row tier-luxury">
+                <div class="case-medallion">🏛️</div>
+                <div class="case-meta">
+                  <div class="case-name">FINE CRAFTSMANSHIP</div>
+                  <div class="case-progress">
+                    <div class="case-bar"><div style="width:64%"></div></div>
+                    <span class="case-pct">3.2K / 5K</span>
+                  </div>
+                </div>
+                <div class="case-action">1.8K LEFT</div>
+              </div>
+
+              <div class="case-row tier-premium">
+                <div class="case-medallion">🧰</div>
+                <div class="case-meta">
+                  <div class="case-name">QUALITY MATERIALS</div>
+                  <div class="case-progress">
+                    <div class="case-bar"><div style="width:94%"></div></div>
+                    <span class="case-pct">1.4K / 1.5K</span>
+                  </div>
+                </div>
+                <div class="case-action">94 LEFT</div>
+              </div>
+
+              <div class="case-row tier-starter">
+                <div class="case-medallion">📦</div>
+                <div class="case-meta">
+                  <div class="case-name">BASIC SUPPLIES</div>
+                  <div class="case-progress">
+                    <div class="case-bar"><div style="width:100%"></div></div>
+                    <span class="case-pct">3 PENDING</span>
+                  </div>
+                </div>
+                <div class="case-action ready">OPEN</div>
+              </div>
+
+            </div>
+
+            <div class="tab-bar">
+              <div class="tab active">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>
+                </div>HOME
+              </div>
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 016 0v2"/></svg>
+                </div>INVENTORY
+              </div>
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21V10l9-6 9 6v11M3 21h18M9 21V14h6v7"/></svg>
+                </div>TOWN
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="frame-cap">HOME · v3<small>one hero · clean info · uniform case rows</small></div>
+      </div>
+
+    </div>
+
+    <div class="annotations">
+      <div class="annot">
+        <div class="ref">WHAT v2 GOT WRONG</div>
+        <p>Tried to fix monotony with shape variety. Result: corner brackets + ornate medallion + 2×2 grid + ornament divider + nested CTA box all competing. Six "look at me" elements = no hero.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">v3 PRINCIPLE</div>
+        <p>Hierarchy via <em>emphasis</em>, not via shape variety. The town illustration is the only loud thing. Everything else stays intentionally quiet so the eye knows where to land.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">CTA INSIDE THE HERO</div>
+        <p>$340 set in 34px Playfair italic — the largest number on the screen. No nested box, no border. Just typography. Brass progress bar below ties it back to the illustration.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">INFO STRIP · NOT A GRID</div>
+        <p>"8,420 STEPS · $2/STEP · +$340 TODAY" — one centered line of typography with brass dot separators. Replaces the dial and the 2×2 stat tiles. Lighter, easier to scan.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">CASES · UNIFORM ROWS</div>
+        <p>Same shape, same height. Differentiated by left-bar color, medallion glow halo, and bar-fill treatment (luxury gets a brass gradient, premium gets cool blue, starter gets brass). They read as a <em>set</em> with detail variation, not three competing cards.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">LIVING TOWN STAYS</div>
+        <p>The hero illustration is the keeper. As milestones unlock, more buildings render solid; the next stays ghosted with the "NEXT" arrow. This is what makes Home <em>yours</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 02 — TOWN REDESIGN ═══════════ -->
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-no">CONCEPT 02</div>
+        <h2>Town — chart that explains itself</h2>
+      </div>
+      <div class="tag">RESOLVES I4 · I5 · M3 · M4</div>
+    </div>
+
+    <div class="frame-row">
+
+      <div class="fade-up">
+        <div class="phone">
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+
+            <div class="top-header">
+              <div class="season-chip">
+                <div class="crest-mini">
+                  <svg viewBox="0 0 24 24"><path d="M12 2C9 8 6 8 6 14a6 6 0 0012 0c0-3-2-4-3-7-1 2-2 2-3 0z"/></svg>
+                </div>
+                <div class="stack">
+                  <div class="name">HEARTH</div>
+                  <div class="meta">SEASON 1 · DAY 2</div>
+                </div>
+              </div>
+              <div class="purse-chip">
+                <span class="small">PURSE</span>$1,240
+              </div>
+            </div>
+
+            <div class="app-content">
+
+              <!-- NEXT UNLOCK card (replaces transient welcome banner) -->
+              <div class="next-unlock">
+                <div class="kicker">NEXT UNLOCK</div>
+                <h3>Old Chapel</h3>
+                <div class="ribbon">
+                  <span>$3,800 of $5,000</span>
+                  <span class="big">76%</span>
+                </div>
+                <div class="preview-emoji">⛪</div>
+              </div>
+
+              <!-- Trading chart with Y-axis labels -->
+              <div class="chart-card">
+                <div class="chart-head">
+                  <div>
+                    <div class="title">LAST HOUR</div>
+                    <div class="sub">cumulative deposits per team</div>
+                  </div>
+                  <div class="lead">🟥 HEARTH +$1.2K</div>
+                </div>
+
+                <svg class="chart-svg" viewBox="0 0 320 96" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="redG" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#c44b3a" stop-opacity="0.55"/>
+                      <stop offset="1" stop-color="#c44b3a" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="blueG" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#6589b8" stop-opacity="0.55"/>
+                      <stop offset="1" stop-color="#6589b8" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- gridlines -->
+                  <line x1="8" y1="22" x2="312" y2="22" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+                  <line x1="8" y1="46" x2="312" y2="46" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+                  <line x1="8" y1="70" x2="312" y2="70" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+
+                  <!-- AXIS LABELS (the I5 fix) -->
+                  <text x="312" y="20" text-anchor="end" class="chart-axis-label">$2.4K</text>
+                  <text x="312" y="44" text-anchor="end" class="chart-axis-label">$1.6K</text>
+                  <text x="312" y="68" text-anchor="end" class="chart-axis-label">$0.8K</text>
+
+                  <!-- red area (winning) -->
+                  <path d="M8 88 L8 86 L40 86 L40 80 L80 80 L80 72 L120 72 L120 60 L160 60 L160 50 L200 50 L200 44 L240 44 L240 30 L312 30 L312 88 Z" fill="url(#redG)"/>
+                  <path d="M8 86 L40 86 L40 80 L80 80 L80 72 L120 72 L120 60 L160 60 L160 50 L200 50 L200 44 L240 44 L240 30 L312 30" fill="none" stroke="#c44b3a" stroke-width="2.4" stroke-linejoin="miter"/>
+
+                  <!-- blue area -->
+                  <path d="M8 88 L8 87 L60 87 L60 84 L100 84 L100 78 L150 78 L150 70 L200 70 L200 60 L260 60 L260 52 L312 52 L312 88 Z" fill="url(#blueG)"/>
+                  <path d="M8 87 L60 87 L60 84 L100 84 L100 78 L150 78 L150 70 L200 70 L200 60 L260 60 L260 52 L312 52" fill="none" stroke="#6589b8" stroke-width="2.4" stroke-linejoin="miter"/>
+
+                  <!-- end dots with halos -->
+                  <circle cx="312" cy="30" r="7" fill="#c44b3a" opacity="0.25"/>
+                  <circle cx="312" cy="30" r="3.2" fill="#c44b3a"/>
+                  <circle cx="312" cy="52" r="7" fill="#6589b8" opacity="0.25"/>
+                  <circle cx="312" cy="52" r="3.2" fill="#6589b8"/>
+                </svg>
+
+                <div class="chart-foot">
+                  <div class="swatch-row"><span class="swatch" style="background:#c44b3a"></span>+$2,400</div>
+                  <div style="font-size:9px">Total: $128K · $124K</div>
+                  <div class="swatch-row"><span class="swatch" style="background:#6589b8"></span>+$1,200</div>
+                </div>
+              </div>
+
+              <!-- Live feed with pulsing dot + insert flash -->
+              <div class="feed">
+                <div class="feed-head">
+                  <div class="title"><span class="live-dot"></span>LIVE FEED</div>
+                </div>
+
+                <div class="feed-row fresh">
+                  <div class="swatch" style="background:#c44b3a"></div>
+                  <span class="nick">moonbeam42</span>
+                  <span class="amt">+$580</span>
+                  <span class="time">just now</span>
+                </div>
+                <div class="feed-row">
+                  <div class="swatch" style="background:#6589b8"></div>
+                  <span class="nick">peachfuzz</span>
+                  <span class="amt">+$420</span>
+                  <span class="time">3s</span>
+                </div>
+                <div class="feed-row">
+                  <div class="swatch" style="background:#c44b3a"></div>
+                  <span class="nick">lowkey_b</span>
+                  <span class="amt">+$1,820</span>
+                  <span class="time">8s</span>
+                </div>
+                <div class="feed-row">
+                  <div class="swatch" style="background:#6589b8"></div>
+                  <span class="nick">frogprince</span>
+                  <span class="amt">+$240</span>
+                  <span class="time">14s</span>
+                </div>
+                <div class="feed-row">
+                  <div class="swatch" style="background:#c44b3a"></div>
+                  <span class="nick">delulu</span>
+                  <span class="amt">+$520</span>
+                  <span class="time">22s</span>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="tab-bar">
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>
+                </div>HOME
+              </div>
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 016 0v2"/></svg>
+                </div>INVENTORY
+              </div>
+              <div class="tab active">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21V10l9-6 9 6v11M3 21h18M9 21V14h6v7"/></svg>
+                </div>TOWN
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="frame-cap">TOWN · CHART + FEED<small>axis labels · live dot · insert flash</small></div>
+      </div>
+
+      <div class="fade-up">
+        <div class="phone">
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+
+            <div class="top-header">
+              <div class="season-chip">
+                <div class="crest-mini">
+                  <svg viewBox="0 0 24 24"><path d="M12 2C9 8 6 8 6 14a6 6 0 0012 0c0-3-2-4-3-7-1 2-2 2-3 0z"/></svg>
+                </div>
+                <div class="stack">
+                  <div class="name">HEARTH</div>
+                  <div class="meta">SEASON 1 · DAY 2</div>
+                </div>
+              </div>
+              <div class="purse-chip">
+                <span class="small">PURSE</span>$1,240
+              </div>
+            </div>
+
+            <div class="app-content">
+
+              <!-- Milestone PATH (was a checklist) -->
+              <div class="path">
+                <div class="path-head">YOUR TOWN · BUILDING PATH</div>
+
+                <div class="milestone done">
+                  <div class="connector"></div>
+                  <div class="pip">⛲</div>
+                  <div class="info">
+                    <div class="name">Village Fountain</div>
+                    <div class="threshold">$2,000 · cleared D1</div>
+                  </div>
+                  <div class="pct">✓</div>
+                </div>
+
+                <div class="milestone done">
+                  <div class="connector"></div>
+                  <div class="pip">🏠</div>
+                  <div class="info">
+                    <div class="name">First Cottage</div>
+                    <div class="threshold">$3,000 · cleared D2</div>
+                  </div>
+                  <div class="pct">✓</div>
+                </div>
+
+                <div class="milestone here">
+                  <div class="connector" style="background:linear-gradient(180deg, var(--brass-deep), var(--border))"></div>
+                  <div class="pip">⛪</div>
+                  <div class="info">
+                    <div class="name" style="color:var(--brass-light)">Old Chapel</div>
+                    <div class="threshold">$3,800 of $5,000 · 1.2K to go</div>
+                  </div>
+                  <div class="pct">76%</div>
+                </div>
+
+                <div class="milestone">
+                  <div class="connector"></div>
+                  <div class="pip">🏪</div>
+                  <div class="info">
+                    <div class="name">Trading Post</div>
+                    <div class="threshold">$8,500</div>
+                  </div>
+                  <div class="pct">0%</div>
+                </div>
+
+                <div class="milestone">
+                  <div class="pip">🏛️</div>
+                  <div class="info">
+                    <div class="name">Town Hall</div>
+                    <div class="threshold">$15,000</div>
+                  </div>
+                  <div class="pct">0%</div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="tab-bar">
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>
+                </div>HOME
+              </div>
+              <div class="tab">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 016 0v2"/></svg>
+                </div>INVENTORY
+              </div>
+              <div class="tab active">
+                <div class="tab-glyph">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21V10l9-6 9 6v11M3 21h18M9 21V14h6v7"/></svg>
+                </div>TOWN
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="frame-cap">TOWN · MILESTONE PATH<small>brass connector · YOU ARE HERE pip</small></div>
+      </div>
+
+    </div>
+
+    <div class="annotations">
+      <div class="annot">
+        <div class="ref">I4 · LIVE INSERT FLASH</div>
+        <p>New rows arrive with a brass tint that decays to neutral over 1.2s. Pulsing red dot in the header replaces "refreshing…" — at-a-glance liveness signal.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">I5 · CHART Y-AXIS</div>
+        <p>$0.8K · $1.6K · $2.4K labels right-anchored on gridlines. Lead indicator stays in the header for instant "who's winning" reading.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">M3 · NEXT UNLOCK CARD</div>
+        <p>Persists past first deposit. Always shows the upcoming building name + emoji + % progress so the goal stays present.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">M4 · MILESTONE PATH</div>
+        <p>Connector line fills brass up to "you are here" pip; remaining stays neutral. Reads as a journey, not a TODO list.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 03 — TEAM IDENTITY ═══════════ -->
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-no">CONCEPT 03</div>
+        <h2>Team identity — HEARTH vs TIDE</h2>
+      </div>
+      <div class="tag">RESOLVES I6 · TEAM REBRAND</div>
+    </div>
+
+    <div class="identity-board fade-up">
+      <div class="identity hearth">
+        <div class="crest">
+          <svg viewBox="0 0 24 24"><path d="M12 2C9 8 6 8 6 14a6 6 0 0012 0c0-3-2-4-3-7-1 2-2 2-3 0z"/></svg>
+        </div>
+        <h3>HEARTH</h3>
+        <div class="epithet">THE FIRE-KEEPERS</div>
+        <p class="motto">"What we build, we burn into the world."</p>
+        <div class="swatches">
+          <div class="swatch-chip"><span style="background:#c44b3a"></span>#C44B3A</div>
+          <div class="swatch-chip"><span style="background:#a13c2e"></span>#A13C2E</div>
+        </div>
+      </div>
+
+      <div class="identity tide">
+        <div class="crest">
+          <svg viewBox="0 0 24 24"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2v6H2zM2 9c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2v3c-2 0-2 2-4 2s-2-2-4-2-2 2-4 2-2-2-4-2-2 2-4 2z"/></svg>
+        </div>
+        <h3>TIDE</h3>
+        <div class="epithet">THE RIVER-FOLK</div>
+        <p class="motto">"We rise together. We carry each other home."</p>
+        <div class="swatches">
+          <div class="swatch-chip"><span style="background:#6589b8"></span>#6589B8</div>
+          <div class="swatch-chip"><span style="background:#4f6e96"></span>#4F6E96</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotations">
+      <div class="annot">
+        <div class="ref">WARM VS COOL</div>
+        <p>Existing red/blue swatches stay — only naming + glyphs change. Migration cost is one accessor function.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">CREST AT 8×8</div>
+        <p>Both glyphs resolve cleanly inside the LiveFeed swatch (8×8) and the team progress chip (14×14). Tested at all five sizes used in the app.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">MOTTO</div>
+        <p>Optional. Could appear in the team-pick onboarding screen, or never — the names alone do most of the work.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">TYPOGRAPHY</div>
+        <p>Playfair Display 900 Italic for the team name carries the editorial Slate &amp; Brass voice. Bebas Neue for the epithet keeps the sport-condensed counterpoint intact.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  STRIDEKEEP · DESIGN BOARD · ALL CONCEPTS RENDERED LIVE IN HTML · NO CHANGES TO APP CODE · <span>WYNTERCG · APRIL 2026</span>
+</footer>
+
+</body>
+</html>

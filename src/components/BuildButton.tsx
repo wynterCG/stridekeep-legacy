@@ -3,12 +3,15 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { MILESTONES } from '../data/cases';
 import { BALANCE } from '../balance';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, spacing } from '../theme';
 
-const SHIMMER_MIN = 0.55;
-const SHIMMER_MAX = 1;
-const SHIMMER_PERIOD_MS = 1400;
-
+// v3 styling: typography-driven. Renders as content inside the TownHero
+// panel — no border, no background of its own. Two states:
+//   - idle:     "DEPOSIT / $340" in large Playfair italic + target on right
+//   - batching: same layout, amount becomes cream+countdown, brass sweep fills
+//     the progress track background while the batch timer ticks down.
+// All batching logic (pendingBatch, pendingBatchEndsAt, commitPendingBatch,
+// hydrate-time recovery) is unchanged from Option-2 bundle.
 export default function BuildButton(): React.JSX.Element {
   const team = useGameStore((s) => s.team);
   const forTheTown = useGameStore((s) => s.forTheTown);
@@ -19,28 +22,30 @@ export default function BuildButton(): React.JSX.Element {
   const commitPendingBatch = useGameStore((s) => s.commitPendingBatch);
 
   const teamColor = team === 'red' ? colors.team.red : colors.team.blue;
-  const teamLabel = team === 'red' ? 'RED' : 'BLUE';
 
   const isBatching = pendingBatch > 0 && pendingBatchEndsAt !== null;
   // Inflight $ that hasn't landed yet — both the un-deposited bucket AND the
-  // batch currently sweeping. We show this in the projected milestone fill so
-  // the bar always reflects "where you'll be once the dust settles".
+  // batch currently sweeping. Drives the brass projected fill that shows
+  // where you'll be once the dust settles.
   const inflight = forTheTown + pendingBatch;
   const teamTotal = team ? teamTotals[team] : 0;
   const projectedTotal = teamTotal + inflight;
   const next =
     MILESTONES.find((m) => m.threshold > teamTotal) ?? MILESTONES[MILESTONES.length - 1];
+  const prevThreshold =
+    MILESTONES.findIndex((m) => m.id === next.id) === 0
+      ? 0
+      : MILESTONES[MILESTONES.findIndex((m) => m.id === next.id) - 1]?.threshold ?? 0;
 
-  const currentPct = Math.min(1, teamTotal / next.threshold);
-  const projectedPct = Math.min(1, projectedTotal / next.threshold);
+  const band = Math.max(1, next.threshold - prevThreshold);
+  const currentBandValue = Math.max(0, teamTotal - prevThreshold);
+  const projectedBandValue = Math.max(0, projectedTotal - prevThreshold);
+  const currentPct = Math.min(1, currentBandValue / band);
+  const projectedPct = Math.min(1, projectedBandValue / band);
   const willUnlock = projectedTotal >= next.threshold && teamTotal < next.threshold;
 
-  const rightLabel = willUnlock
-    ? `UNLOCKS ${next.emoji} ${next.name.toUpperCase()}`
-    : `${next.emoji} ${next.name.toUpperCase()} · ${Math.floor(currentPct * 100)}%`;
-
-  // Countdown + auto-commit timer. Polls every 200ms so the seconds-left
-  // label updates smoothly. When the batch window expires, fires the RPC.
+  // Countdown + auto-commit. 200ms resolution so the seconds-left label
+  // doesn't lag behind the sweep animation.
   const [secondsLeft, setSecondsLeft] = useState(0);
   useEffect(() => {
     if (!isBatching || pendingBatchEndsAt === null) return;
@@ -56,9 +61,8 @@ export default function BuildButton(): React.JSX.Element {
     return () => clearInterval(id);
   }, [isBatching, pendingBatchEndsAt, commitPendingBatch]);
 
-  // Sweep animation. Brass fills the button background from 0% → 100% over
-  // the remaining window. useNativeDriver: false because we animate width;
-  // it only fires once per batch so the JS-thread tween is fine.
+  // Brass sweep over the progress track background during a batch. Fires
+  // once per batch; useNativeDriver: false because we animate width %.
   const sweep = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!isBatching || pendingBatchEndsAt === null) {
@@ -78,106 +82,139 @@ export default function BuildButton(): React.JSX.Element {
   }, [isBatching, pendingBatchEndsAt, sweep]);
   const sweepWidth = sweep.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
-  // Idle-state shimmer on the gold projected fill (as before — only when
-  // there's something to deposit and we're NOT mid-batch).
-  const shimmer = useRef(new Animated.Value(SHIMMER_MIN)).current;
-  useEffect(() => {
-    if (forTheTown <= 0 || isBatching) {
-      shimmer.setValue(SHIMMER_MIN);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, {
-          toValue: SHIMMER_MAX,
-          duration: SHIMMER_PERIOD_MS / 2,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmer, {
-          toValue: SHIMMER_MIN,
-          duration: SHIMMER_PERIOD_MS / 2,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [forTheTown, isBatching, shimmer]);
-
   const disabled = isBatching || forTheTown <= 0 || !team;
 
-  const leftLabel = isBatching
-    ? `DEPOSITING $${pendingBatch.toLocaleString()} · ${secondsLeft}s`
-    : `BUILD FOR ${teamLabel} · $${forTheTown.toLocaleString()}`;
-  const leftColor = isBatching
-    ? colors.accent.brassLight
+  const leftLabel = isBatching ? 'DEPOSITING' : 'DEPOSIT';
+  const leftAmount = isBatching
+    ? `$${pendingBatch.toLocaleString()}`
+    : `$${forTheTown.toLocaleString()}`;
+  const leftAmountColor = isBatching
+    ? colors.text.cream
     : disabled
       ? colors.text.dim
-      : teamColor;
-  const borderColor = isBatching
-    ? colors.accent.brass
-    : disabled
-      ? colors.ui.border
-      : teamColor;
+      : colors.accent.brassLight;
+
+  const rightKicker = willUnlock
+    ? 'UNLOCKS NEXT'
+    : isBatching
+      ? `COMMITS IN ${secondsLeft}s`
+      : 'UNLOCKS NEXT';
+  const rightName = `${next.emoji} ${next.name.toUpperCase()}`;
+  const rightColor = isBatching ? colors.accent.brassLight : teamColor;
+
+  // Cap edge-case: once teamTotal passes the largest milestone, the
+  // "X of Y" ratio reads as "$60M of $50M" — silly. Switch to TOWN COMPLETE.
+  const atFinalCap = teamTotal >= MILESTONES[MILESTONES.length - 1].threshold;
+  const metaLeft = atFinalCap
+    ? 'TOWN COMPLETE'
+    : `$${teamTotal.toLocaleString()} of $${next.threshold.toLocaleString()}`;
+  const metaRight = disabled
+    ? isBatching
+      ? 'AUTO-COMMIT'
+      : 'WALK TO EARN'
+    : 'TAP TO BUILD →';
 
   return (
     <Pressable
       onPress={depositForTown}
       disabled={disabled}
-      style={({ pressed }) => [
-        styles.btn,
-        { borderColor },
-        pressed && !disabled && { opacity: 0.85 },
-      ]}
+      style={({ pressed }) => [styles.root, pressed && !disabled && { opacity: 0.7 }]}
     >
-      {isBatching && (
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.sweepFill, { width: sweepWidth }]}
-        />
-      )}
-
       <View style={styles.row}>
-        <Text style={[styles.leftLabel, { color: leftColor }]}>{leftLabel}</Text>
-        <Text
-          style={[
-            styles.rightLabel,
-            { color: willUnlock ? colors.accent.brassLight : colors.text.muted },
-          ]}
-          numberOfLines={1}
-        >
-          {willUnlock ? '🎉 ' : '→ '}
-          {rightLabel}
-        </Text>
+        <View style={styles.leftBlock}>
+          <Text style={styles.leftLabel}>{leftLabel}</Text>
+          <Text style={[styles.leftAmount, { color: leftAmountColor }]}>{leftAmount}</Text>
+        </View>
+        <View style={styles.rightBlock}>
+          <Text style={styles.rightKicker}>{rightKicker}</Text>
+          <Text style={[styles.rightName, { color: rightColor }]} numberOfLines={1}>
+            {rightName}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.barTrack}>
-        <View style={[styles.barFillCurrent, { width: `${currentPct * 100}%` }]} />
-        {inflight > 0 && projectedPct > currentPct && (
+        {isBatching && (
           <Animated.View
+            pointerEvents="none"
+            style={[styles.sweepFill, { width: sweepWidth }]}
+          />
+        )}
+        <View style={[styles.barCurrent, { width: `${currentPct * 100}%` }]} />
+        {projectedPct > currentPct && (
+          <View
             style={[
-              styles.barFillProjected,
+              styles.barProjected,
               {
                 left: `${currentPct * 100}%`,
                 width: `${(projectedPct - currentPct) * 100}%`,
-                opacity: isBatching ? 1 : shimmer,
               },
             ]}
           />
         )}
+      </View>
+
+      <View style={styles.meta}>
+        <Text style={styles.metaLeft}>{metaLeft}</Text>
+        <Text
+          style={[
+            styles.metaRight,
+            { color: disabled ? colors.text.muted : colors.accent.brass },
+          ]}
+        >
+          {metaRight}
+        </Text>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  btn: {
-    borderWidth: 2,
-    borderRadius: radii.card,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+  root: {
+    paddingTop: spacing.xs,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginBottom: spacing.sm,
-    backgroundColor: colors.bg.card,
+  },
+  leftBlock: {
+    flexShrink: 1,
+  },
+  leftLabel: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 10,
+    color: colors.text.muted,
+    letterSpacing: 3,
+    marginBottom: 2,
+  },
+  leftAmount: {
+    fontFamily: fonts.playfairItalic,
+    fontSize: 32,
+    lineHeight: 34,
+  },
+  rightBlock: {
+    alignItems: 'flex-end',
+    flexShrink: 1,
+    marginLeft: spacing.sm,
+  },
+  rightKicker: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 10,
+    color: colors.text.muted,
+    letterSpacing: 2,
+  },
+  rightName: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  barTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.ui.progressBg,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -189,43 +226,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.brassDeep,
     opacity: 0.55,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  leftLabel: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 16,
-    letterSpacing: 1,
-  },
-  rightLabel: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 13,
-    letterSpacing: 1,
-    marginLeft: spacing.sm,
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  barTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.ui.progressBg,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  barFillCurrent: {
+  barCurrent: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     backgroundColor: colors.text.cream,
   },
-  barFillProjected: {
+  barProjected: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     backgroundColor: colors.accent.brass,
+  },
+  meta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  metaLeft: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 10,
+    color: colors.text.dim,
+  },
+  metaRight: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 11,
+    letterSpacing: 1.5,
   },
 });
