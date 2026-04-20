@@ -3,6 +3,7 @@ import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { MILESTONES } from '../data/cases';
+import SeasonBanner from '../components/SeasonBanner';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function TownScreen(): React.JSX.Element {
@@ -16,6 +17,8 @@ export default function TownScreen(): React.JSX.Element {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.header}>TOWN</Text>
+
+        <SeasonBanner />
 
         {isNew && (
           <View style={styles.welcomeBanner}>

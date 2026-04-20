@@ -6,6 +6,7 @@ import StepCounter from '../components/StepCounter';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
 import BuildButton from '../components/BuildButton';
+import SeasonBanner from '../components/SeasonBanner';
 import { colors, fonts, radii, spacing } from '../theme';
 
 export default function HomeScreen(): React.JSX.Element {
@@ -23,6 +24,8 @@ export default function HomeScreen(): React.JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.appTitle}>Stridekeep</Text>
+
+        <SeasonBanner />
 
         <View style={[styles.teamBanner, { borderColor: teamColor }]}>
           <Text style={[styles.teamText, { color: teamColor }]}>
