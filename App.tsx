@@ -13,7 +13,10 @@ import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
 import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
+import { supabase } from './src/lib/supabase';
 import MilestoneCelebrationWatcher from './src/components/MilestoneCelebrationWatcher';
+
+const BOT_TICK_MS = 4_000;
 
 SplashScreen.preventAutoHideAsync();
 
@@ -117,6 +120,35 @@ export default function App(): React.JSX.Element | null {
       return;
     }
     return useGameStore.persist.onFinishHydration(tryCommit);
+  }, []);
+
+  useEffect(() => {
+    // Ambient bot activity. Server-side tick_bots() generates 2-5
+    // synthetic deposits each call; we ping it every 4s while the app
+    // is foregrounded so the live feed + chart never look empty when a
+    // human is actually playing. Bots stop the moment the app is
+    // backgrounded (saving cost AND keeping the world correlated with
+    // real player activity).
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled || AppState.currentState !== 'active') return;
+      try {
+        await supabase.rpc('tick_bots');
+      } catch (err) {
+        console.warn('[stridekeep] tick_bots failed:', err);
+      }
+    };
+
+    void tick();
+    const id = setInterval(() => void tick(), BOT_TICK_MS);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') void tick();
+    });
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      sub.remove();
+    };
   }, []);
 
   if (!fontsLoaded) {
