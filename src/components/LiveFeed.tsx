@@ -32,8 +32,9 @@ export default function LiveFeed({ deposits, loading }: Props): React.JSX.Elemen
               ]}
             />
             <Text style={styles.line} numberOfLines={1}>
+              <Text style={styles.nickname}>{d.nickname}</Text>
+              <Text style={styles.dim}>{'  '}</Text>
               <Text style={styles.amount}>+${d.amount.toLocaleString()}</Text>
-              <Text style={styles.dim}>{` to ${d.team === 'red' ? 'Red' : 'Blue'}`}</Text>
             </Text>
             <Text style={styles.time}>{relativeTime(d.createdAt)}</Text>
           </View>
@@ -89,8 +90,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfitRegular,
     fontSize: 13,
   },
-  amount: {
+  nickname: {
     color: colors.text.cream,
+    fontFamily: fonts.outfitBold,
+  },
+  amount: {
+    color: colors.accent.brassLight,
     fontFamily: fonts.outfitBold,
   },
   dim: {
