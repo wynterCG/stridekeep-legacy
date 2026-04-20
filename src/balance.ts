@@ -30,4 +30,11 @@ export const BALANCE = {
   simulate: {
     cooldownMs: 30000,
   },
+  deposit: {
+    // Sliding-window batch — multiple BUILD taps within this window roll into
+    // one RPC (Pattern A: tap snaps forTheTown into pendingBatch and animates;
+    // sells during the wait go into a fresh forTheTown for a future batch).
+    // Tunable: 5s feels like a ceremony without dragging.
+    batchMs: 5000,
+  },
 } as const;

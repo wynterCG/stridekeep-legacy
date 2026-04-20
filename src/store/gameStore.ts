@@ -15,6 +15,11 @@ interface GameState {
   caseState: CaseState;
   purse: number;
   forTheTown: number;
+  // Money snapped from forTheTown the moment BUILD was tapped. RPC fires
+  // when the batch window ends. Persisted so a mid-batch app kill doesn't
+  // lose the deposit — it'll be committed on next launch instead.
+  pendingBatch: number;
+  pendingBatchEndsAt: number | null;
   teamTotals: { red: number; blue: number };
   inventory: KeptItem[];
   maxSlots: number;
@@ -28,7 +33,11 @@ interface GameActions {
   openCase: (tier: CaseTier) => Item | null;
   sellItem: (item: Item) => void;
   keepItem: (item: Item) => boolean;
-  depositForTown: () => Promise<void>;
+  // Snaps forTheTown into pendingBatch + sets pendingBatchEndsAt = now+batchMs.
+  // The actual RPC call is deferred to commitPendingBatch when the window
+  // expires (UI sets a timer; App.tsx also calls it on hydrate if needed).
+  depositForTown: () => void;
+  commitPendingBatch: () => Promise<void>;
   setTeam: (team: Team) => void;
   setTeamTotals: (totals: { red: number; blue: number }) => void;
   setTeamTotal: (color: 'red' | 'blue', total: number) => void;
@@ -97,6 +106,8 @@ export const useGameStore = create<GameStore>()(
       caseState: defaultCaseState,
       purse: 0,
       forTheTown: 0,
+      pendingBatch: 0,
+      pendingBatchEndsAt: null,
       teamTotals: { red: 0, blue: 0 },
       inventory: [],
       maxSlots: BALANCE.inventory.defaultSlots,
@@ -202,24 +213,43 @@ export const useGameStore = create<GameStore>()(
         return true;
       },
 
-      depositForTown: async () => {
-        const { forTheTown, team } = get();
+      depositForTown: () => {
+        const { forTheTown, team, pendingBatch } = get();
         if (!team || forTheTown <= 0) return;
-        // Optimistic clear so the UI reads as instant. Realtime push from
-        // public.teams will reconcile teamTotals shortly after.
-        set({ forTheTown: 0 });
+        // If a batch is already in flight, ignore this tap — the existing
+        // window will commit on its own. Sells continue to accrue into a
+        // fresh forTheTown, which the user can BUILD again after the
+        // current batch settles.
+        if (pendingBatch > 0) return;
+
+        set({
+          pendingBatch: forTheTown,
+          pendingBatchEndsAt: Date.now() + BALANCE.deposit.batchMs,
+          forTheTown: 0,
+        });
+      },
+
+      commitPendingBatch: async () => {
+        const { pendingBatch, team } = get();
+        if (!team || pendingBatch <= 0) return;
+
+        // Optimistically end the batch so the UI returns to its idle state
+        // immediately. We hold the amount in a local so we can roll it back
+        // if the RPC fails.
+        const amount = pendingBatch;
+        set({ pendingBatch: 0, pendingBatchEndsAt: null });
+
         try {
-          const newTotal = await serverDeposit(forTheTown);
-          // Self-heal: apply the RPC return as a floor so we don't depend on
-          // the realtime push being delivered. The RPC result can only be
-          // ahead of (or equal to) the cached value.
+          const newTotal = await serverDeposit(amount);
+          // Self-heal: apply RPC return as a floor in case the realtime
+          // push is delayed or dropped.
           const cur = get().teamTotals[team];
           if (newTotal > cur) {
             set({ teamTotals: { ...get().teamTotals, [team]: newTotal } });
           }
         } catch (err) {
-          // Roll back the optimistic clear so the player can retry.
-          set({ forTheTown });
+          // Roll back to forTheTown so the player can retry the deposit.
+          set((state) => ({ forTheTown: state.forTheTown + amount }));
           console.warn('[stridekeep] deposit_for_town failed:', err);
         }
       },

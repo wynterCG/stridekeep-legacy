@@ -38,6 +38,8 @@ export default function HomeScreen(): React.JSX.Element {
 
         <StepCounter />
 
+        <BuildButton />
+
         <CaseCard tier="starter" />
         <CaseCard tier="premium" />
         <CaseCard tier="luxury" />
@@ -46,8 +48,6 @@ export default function HomeScreen(): React.JSX.Element {
           <Text style={styles.purseLabel}>PURSE</Text>
           <Text style={styles.purseValue}>${purse.toLocaleString()}</Text>
         </View>
-
-        <BuildButton />
 
         <SimulateWalkButton />
       </ScrollView>
