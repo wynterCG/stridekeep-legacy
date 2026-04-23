@@ -9,7 +9,11 @@ description: Use this skill when working on Stridekeep, a native mobile team-bas
 
 ## 1. What Stridekeep is
 
-A **native mobile team-based idle game** where the player's real-world step count is the only resource. Players are randomly assigned to Team Red or Team Blue on first launch. Walking unlocks **material cases** (construction supplies). Opening cases gives players materials they can **sell for team cash** or **keep** for passive team income. Team cash is deposited into **team totals** that unlock **civic milestones** — a shared medieval town built collectively. At the end of each 7-day **season**, the team with the higher total wins a badge and a premium case.
+**(Updated for Phase 4 Mosaic Edition — plan: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md`)**
+
+A **native mobile team-based idle game** where the player's real-world step count is the only resource. Players are randomly assigned to Team Red or Team Blue on first launch. Walking unlocks **material cases** that drop **colored tiles**. Each season has a **ComfyUI-generated pixel-art mural** (a "mosaic") — each team races to complete their canvas by placing tiles of the correct color on each pixel (paint-by-numbers). The winning team's players each receive the completed mural as a permanent collectible badge. Season ends when either team completes the canvas OR a 14-day soft cap passes. Everything resets between seasons except badges.
+
+Colors form a small per-season economy: most drop from walking cases, some are bought with Purse (from selling surplus tiles), a few are crafted by mixing other colors. Each season's palette is unique, extracted from that season's mural by a Godot editor plugin and curated by the developer. Tiers (starter/quality/fine) and categories (case/shop/craft) are stable; only the actual colors change season to season.
 
 The game is **free, no microtransactions, no loot-box gambling mechanics, no real-money anything**. It targets adults whose lives already involve significant physical movement who want that effort to mean something.
 
@@ -69,120 +73,106 @@ The meta-principle to apply when unsure: **"Would a tired warehouse worker at 9p
 Two-level navigation:
 
 **Bottom nav (primary, always visible, fixed-position):**
-- 🏠 **Home** — the entire game-loop view: chart, feed, milestones, season banner, purse strip, build button, case cards, simulate-walk demo button
-- 🎒 **Inventory** — kept materials grid with empty slot placeholders, passive income summary, slot upgrade button, Stride Power upgrade button
-- 🏛️ **Town** — milestone timeline; welcome banner for new players; future home for team chat and illustrated town map
+- 🏠 **Home** — season banner, Purse indicator (tap to open Shop modal), team canvas (CanvasView hero — tap a pixel to place a matching-color tile), step counter + flat $/step strip, 3 CaseCards (fine/quality/starter), simulate-walk demo button
+- 🎒 **Inventory** — grid of the current season's colors (dynamic cell count, ~10-16 per season) with qty badges; tap cell → SELL / PLACE ON CANVAS / USE IN RECIPE action sheet; badge gallery at bottom (FlatList windowed)
+- 🏛️ **Town** — season banner; side-by-side Red vs Blue canvas preview (read-only, shows both teams' progress %); TugOfWar (pixels-placed metric); 14-day countdown until cap; LiveFeed (multi-kind events)
 
-**Strict isolation (Clash Royale pattern):** each tab is its own screen. Chart, milestones, season banner, purse, build button appear ONLY on Home. To deposit team cash, players navigate back to Home. This is deliberate — it keeps per-tab identity clear and avoids cluttering Inventory/Town with money UI.
+**Strict isolation (Clash Royale pattern):** each tab is its own screen. CanvasView (for placing tiles), Purse indicator, CaseCards appear ONLY on Home. Players navigate back to Home to place tiles. This is deliberate — it keeps per-tab identity clear.
 
-**No sub-tabs.** An earlier iteration had CASES/STEPS sub-tabs inside Home. They were removed because they added navigation friction without payoff. The simulate-walk button lives as a slim control at the bottom of Home content.
+**No sub-tabs.** Craft modal opens from Inventory tap-on-material; Shop modal opens from Home Purse tap. Both are modals over the current tab, not separate nav entries.
 
 ### Currency copy (use exactly)
-- **PURSE** = personal money (from upgrades and kept-item sales)
-- **FOR THE TOWN** = team cash ready to deposit
-- **BUILD FOR RED/BLUE** = the deposit action
+- **PURSE** = personal money (from selling surplus tiles). Resets at season end.
+- **PLACE** = the action of putting a tile on a canvas pixel.
+- **CRAFT** = combining tiles to produce a craft-only color.
+- **BUY** = purchasing a shop-category color with Purse.
 
-### The build button
-Not a plain button. It shows:
-- Current team cash: `$X` on the right
-- A mini progress bar with the existing team progress (white fill) + projected new progress (shimmering gold fill)
-- A label: `→ 🏥 HOSPITAL · 47%` normally, or `🎉 UNLOCKS 🏥 HOSPITAL` when the deposit will cross a milestone
-- A pulse animation on the team's chart total when pressed
+### The CanvasView (signature UI)
+Hero element on Home. Renders the team's full canvas (e.g., 32×32 = 1024 pixels) via `react-native-svg`. Filled pixels show their placed color; unfilled pixels show a dim target-color preview. At zoom, each unfilled pixel renders a 2-char ColorCode overlay (`S1`, `Q1`, `F1`, etc.) for colorblind playability. Tap an unfilled pixel → opens TilePicker modal pre-filtered to matching-color tiles the player owns. Realtime fills from teammates animate in live (subscribeCanvas hook, focus-gated per Phase-3 pattern).
 
-This is a signature UI element. Preserve it.
+### The SeasonEndCeremony (signature UX)
+Full-screen blocking modal that fires on season rollover. Shows both team canvases side-by-side with winner glow, animates the personal contribution count ("You placed X pixels this season"), docks the new badge into the gallery with a click animation, shows a "Next up →" preview of the queued mural. CONTINUE button dismisses → `applySeasonReset` wipes intra-season state (inventory, Purse, pity, sellHistory) while preserving the badge collection. Owns reset timing: palette/recipes load before dismissal completes.
 
 ## 6. Game mechanics
 
-### The core loop
+### The core loop (Phase 4 Mosaic Edition)
 
 ```
 Real-world walking
  ↓
-Step counter fills per tier (server-validated)
+Step counter fills per tier (client-side for now; audit logs for future server-auth)
  ↓
 Tier threshold reached → Pending case added to stack
  ↓
-Player opens case (single or batch via OPEN ALL)
+Player opens case → colored tile added to inventory (tile color drawn from that season's palette)
  ↓
-Sell material (team cash) OR Keep (inventory, passive team income)
+Split paths:
+  ├─ SELL surplus tiles → Purse (sell-decay applies per item per day)
+  ├─ BUY shop colors with Purse (if season has shop-category colors)
+  ├─ CRAFT colors (combine 2+ tiles per recipe; tier-3 never consumed as input)
+  └─ PLACE a tile on your team's canvas matching that pixel's target color
  ↓
-Build button deposits accumulated team cash → team total grows
+Team completes canvas (all pixel_count tiles placed) OR 14-day soft cap hits
  ↓
-Milestone crossed → celebration modal → shared town advances
+SeasonEndCeremony: side-by-side canvases, personal contribution, badge award
  ↓
-Season ends (7 days) → winner gets Fine Craftsmanship case + badge; loser gets Basic Supplies case
+Reset everything except badges. Next season's palette + mural load from queue.
 ```
 
-### Case tiers
+### Case tiers (stable across seasons)
 
-| Case | Steps | Item value band | Drop rarities |
+| Case | Steps | Drop weights | Notes |
 |---|---|---|---|
-| Basic Supplies 📦 | 200 | $100–$200 | common, uncommon, rare |
-| Quality Materials 🧰 | 1,500 | $520–$850 | common, uncommon, rare, epic |
-| Fine Craftsmanship 🏛️ | 5,000 | $2,200–$4,200 | common, uncommon, rare, epic, legendary |
+| Starter 📦 | 200 | common, uncommon, rare | ~50-60% of case-category colors in most palettes |
+| Quality 🧰 | 1,500 | +epic | ~25-35% |
+| Fine Craftsmanship 🏛️ | 5,000 | +legendary (with pity system) | ~10-20%. **Never consumed in craft recipes** — precious. |
 
-**Critical: tight value bands per tier.** This is what keeps Stridekeep out of loot-box gambling classification. Opening a Fine Craftsmanship case has ~2x variance, not the 100x variance of traditional gacha mechanics.
+**Pity system**: 20 consecutive tier-3 opens without a rare+ drop → next open forces the rare color. Prevents RNG lockout on tier-3 legendaries. Resets on rare drop OR at season rollover.
 
-### Items (medieval construction materials)
+### Per-season palettes
 
-```
-Tier 1 (Basic Supplies):
-  Clay Bricks, Rough Planks, Iron Nails, Mortar Mix (common, $100-140)
-  Oak Beams, Hand Tools (uncommon, $165-180)
-  Blueprints (rare, $200)
+Each season has a UNIQUE palette (10-16 colors typically; extracted from that season's ComfyUI mural via Godot plugin k-means clustering + user curation). Tiers are stable; color identities change. Color IDs are season-scoped (e.g., `s1_bone`, `s2_pine`). Plugin enforces invariants:
+- At least one tier-1 case color per season.
+- Tier-3 colors NEVER appear as craft-recipe inputs.
+- Drop weights sum to 100% per tier.
+- Season 1 onboarding-mode: 0 shop, 0 craft, ≥65% tier-1 (enforced).
 
-Tier 2 (Quality Materials):
-  Cut Limestone, Slate Tiles (common, $520-580)
-  Cast-Iron Hinges, Copper Piping (uncommon, $600-650)
-  Stained Glass, Wrought Iron Gate (rare, $720-780)
-  Master Carpenter (epic, $850)
+### Categories (stable across seasons)
 
-Tier 3 (Fine Craftsmanship):
-  Polished Marble (common, $2,200)
-  Clock Mechanism, Bronze Statue (uncommon, $2,500-2,800)
-  Gilded Dome, Carved Archway (rare, $3,100-3,400)
-  Grand Chandelier (epic, $3,800)
-  Master Architect (legendary, $4,200)
-```
+- **case**: drops from walking cases. Most of the palette.
+- **shop**: bought with Purse; not droppable. 0-3 colors per season (zero in Season 1).
+- **craft**: produced by mixing other colors. 0-2 recipes per season (zero in Season 1).
 
-**Rarity is visual distinction only.** A rare tier-1 item is worth less than a common tier-3 item. Rarity doesn't scale value within the same tier.
+### Canvas + mural
 
-### Milestones (civic buildings)
+Each season = one ComfyUI-generated mural (32×32 default; variable per-season). Both teams paint the same target image on their own canvas in parallel. Each pixel has a predetermined correct color (paint-by-numbers). Only matching-color tile placements are accepted. Canvas fills only from real players; bots never place tiles.
 
-```
-$5,000     ⛲ Village Fountain
-$25,000    🏘️ Stone Houses
-$100,000   🏫 Town School
-$500,000   🏥 Hospital
-$2,000,000 📚 Grand Library
-$10,000,000 ⛪ Cathedral
-$50,000,000 🚉 Central Station
-```
+Winning team = first to complete canvas OR higher % completion at cap. Tie at cap → no winner, no badges, advance to next season.
 
-Each milestone triggers a full-screen celebration when a team crosses it (rotating gold rays, confetti, Playfair Display italic name, 5.5s auto-dismiss).
+### Inventory
 
-### Inventory (kept items)
+Dynamic grid sized to current season's palette (~10-16 cells). Qty per color. No slot limit, no slot upgrades (removed in Phase 4). Tap cell → action sheet: SELL (case colors only, shows decayed price) / PLACE / USE IN RECIPE.
 
-- 6 slots default, upgradable to 12 (costs: $10K, $20K, $40K, $80K, $160K, $320K — scales 2x)
-- Each kept item generates **0.5% of sell value per hour** in team passive income
-- Tap any item → sell confirmation modal (showing current/hour earnings)
-- If inventory is full when a new case reveals: player chooses SWAP (replaces chosen item, old auto-sells) or SELL (new item auto-sells)
-- Grid always visible with empty slot placeholders showing "+" and "EMPTY" label
+### Sell decay
 
-### Stride Power (the only upgrade)
+Per-player, per-color daily counter. `sellPrice(colorId, n) = baseValue × max(0.3, 0.92^n)`. First sell full price; declines ~8% per sell; floors at 30% of base. Resets at local midnight + at season rollover. Applies to Purse-selling only — canvas placements always credit full value (no decay on placement).
 
-- Increases dollars earned per step
-- Starts at $1/step, +$1 per level
-- Cost: $60 × 1.5^level
+### Season (variable length, 14-day soft cap)
 
-**Resting rate is fixed at $3/sec** and not upgradable. This is deliberate — the ONLY way to grow meaningfully is to walk more. No idle-farming strategies.
+- Season ends when either team completes the mural OR `soft_cap_at = started_at + 14 days` passes.
+- Winner gets a permanent **badge = the completed mural image**. Only persistent cross-season progression.
+- Loser gets nothing. The loss is its own signal.
+- Empty-queue completion → "awaiting mural" state; empty-queue cap-timeout → extend soft_cap by 7 days (graceful degradation).
+- Mural queue system: developer seeds N murals in advance; `rollover_season()` auto-promotes the next queued one.
 
-### Season
+### What resets between seasons
 
-- 7-day cycles (real time, wall-clock)
-- Winner gets **Fine Craftsmanship case + permanent profile badge**
-- Loser gets **Basic Supplies case**
-- Badges stack and display in profile, live feed, leaderboards
+**Resets**: inventory, Purse, pityCounter, sellHistory, caseState progress, season palette/recipes (server-side cache).
+**Persists**: `badges: Badge[]` (lifetime collection), team assignment (immutable), nickname, platform state.
+
+### Stride Power and Slot upgrades — REMOVED (Phase 4)
+
+Previous versions had a Stride Power upgrade ($1/step scaling) and Inventory Slot upgrades. Both gone. Walking always earns flat `$1/step` via `baseValue`. Only progression vector = badge collection. Reasoning: keeps every action serving the mosaic loop; no side-grind. The meta-principle line "Stride Power (the only upgrade)" from earlier versions is superseded.
 
 ### Simulate-walk (demo only, remove for production)
 
@@ -200,18 +190,24 @@ Each milestone triggers a full-screen celebration when a team crosses it (rotati
 - **Border radius:** 10-14px for cards, 20px for badges/chips
 - **Animations:** cubic-bezier easing, ~0.3-0.5s durations. No slot-machine spinning. No Candy-Crush style explosions.
 - **Haptics:** native haptic feedback on taps, impact on reveals, notification on milestone unlocks. Use expo-haptics.
-- **Epic/Legendary/Mythic reveals:** trigger a radial color-flash overlay during reveal (rarityFlash keyframe in prototype)
+- **Rare tier-3 case reveals:** when a Fine Craftsmanship (tier-3) case drops a color whose `drop_weight_pct < 15` for its tier that season (the rarest colors in this season's tier-3 palette), trigger a radial color-flash overlay during the open animation. Flash hex matches the rolled tile. Uses `react-native-svg` circle primitives with an animated scale+opacity transition. Pity-forced drops also trigger the flash. Replaces the prototype's per-item `rarityFlash` keyframe — Phase 4 has no per-tile rarity attribute, so the trigger is drop-weight-based.
 
-### Color-blind safety
-Team state must be communicated via more than hue alone. Always include text labels ("RED", "BLUE", "TEAM RED · YOUR TOWN") and icons where possible. Consider pattern fills for charts.
+### Color-blind safety (REQUIRED, Phase 4 core)
+Team state must be communicated via more than hue alone. Always include text labels ("RED", "BLUE", "TEAM RED · YOUR TOWN") and icons where possible.
+
+**Color-matching mechanic** (Phase 4 Mosaic Edition): the entire core loop is "tap pixel → match its color." Without additional visual signals, ~8% of men / 0.5% of women cannot play at all. The `ColorCell` primitive renders a **2-character code** on every swatch (e.g., `S1`, `S2`, `Q1`, `F1` — tier prefix + index-within-tier). Default ON; toggleable via accessibility setting. `CanvasView` renders these codes on unfilled pixels at zoom. `TilePicker` always shows color NAMES alongside swatches. Ships in Phase 4 core, not as post-beta polish.
+
+### Palette as aesthetic (Phase 4 Mosaic Edition)
+
+Each season has a curated 10-16 color palette extracted from that season's mural. The restricted palette count (not any specific colors) carries the medieval-artisan aesthetic — any subject rendered in a small, hand-curated palette reads as mosaic. ComfyUI is free to generate any subject matter as long as anti-patterns (§8) are respected. Each mural becomes a visually unique badge when a team completes it.
 
 ### Copy tone
 
 ✅ Use:
-- "Walk to unlock your team's next milestone"
-- "Your town built: Village Fountain"
-- "Team Red leads by $4,320"
-- "Welcome, builder"
+- "Walk to paint your team's next pixel"
+- "Your team completed: <mural name>"
+- "Team Red leads by 47 pixels" / "RED 62% · BLUE 58%"
+- "Welcome, walker"
 
 ❌ Don't use:
 - "AMAZING! Great job stepping today! 🎉🎉🎉"
@@ -219,21 +215,21 @@ Team state must be communicated via more than hue alone. Always include text lab
 - "Swipe here, champion!"
 - "Don't lose your streak!" (pressure-based)
 
-### Trading chart (signature element)
-Single line = (red total − blue total). Floats above zero when Red leads, below when Blue leads. Line color changes by zone (red above, blue below) via SVG clipPath. Zero line labeled "TIED". Above the chart, show "LEAD: RED +$9.7K" (or blue) for scannable legibility.
+### TugOfWar (signature element)
+On Town tab. Horizontal bar showing the current season's pixel-placement race: RED side fills from left, BLUE from right, meeting at the crossover point proportional to each team's `filled_count / pixel_count`. Team colors; zero line labeled by both team names. Above the bar, show `LEAD: RED +47 pixels` (or BLUE, or `TIED`) for scannable legibility. Same SVG pattern as the original Phase-3 trading chart, different metric (pixels-placed, not dollars).
 
 ### Live feed ticker
-Below the chart. Shows recent team activity: deposits, rare+ pulls, milestone crossings, and occasional "TEAM RED is $1,243 from 🏥 HOSPITAL" proximity messages (~10% of events). The user's own events show as "YOU" in gold. Every meaningful user action (rare+ pull, deposit, milestone) pushes an event to the feed.
+Below the TugOfWar on Town. Shows recent team + community activity: tile placements, case opens, crafts, sells, shop buys (5 event kinds; see §9 `feed_events`). Bots emit atmospheric events only (no tile placements); real players emit all 5 kinds. **The user's own events show as "YOU" in gold.** Tile placements get team-color accent; atmospheric events are quieter-styled. No pixel coordinates (too noisy for a high-throughput feed).
 
 ### Onboarding
-Three-step contextual tour using refs + `measure()` (NOT hardcoded pixel positions). Spotlight the chart, then the season banner, then the bottom nav. Scroll is locked during onboarding. Use `scrollIntoView` / React Native equivalent to animate between anchors.
+Three-step contextual tour using refs + `measure()` (NOT hardcoded pixel positions). Spotlight the **CanvasView** (explain paint-by-numbers + tap-a-pixel-to-place-a-tile), then the **season banner** (explain 14-day soft cap + that the completed mural becomes a badge), then the **bottom nav**. Scroll is locked during onboarding. Use `scrollIntoView` / React Native equivalent to animate between anchors.
 
 **Libraries to consider:** `react-native-walkthrough-tooltip` or `react-native-copilot` instead of reinventing this.
 
 ### Empty states
-- **New user on Town:** show welcome banner ("Welcome, builder — your team's first building is a Village Fountain")
-- **Empty inventory:** show dashed-outline empty slot placeholders with "+" and "EMPTY" label
-- **No recent activity:** show team-neutral feed events
+- **New user on Town:** welcome banner ("Welcome to Season N — your team is painting `<mural name>` together").
+- **Empty inventory:** dimmed color cells for the current season's palette (all 10-16 colors rendered dim with qty 0; no "slot" concept anymore).
+- **No recent activity:** rare in practice — bots emit atmospheric feed events continuously while a season is active. If truly empty (awaiting-mural state), show "Next mural coming soon."
 
 ## 8. Anti-patterns (what NOT to build)
 
@@ -243,7 +239,8 @@ These are decisions we've explicitly rejected. Don't reintroduce them.
 - ❌ **Real money purchases.** Ever.
 - ❌ **Player-to-player trading.** Deferred indefinitely (moderation/fraud burden too high).
 - ❌ **Manual activity logging.** If the phone can't detect it automatically, it doesn't count. Honor-system logging ruins leaderboard integrity.
-- ❌ **Idle farming.** Resting rate fixed. All upgrades reward active walkers only.
+- ❌ **Bots placing tiles on the canvas.** Bots emit atmospheric feed events only (case opens, crafts, sells, shop buys). The canvas fills exclusively from real human action. Rationale: a team "completing" the mural must mean real players showed up. Bot-assisted completion would make badges meaningless, and completion is the signal the game is built around. If seasons rarely complete due to low real-player activity, the 14-day soft cap exists as the correct safety valve — NOT bot assistance. Do not weaken this under any "just a little help when activity is low" pressure.
+- ❌ **Idle farming.** Resting rate fixed; no upgrade progression exists (Stride Power + slots removed in Phase 4) to reward idle accumulation. The only way to earn is to walk.
 - ❌ **A web version.** Native-only.
 - ❌ **Tap-to-earn / clicker mechanics.**
 - ❌ **Mini-games that pay cash.** If added, pay bonuses only (free case, odds boost), never cash equivalents.
@@ -252,7 +249,7 @@ These are decisions we've explicitly rejected. Don't reintroduce them.
 - ❌ **Cute cartoon style.** Adults, not children.
 - ❌ **Hardcoded pixel positions for onboarding.** Use refs + measure.
 - ❌ **Long cooldowns as artificial pacing.** Real walking is the pacing.
-- ❌ **Client-authoritative economy.** Case opens, deposits, season rewards = server-validated. Anti-cheat depends on it.
+- ❌ **Client-authoritative economy** for critical-integrity-path operations — not acceptable long-term. Phase 4 defers server-auth for case opens + Purse + inventory (tracked in audit-log tables 0016 for the eventual migration). **Tile placements, badge awards, and season rollovers ARE server-authoritative in Phase 4** because they determine win state. Full server-auth migration (case opens, sells, shop buys, crafts) is a Phase-5 blocker before public beta.
 - ❌ **Persuasion-based design.** We're not motivating people to exercise. We reward people who already do.
 - ❌ **Streak pressure.** Don't build streak features that punish breaks. Users have unpredictable lives (shift changes, illness, family emergencies). Optional streak bonuses OK; losing-progress-if-you-miss-a-day is not OK.
 - ❌ **Login bonuses.** Would reward app-opening, not walking. Off-brand.
@@ -261,99 +258,135 @@ These are decisions we've explicitly rejected. Don't reintroduce them.
 
 ## 9. Data model
 
-### Client state shapes (match the prototype)
+### Client state shapes (Phase 4 Mosaic Edition)
 
 ```typescript
-// Case definition
-type Case = {
-  id: 'starter' | 'premium' | 'luxury';  // 'luxury' is legacy id, name is "Fine Craftsmanship"
+// Palette color loaded per-season
+type ColorDef = {
+  id: string;              // season-scoped, e.g. 's1_bone'
   name: string;
-  emoji: string;
-  accent: string; // hex color
-  stepsRequired: number;
-  tier: 'tier1' | 'tier2' | 'tier3';
-  drops: Record<Rarity, number>; // weight percentages
+  hex: string;
+  category: 'case' | 'shop' | 'craft';
+  tier?: 'starter' | 'quality' | 'fine';  // required for case; null for shop/craft
+  shopPrice?: number;      // required for shop; null otherwise
+  baseValue: number;       // sell price ceiling
+  dropWeightPct?: number;  // case only
+  colorCode: string;       // 2-char a11y code e.g. 'S1', 'Q1', 'F1', 'P1', 'C1' — deterministic, seeded by plugin
 };
 
-// Material item (what comes out of a case)
-type Item = {
-  name: string;
-  emoji: string;
-  value: number;
-  rarity: Rarity;
+// Craft recipe for the current season
+type CraftRecipe = {
+  id: string;
+  output: string;                 // colorId in current season
+  inputs: Record<string, number>; // {colorId: qty} — tier-3 NEVER appears here (invariant)
 };
 
-// Kept in inventory
-type KeptItem = Item & { uid: string };
-
-// Rarity
-type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
-
-// Per-tier case state
+// Per-tier case progress state
 type CaseState = {
   starter: { progress: number; pending: number };
-  premium: { progress: number; pending: number };
-  luxury: { progress: number; pending: number };
+  quality: { progress: number; pending: number };
+  fine:    { progress: number; pending: number };
 };
 
-// Milestone
-type Milestone = { at: number; emoji: string; name: string };
+// Earned badge (sole cross-season persistence)
+type Badge = {
+  seasonNumber: number;
+  wonAt: string;          // ISO timestamp
+  seasonName: string | null;
+  // mural URL derived: `${SUPABASE_URL}/storage/v1/object/public/murals/season_${seasonNumber}.png`
+};
+
+// Note: legacy types from the money-era are GONE:
+//   Case (items), Item, KeptItem, Rarity (common/uncommon/rare/epic/legendary),
+//   Milestone ($-threshold). Replaced by the above.
 ```
 
-### Server tables (Supabase)
+### Server tables (Supabase) — Phase 4 Mosaic Edition schema
 
 ```
 users
   id (uuid) PK
   team ('red' | 'blue') — assigned once on signup, immutable
-  name
-  display_name
-  max_slots (int, default 6)
-  step_value (int, default 1)
-  step_level (int, default 1)
-  badges (int[]) — season numbers won
+  nickname (text, 3-20 chars, defaults to 'Stridekeeper-<uuid-prefix>')
   created_at
 
 teams
   color ('red' | 'blue') PK
-  total (bigint, resets at season boundary OR append-only with season_id)
+  total (bigint) — lifetime count of canvases this team has won (reset to 0 at Phase-4 deploy)
   updated_at
 
-seasons
-  id (int) PK
-  starts_at, ends_at
-  winning_team (nullable until closed)
-  rewards_distributed (bool)
+seasons — supports queued + active + ended via nullable started_at/ended_at
+  number (int) PK
+  started_at timestamptz NULL — NULL = queued, NOT NULL = active or ended
+  ended_at timestamptz NULL — NULL = queued/active, NOT NULL = ended
+  soft_cap_at timestamptz NULL — NOW() + 14 days when promoted
+  target_pixels jsonb — { "0": "s1_bone", "1": "s1_charcoal", ... }
+  canvas_width int (default 32)
+  canvas_height int (default 32)
+  pixel_count int — canvas_width × canvas_height
+  mural_name text NULL
+  winner_team text NULL
+  created_at timestamptz
+  + partial unique index: CREATE UNIQUE INDEX one_active_season ON seasons ((1))
+    WHERE started_at IS NOT NULL AND ended_at IS NULL;
 
-step_events — audit trail for anti-cheat
-  id PK
-  user_id FK
-  delta (int)
-  timestamp
-  source (enum: 'health_connect', 'healthkit', 'simulate_demo' — reject demo in prod)
+season_colors — per-season palette (no master catalog)
+  (season_number int, color_id text) PK
+  name text
+  hex text
+  category ('case' | 'shop' | 'craft')
+  tier ('starter' | 'quality' | 'fine') NULL — required for case; null for shop/craft
+  shop_price int NULL — required for shop; null otherwise
+  base_value int (default 100)
+  drop_weight_pct numeric(5,2) NULL — case only; sums to 100 per tier
 
-cases_opened
-  id PK
-  user_id FK
-  tier
-  item_name, item_value, rarity, emoji
-  outcome ('sold' | 'kept')
-  timestamp
+season_craft_recipes
+  (season_number int, recipe_id text) PK
+  output_color_id text — references this season's palette
+  inputs jsonb — { colorId: qty } — tier-3 colors NEVER in inputs (invariant)
 
-deposits
-  id PK
-  user_id FK
-  amount (int)
-  team
-  timestamp
-  milestone_crossed (int nullable)
+canvas_pixels — persistent canvas state
+  (season_number int, team text, pixel_idx int) PK
+  color_id text
+  placed_by uuid → users(id)
+  placed_at timestamptz
+  indexes: (season_number, team), (placed_at DESC), (placed_by, season_number)
 
-inventory_items
-  uid PK
-  user_id FK
-  item (json: name, emoji, value, rarity)
-  acquired_at
+teams_canvas_progress — O(1) completion check
+  (season_number int, team text) PK
+  filled_count int DEFAULT 0
+  — incremented atomically per tile placement; equals seasons.pixel_count = canvas complete
+
+user_badges — lifetime progression (sole cross-season persistence)
+  (user_id uuid, season_number int) PK
+  season_name text NULL
+  won_at timestamptz
+  — mural URL derived client-side: `${SUPABASE_URL}/storage/v1/object/public/murals/season_${N}.png`
+
+feed_events — replaces old `deposits` table
+  id bigint identity PK
+  kind ('tile_placed' | 'case_opened' | 'crafted' | 'sold' | 'shop_bought')
+  nickname text
+  team text NULL — tile_placed only
+  color_id text NULL
+  qty int NULL DEFAULT 1
+  tier text NULL — case_opened only
+  created_at timestamptz
+  self-trims to 100 rows via trigger
 ```
+
+**Storage bucket**: `murals` (public). Deterministic path `murals/season_{N}.png`. Uploaded by Godot plugin; referenced by badges via derived URL.
+
+**Key RPCs**:
+- `seed_next_mural(target_pixels, palette, craft_recipes, width, height, name)` — appends a queued season. Validates tier-3 craft invariant + palette coverage + drop weight sums.
+- `place_tile(color_id, pixel_idx)` — atomic tile placement with row lock + progress counter increment + feed_events insert + completion check.
+- `rollover_season()` — idempotent; called on every app foreground. Ends current season if completed or capped, awards badges, promotes next queued season (or extends cap if queue empty on cap-timeout path).
+- `log_feed_event(kind, color_id?, qty?, tier?)` — real-player atmospheric events.
+- `my_contribution_count(season_number)` — for SeasonEndCeremony.
+- `queue_status()` — admin/plugin visibility into queued seasons.
+- `tick_bots()` — 2-5 atmospheric events per call, no tile placements, re-reads active palette each invocation.
+
+**Pre-launch deploys 2-3 pre-seeded murals**: Season 1 in onboarding-mode (zero shop, zero craft, ≥65% tier-1).
 
 ## 10. Code patterns
 
@@ -387,47 +420,29 @@ async function readDailySteps(): Promise<number> {
 }
 ```
 
-### Server-authoritative case opening
+### Case opening — CLIENT-SIDE (Phase 4 Mosaic Edition)
+
+Per-season palette means the client reads `seasonPalette` and rolls a colorId locally:
 
 ```typescript
-// CLIENT: request case open
-async function openCase(tier: CaseTier) {
-  const { data, error } = await supabase.rpc('open_case', {
-    tier,
-    client_step_count: dailySteps,
-    idempotency_key: crypto.randomUUID(),
-  });
-  if (error) throw error;
-  // Server validated step count, decided the item, returned result
-  return data.item; // { name, emoji, value, rarity }
+function openCase(tier: 'starter' | 'quality' | 'fine'): string {
+  const palette = useGameStore.getState().seasonPalette;
+  if (!palette) return; // guard during rollover window
+  const tierColors = Object.values(palette)
+    .filter(c => c.category === 'case' && c.tier === tier);
+  // weighted random by dropWeightPct, respects pity if tier === 'fine'
+  const rolled = pickWeighted(tierColors, useGameStore.getState().pityCounter);
+  useGameStore.getState().addToInventory(rolled.id, 1);
+  logFeedEvent('case_opened', { tier, color_id: rolled.id }); // fire-and-forget
+  return rolled.id;
 }
-
-// SERVER (Postgres function): validates step delta, rolls item, logs event
 ```
 
-Never let the client decide case outcomes. This is the single largest anti-cheat requirement.
+**Server-auth for case opens is deferred to a future Phase** (Phase 5+). Audit log table `case_open_events` (migration 0016 OPTIONAL) gives retroactive audit trail. When moving to server-auth: replace the client function with an RPC that does the roll server-side.
 
-### Inventory passive income
+### Inventory passive income — REMOVED (Phase 4)
 
-```typescript
-// Calculate rate
-const perSecond = inventory.reduce(
-  (sum, item) => sum + (item.value * 0.005) / 3600,
-  0
-);
-
-// Smooth UI: increment locally every second
-useEffect(() => {
-  if (perSecond <= 0) return;
-  const id = setInterval(() => {
-    setTeamMoney(tm => tm + perSecond);
-  }, 1000);
-  return () => clearInterval(id);
-}, [perSecond]);
-
-// Server sync: post the accrual every ~5 min or on app foreground
-// Server calculates the authoritative value from timestamps — never trust client
-```
+Earlier versions had kept inventory items generating passive team income at 0.5% of sell value per hour. Phase 4 removes this entirely — inventory is a `Record<colorId, qty>` of tiles awaiting canvas placement, not a long-term holding with ticking income. Resting rate of `$3/sec` still exists (see balance.ts) as a minimum floor.
 
 ### Theme tokens (extract these first)
 
@@ -478,34 +493,43 @@ export const fonts = {
 ### Balance config (one file, not scattered)
 
 ```typescript
-// balance.ts
+// balance.ts — Phase 4 Mosaic Edition
 export const BALANCE = {
   cases: {
     starter: { stepsRequired: 200 },
-    premium: { stepsRequired: 1500 },
-    luxury: { stepsRequired: 5000 },
+    quality: { stepsRequired: 1500 },
+    fine:    { stepsRequired: 5000 },
   },
   resting: {
     ratePerSec: 3,
   },
   stride: {
-    baseValue: 1,
-    costBase: 60,
-    costMultiplier: 1.5,
+    baseValue: 1,  // flat $/step — NO upgrades (Stride Power removed)
   },
-  inventory: {
-    defaultSlots: 6,
-    maxSlots: 12,
-    slotUpgradeCost: [10000, 20000, 40000, 80000, 160000, 320000],
-    passiveIncomeRate: 0.005, // 0.5% per hour
+  sellDecay: {
+    factor: 0.92,  // per-same-item sell on same day
+    floor: 0.3,    // minimum 30% of base
+  },
+  pity: {
+    fine: { threshold: 20 },  // tier-3 guaranteed rare after N opens
+  },
+  canvas: {
+    defaultWidth: 32,
+    defaultHeight: 32,
+    // Actual dimensions per-season on the seasons row — these are plugin defaults
   },
   season: {
-    durationDays: 7,
+    softCapDays: 14,  // variable-length seasons; cap = fallback end
   },
   simulate: {
     cooldownMs: 30 * 1000, // 30s for testing; remove in production
   },
 };
+
+// REMOVED (do not re-introduce):
+//   inventory.defaultSlots / maxSlots / slotUpgradeCost / passiveIncomeRate
+//   stride.costBase / stride.costMultiplier
+//   season.durationDays (replaced by softCapDays)
 ```
 
 ## 11. Build roadmap
@@ -531,29 +555,51 @@ Prove the technical path works before committing to the full build.
 
 **Goal:** playable loop on Android. Team totals fake (hardcoded opponent). No backend.
 
-### Phase 3: Backend (4-6 weeks)
-- Supabase project, auth, schema
-- Team assignment on signup
-- Server-side case opening (Postgres function)
-- Real team totals with realtime subscription
-- Season scheduling and reward distribution
-- Basic anti-cheat (step rate sanity checks)
+### Phase 3: Backend (4-6 weeks) — ✅ SHIPPED 2026-04-20
+- Supabase project (`fdygeoihelpgjyhbvxgu`), auth, schema
+- Team assignment on signup via `handle_new_user` trigger
+- `deposit_for_town` RPC, team totals with realtime subscription
+- Nicknames, bot runner, tick_bots ambient synth, live feed, trading chart
 
-**Goal:** multi-user, real competition.
+**Shipped goal met**: multi-user, real competition with $-based deposits + milestone thresholds.
 
-### Phase 4: Closed beta (6-8 weeks)
+### Phase 4: MOSAIC EDITION — PLANNED (17-20 days focused work)
+Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md` (approved 2026-04-23).
+
+**Fundamental pivot**: game was always about collaborative pixel art, not abstract town-building. Phase 4 replaces the money-deposit economy with material-tiles-on-a-canvas:
+- Walking → colored tiles (per-season palette)
+- Place tiles on team canvas matching that pixel's target color (paint-by-numbers)
+- Each season = one ComfyUI-generated mural; winners get it as a permanent badge
+- Everything resets per season except badges
+
+**Key changes from Phase 3**:
+- Stride Power + inventory slot upgrades REMOVED. Flat $1/step.
+- `deposit_for_town` → `place_tile` RPC.
+- `deposits` table → `feed_events` table (5 event kinds).
+- `teams.total` repurposed from dollars to lifetime canvases-won count.
+- New tables: `season_colors`, `season_craft_recipes`, `canvas_pixels`, `teams_canvas_progress`, `user_badges`.
+- New components: `CanvasView`, `TilePicker`, `SeasonEndCeremony`, `ShopModal`, `CraftModal`, `ColorCell` (with colorblind codes).
+- `BuildButton` DELETED.
+- Godot editor plugin (new tool outside Expo tree) handles per-season mural prep pipeline.
+- Bots become pure atmosphere (no canvas placement).
+- Season length is variable (14-day soft cap).
+- Mural queue system for solo-dev operational resilience.
+
+**Implementation order**: palette prototype (0.5d) → Godot plugin MVP (3d) → feasibility threshold derivation (0.5d) → client state + data (2d) → UI components with colorblind codes + SeasonEndCeremony (4d) → backend migrations + pre-seed 2-3 murals (2.5d) → wire client (1d) → bot scripts (0.5d) → polish + verify (1.5d) → SKILL.md update (0.5d).
+
+### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
 - Privacy policy and store listing
-- Bug fixes, balance tuning
+- Bug fixes, balance tuning (Season 3+ murals tuned from live data)
 - Polish pass on animations and haptics
+- **Pre-beta requirement**: color-blind codes shipped (already in Phase 4 core); queue-depth alert Edge Function; server-authoritative economy migration decision.
 
-### Phase 5: Launch (variable)
+### Phase 6: Launch (variable)
 - Apple Developer Program ($99/year) for iOS build
 - Open beta → production launch
-- Commission real illustrated milestone art (v2)
-- Post-launch features: team chat, daily summary, profile
+- Post-launch features: team chat, season archive Town screen, custom community murals (future), player-to-player market (deferred with explicit reservations — see plan).
 
-**Realistic total timeline with Claude Code assistance: 4-6 months to closed beta, 6-9 months to public launch.**
+**Realistic total timeline with Claude Code assistance: 6-8 months to closed beta, 9-12 months to public launch.**
 
 ## 12. Current assets
 
