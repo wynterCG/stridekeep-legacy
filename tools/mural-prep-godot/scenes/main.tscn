@@ -1,0 +1,307 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.168627, 0.192157, 0.219608, 1)
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Toolbar" type="PanelContainer" parent="Root"]
+layout_mode = 2
+
+[node name="ToolbarMargin" type="MarginContainer" parent="Root/Toolbar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="ToolbarRow" type="HBoxContainer" parent="Root/Toolbar/ToolbarMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OpenPng" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+text = "Open PNG"
+
+[node name="WatchFolder" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+disabled = true
+text = "Watch Folder ▾"
+tooltip_text = "Slice 4"
+
+[node name="Spacer" type="Control" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Settings" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+disabled = true
+text = "Settings"
+tooltip_text = "Slice 4"
+
+[node name="QueueStatus" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+disabled = true
+text = "Queue Status"
+tooltip_text = "Slice 4"
+
+[node name="About" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
+layout_mode = 2
+text = "About"
+
+[node name="Body" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 1
+
+[node name="LeftCol" type="PanelContainer" parent="Root/Body"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="LeftMargin" type="MarginContainer" parent="Root/Body/LeftCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="LeftVBox" type="VBoxContainer" parent="Root/Body/LeftCol/LeftMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WatchHeader" type="Label" parent="Root/Body/LeftCol/LeftMargin/LeftVBox"]
+layout_mode = 2
+text = "Watch list"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="WatchList" type="ItemList" parent="Root/Body/LeftCol/LeftMargin/LeftVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WatchHint" type="Label" parent="Root/Body/LeftCol/LeftMargin/LeftVBox"]
+layout_mode = 2
+text = "Slice 4: ComfyUI watch folder."
+autowrap_mode = 2
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="MiddleCol" type="PanelContainer" parent="Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MiddleMargin" type="MarginContainer" parent="Root/Body/MiddleCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MiddleVBox" type="VBoxContainer" parent="Root/Body/MiddleCol/MiddleMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="SourceHeader" type="Label" parent="Root/Body/MiddleCol/MiddleMargin/MiddleVBox"]
+layout_mode = 2
+text = "Source preview"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="SourcePreview" type="TextureRect" parent="Root/Body/MiddleCol/MiddleMargin/MiddleVBox"]
+custom_minimum_size = Vector2(0, 360)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="QuantHeader" type="Label" parent="Root/Body/MiddleCol/MiddleMargin/MiddleVBox"]
+layout_mode = 2
+text = "Quantized 32×32 (8× zoom)"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="QuantPreview" type="TextureRect" parent="Root/Body/MiddleCol/MiddleMargin/MiddleVBox"]
+custom_minimum_size = Vector2(256, 256)
+layout_mode = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RightCol" type="PanelContainer" parent="Root/Body"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightMargin" type="MarginContainer" parent="Root/Body/RightCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="RightScroll" type="ScrollContainer" parent="Root/Body/RightCol/RightMargin"]
+layout_mode = 2
+
+[node name="RightVBox" type="VBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="MuralRow" type="HBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MuralLabel" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/MuralRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Mural name"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="MuralInput" type="LineEdit" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/MuralRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Untitled mural"
+
+[node name="SeasonRow" type="HBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SeasonLabel" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/SeasonRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Season #"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="SeasonNum" type="SpinBox" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/SeasonRow"]
+layout_mode = 2
+min_value = 1.0
+max_value = 999.0
+step = 1.0
+value = 1.0
+
+[node name="CanvasRow" type="HBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CanvasLabel" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Canvas"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="CanvasW" type="SpinBox" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow"]
+layout_mode = 2
+min_value = 8.0
+max_value = 128.0
+value = 32.0
+
+[node name="CanvasX" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow"]
+layout_mode = 2
+text = "×"
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+
+[node name="CanvasH" type="SpinBox" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow"]
+layout_mode = 2
+min_value = 8.0
+max_value = 128.0
+value = 32.0
+
+[node name="ColorsHeader" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+text = "─── COLORS ────────────────────"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="PaletteList" type="VBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PaletteEmpty" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteList"]
+layout_mode = 2
+text = "Open a PNG to extract a palette."
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="RecipesHeader" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+text = "─── RECIPES ────────────────────"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="RecipesList" type="VBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RecipesEmpty" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/RecipesList"]
+layout_mode = 2
+text = "No recipes. Tier-3 colors cannot be inputs."
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="AddRecipeBtn" type="Button" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+text = "+ Add recipe"
+
+[node name="ActionsHeader" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+text = "─── ACTIONS ────────────────────"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="Validate" type="Button" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+text = "Validate"
+
+[node name="ExportJson" type="Button" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+disabled = true
+text = "Export JSON"
+
+[node name="Upload" type="Button" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+disabled = true
+text = "Upload + Generate SQL (Slice 4)"
+
+[node name="StatusBar" type="PanelContainer" parent="Root"]
+layout_mode = 2
+
+[node name="StatusMargin" type="MarginContainer" parent="Root/StatusBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 6
+
+[node name="StatusLabel" type="Label" parent="Root/StatusBar/StatusMargin"]
+layout_mode = 2
+text = "IDLE — Open a PNG to begin."
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+theme_override_font_sizes/font_size = 12

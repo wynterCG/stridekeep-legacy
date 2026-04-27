@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Mural prep tool
+tools/mural-prep-godot/exports/
+tools/mural-prep-godot/plugin_config.json
+tools/mural-prep-godot/test_assets/*
+!tools/mural-prep-godot/test_assets/.gitkeep
+tools/mural-prep-godot/addons/
+.godot/

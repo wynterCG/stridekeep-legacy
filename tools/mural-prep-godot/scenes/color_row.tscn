@@ -1,0 +1,69 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/color_row.gd" id="1_row"]
+
+[node name="ColorRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+theme_override_constants/separation = 6
+script = ExtResource("1_row")
+
+[node name="Swatch" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.5, 0.5, 0.5, 1)
+
+[node name="Code" type="Label" parent="."]
+custom_minimum_size = Vector2(34, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "—"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="Name" type="LineEdit" parent="."]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+placeholder_text = "name"
+
+[node name="Category" type="OptionButton" parent="."]
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Tier" type="OptionButton" parent="."]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="Price" type="SpinBox" parent="."]
+custom_minimum_size = Vector2(75, 0)
+layout_mode = 2
+size_flags_vertical = 4
+min_value = 1.0
+max_value = 9999.0
+step = 1.0
+value = 100.0
+prefix = "$"
+
+[node name="DropWeight" type="SpinBox" parent="."]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+size_flags_vertical = 4
+min_value = 0.0
+max_value = 100.0
+step = 0.01
+value = 0.0
+suffix = "%"
+
+[node name="RawWeight" type="Label" parent="."]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "0.0%"
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
+theme_override_font_sizes/font_size = 12

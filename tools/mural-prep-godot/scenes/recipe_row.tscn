@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/recipe_row.gd" id="1_recipe"]
+
+[node name="RecipeRow" type="VBoxContainer"]
+theme_override_constants/separation = 6
+script = ExtResource("1_recipe")
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Recipe"
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="RemoveBtn" type="Button" parent="Header"]
+layout_mode = 2
+text = "✕ Remove"
+
+[node name="OutputRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OutputLabel" type="Label" parent="OutputRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Output"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="Output" type="OptionButton" parent="OutputRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InputsLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Inputs"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="InputsContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="AddInputBtn" type="Button" parent="."]
+layout_mode = 2
+text = "+ Add input"
