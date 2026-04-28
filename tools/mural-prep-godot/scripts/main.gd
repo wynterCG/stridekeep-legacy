@@ -213,14 +213,28 @@ func _populate_palette_rows(centroids: PackedColorArray, weights: PackedFloat32A
 		# silently floor it and validation would report a bogus sum mismatch.
 		drop_pcts[last_idx] = clampf(snappedf(100.0 - running, 0.01), 0.0, 100.0)
 
+	# Dedup auto-names so the initial palette validates without requiring the
+	# user to rename collision-pairs first. The perceptual labeler in §8
+	# frequently produces the same name for visually-similar hues (e.g.
+	# multiple "dark teal" or "red" entries on warm-gradient murals).
+	# Suffix 2,3,4... preserves the descriptive name as a starting point;
+	# user is expected to rename semantically during curation.
+	var name_counts := {}
+	var unique_names := PackedStringArray()
+	unique_names.resize(centroids.size())
+	for i in centroids.size():
+		var base_name := ColorNamingLib.suggest(centroids[i])
+		var n: int = name_counts.get(base_name, 0) + 1
+		name_counts[base_name] = n
+		unique_names[i] = base_name if n == 1 else "%s %d" % [base_name, n]
+
 	_suppress_signal = true
 	for i in centroids.size():
 		var row = ColorRowScene.instantiate()
 		row.state_changed.connect(_on_color_row_changed)
 		_palette_list.add_child(row)
 		_color_rows.append(row)
-		var name_label := ColorNamingLib.suggest(centroids[i])
-		row.init_from_extraction(centroids[i], name_label, weights[i], suggested_tiers[i], drop_pcts[i])
+		row.init_from_extraction(centroids[i], unique_names[i], weights[i], suggested_tiers[i], drop_pcts[i])
 	_suppress_signal = false
 
 static func _suggest_tier(weight: float) -> String:

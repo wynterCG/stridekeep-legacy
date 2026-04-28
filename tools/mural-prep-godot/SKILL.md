@@ -353,6 +353,12 @@ The names are intentionally bland. They tell you *what hue* without committing t
 
 About 100 lines of code total. No data file. Works for cyberpunk, natural, abstract, architectural — any theme — because it describes the color, not the genre.
 
+### Auto-name dedup at extraction time
+
+The perceptual labeler is intentionally coarse (12 hue buckets, 4 lightness modifiers, 3 saturation modifiers — ~144 distinct labels max). On real murals with warm-gradient or monochromatic regions, multiple extracted centroids land in the same bucket and produce identical names — e.g. a sunset-canyon palette routinely yields three "red" entries, two "light vivid warm orange", etc. After slugification these all map to the same color id and the validation collision rule fires on first paint.
+
+`main.gd._populate_palette_rows` deduplicates by appending `2`, `3`, ... to repeats: the first "red" stays `red`, the next becomes `red 2`, then `red 3`. The numeric suffix is a placeholder, not a constraint — the user is still expected to rename semantically (e.g. `sandstone_red`, `ember_red`, `clay_pink`) during curation. The dedup only ensures the **initial** Validate doesn't reject the palette before the user has had a chance to look at it. This was added after a 3-mural §13 ship-checklist run where every palette had 1-3 collision pairs that the user had to manually disambiguate before Validate would pass — measurably annoying friction without the dedup.
+
 ## 9. Tier suggestion heuristic
 
 Default tier assignment based on weight:
