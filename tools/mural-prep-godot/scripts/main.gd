@@ -1,15 +1,21 @@
 extends Control
 
-# Stridekeep Mural Prep — Slice 3.
-# Three-column main window with editable palette curation and recipe editing.
+# Stridekeep Mural Prep — main window controller (through Slice 4).
 # Validation runs only when the Validate button is pressed (per SKILL.md §6 —
 # never auto-validates, never silently skips on Export).
+# Slice 4 adds: ComfyUI watch folder, JSON season export, seed_next_mural()
+# SQL generation with clipboard copy. Actual Supabase HTTP upload is deferred
+# until the seed_next_mural() RPC migration ships on the server side.
 
 const KMeansLib := preload("res://scripts/kmeans.gd")
 const ColorNamingLib := preload("res://scripts/color_naming.gd")
 const QuantizeLib := preload("res://scripts/quantize.gd")
 const ThemeLib := preload("res://scripts/theme.gd")
 const ValidationLib := preload("res://scripts/validation.gd")
+const SeedSQLLib := preload("res://scripts/seed_sql.gd")
+const SeasonExportLib := preload("res://scripts/season_export.gd")
+const WatchFolderLib := preload("res://scripts/watch_folder.gd")
+const MuralConfigLib := preload("res://scripts/config.gd")
 const ColorRowScene := preload("res://scenes/color_row.tscn")
 const RecipeRowScene := preload("res://scenes/recipe_row.tscn")
 
@@ -20,9 +26,12 @@ enum AppState { IDLE, EXTRACTING, CURATING, VALIDATING, READY_TO_EXPORT }
 # ---- Node references ---------------------------------------------------------
 
 @onready var _open_btn: Button = $Root/Toolbar/ToolbarMargin/ToolbarRow/OpenPng
+@onready var _watch_btn: Button = $Root/Toolbar/ToolbarMargin/ToolbarRow/WatchFolder
 @onready var _about_btn: Button = $Root/Toolbar/ToolbarMargin/ToolbarRow/About
 @onready var _source_preview: TextureRect = $Root/Body/MiddleCol/MiddleMargin/MiddleVBox/SourcePreview
 @onready var _quant_preview: TextureRect = $Root/Body/MiddleCol/MiddleMargin/MiddleVBox/QuantPreview
+@onready var _watch_list: ItemList = $Root/Body/LeftCol/LeftMargin/LeftVBox/WatchList
+@onready var _watch_hint: Label = $Root/Body/LeftCol/LeftMargin/LeftVBox/WatchHint
 
 @onready var _palette_list: VBoxContainer = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteList
 @onready var _palette_empty: Label = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteList/PaletteEmpty
@@ -57,18 +66,35 @@ var _last_palette: PackedColorArray = PackedColorArray()
 var _color_rows: Array = []     # Array of HBoxContainer (color_row instances)
 var _recipe_rows: Array = []    # Array of VBoxContainer (recipe_row instances)
 var _suppress_signal: bool = false
+var _watch: Node = null         # WatchFolder instance
 
 # ---- Lifecycle ---------------------------------------------------------------
 
 func _ready() -> void:
 	_apply_panel_themes()
 	_open_btn.pressed.connect(_on_open_png)
+	_watch_btn.pressed.connect(_on_watch_folder_btn)
 	_about_btn.pressed.connect(_on_about)
 	_validate_btn.pressed.connect(_on_validate)
 	_add_recipe_btn.pressed.connect(_on_add_recipe)
+	_export_btn.pressed.connect(_on_export_json)
+	_upload_btn.pressed.connect(_on_generate_package)
+	_watch_list.item_activated.connect(_on_watch_item_activated)
 	_set_status("IDLE — Open a PNG to begin.")
 	_export_btn.tooltip_text = "Validate first; then JSON export will enable."
-	_upload_btn.tooltip_text = "Slice 4: Supabase upload + SQL generation."
+	_upload_btn.tooltip_text = "Validate first; then package generation will enable."
+
+	# Spin up the watch folder service and restore the previous folder if any.
+	_watch = WatchFolderLib.new()
+	add_child(_watch)
+	_watch.files_changed.connect(_on_watch_files_changed)
+	var cfg := MuralConfigLib.load_config()
+	# `str()` defends against a user manually setting comfy_watch_dir to
+	# null/number/array in user://config.json — typed cast would crash.
+	var saved_dir := str(cfg.get("comfy_watch_dir", ""))
+	if saved_dir != "" and DirAccess.dir_exists_absolute(saved_dir):
+		_watch.start_watching(saved_dir)
+		_watch_hint.text = "Watching: %s" % saved_dir
 
 func _apply_panel_themes() -> void:
 	var card := _make_panel_style(ThemeLib.CARD)
@@ -95,7 +121,7 @@ func _on_open_png() -> void:
 	dialog.size = Vector2i(900, 600)
 	add_child(dialog)
 	dialog.file_selected.connect(_on_file_selected)
-	dialog.canceled.connect(func(): dialog.queue_free())
+	_free_on_close(dialog)
 	dialog.popup_centered()
 
 func _on_file_selected(path: String) -> void:
@@ -214,6 +240,7 @@ func _on_color_row_changed() -> void:
 	if _state == AppState.READY_TO_EXPORT:
 		_state = AppState.CURATING
 		_export_btn.disabled = true
+		_upload_btn.disabled = true
 		_set_status("CURATING — palette edited; re-run Validate.")
 
 func _recompute_codes() -> void:
@@ -259,6 +286,7 @@ func _on_add_recipe() -> void:
 	if _state == AppState.READY_TO_EXPORT:
 		_state = AppState.CURATING
 		_export_btn.disabled = true
+		_upload_btn.disabled = true
 
 func _on_recipe_remove(recipe) -> void:
 	_recipe_rows.erase(recipe)
@@ -268,11 +296,13 @@ func _on_recipe_remove(recipe) -> void:
 	if _state == AppState.READY_TO_EXPORT:
 		_state = AppState.CURATING
 		_export_btn.disabled = true
+		_upload_btn.disabled = true
 
 func _on_recipe_changed() -> void:
 	if _state == AppState.READY_TO_EXPORT:
 		_state = AppState.CURATING
 		_export_btn.disabled = true
+		_upload_btn.disabled = true
 
 func _renumber_recipes() -> void:
 	for i in _recipe_rows.size():
@@ -326,12 +356,14 @@ func _on_validate() -> void:
 	if issues.is_empty():
 		_state = AppState.READY_TO_EXPORT
 		_export_btn.disabled = false
+		_upload_btn.disabled = false
 		_set_status("✓ READY — %d colors, %d recipes, season %d. Validation passed." % [_color_rows.size(), _recipe_rows.size(), season_num])
 		_validate_btn.modulate = ThemeLib.SUCCESS
 		return
 
 	_validate_btn.modulate = ThemeLib.ERROR
 	_export_btn.disabled = true
+	_upload_btn.disabled = true
 	_state = AppState.CURATING
 	# Surface per-field errors.
 	for issue in issues:
@@ -365,11 +397,174 @@ func _apply_issue(issue: Dictionary) -> void:
 func _set_status(msg: String) -> void:
 	_status_label.text = msg
 
+# Wire any FileDialog/AcceptDialog so it queue_free's once the user is done
+# with it — covers both success (file/dir_selected, confirmed) and cancel.
+# Without this, dialogs accumulate as scene-tree children across a session.
+func _free_on_close(dlg: Window) -> void:
+	var freer := func(): dlg.queue_free()
+	if dlg.canceled.is_connected(freer):
+		pass
+	dlg.canceled.connect(freer)
+	if dlg is FileDialog:
+		var fdlg := dlg as FileDialog
+		fdlg.file_selected.connect(func(_p: String): dlg.queue_free())
+		fdlg.dir_selected.connect(func(_p: String): dlg.queue_free())
+		fdlg.files_selected.connect(func(_ps: PackedStringArray): dlg.queue_free())
+	elif dlg is AcceptDialog:
+		(dlg as AcceptDialog).confirmed.connect(freer)
+
 func _on_about() -> void:
 	var dlg := AcceptDialog.new()
 	dlg.title = "Stridekeep Mural Prep"
-	dlg.dialog_text = "Slice 3 — palette curation + recipes + validation.\n\nSee SKILL.md for the full build plan."
+	dlg.dialog_text = "Through Slice 4 — palette extraction, curation, validation, watch folder, JSON + SQL export.\n\nSee SKILL.md for the full build plan."
 	add_child(dlg)
 	dlg.confirmed.connect(func(): dlg.queue_free())
 	dlg.canceled.connect(func(): dlg.queue_free())
 	dlg.popup_centered()
+
+# ---- Slice 4: Watch folder ---------------------------------------------------
+
+func _on_watch_folder_btn() -> void:
+	var dialog := FileDialog.new()
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
+	dialog.title = "Pick the ComfyUI output folder"
+	dialog.size = Vector2i(900, 600)
+	add_child(dialog)
+	dialog.dir_selected.connect(_on_watch_dir_selected)
+	_free_on_close(dialog)
+	dialog.popup_centered()
+
+func _on_watch_dir_selected(path: String) -> void:
+	_watch.start_watching(path)
+	_watch_hint.text = "Watching: %s" % path
+	# Persist to user://config.json so the next launch resumes watching.
+	var cfg := MuralConfigLib.load_config()
+	cfg["comfy_watch_dir"] = path
+	MuralConfigLib.save_config(cfg)
+
+func _on_watch_files_changed(entries: Array) -> void:
+	_watch_list.clear()
+	for e in entries:
+		var idx := _watch_list.add_item(e.name)
+		_watch_list.set_item_metadata(idx, e.path)
+		_watch_list.set_item_tooltip(idx, e.path)
+	if entries.is_empty() and _watch.folder_path != "":
+		_watch_hint.text = "Watching: %s\n(no PNGs yet)" % _watch.folder_path
+
+func _on_watch_item_activated(index: int) -> void:
+	var path: String = _watch_list.get_item_metadata(index)
+	if path == "":
+		return
+	_load_image(path)
+
+# ---- Slice 4: JSON export ----------------------------------------------------
+
+func _on_export_json() -> void:
+	if _state != AppState.READY_TO_EXPORT:
+		_set_status("Validate before exporting.")
+		return
+	var dialog := FileDialog.new()
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	dialog.filters = PackedStringArray(["*.json ; Season package"])
+	dialog.title = "Export season package"
+	dialog.current_file = "season_%d_%s.json" % [int(_season_spin.value), ValidationLib.slugify(_mural_input.text)]
+	dialog.size = Vector2i(900, 600)
+	add_child(dialog)
+	dialog.file_selected.connect(_on_export_path_selected)
+	_free_on_close(dialog)
+	dialog.popup_centered()
+
+func _on_export_path_selected(path: String) -> void:
+	var package := _build_export_package()
+	var err := SeasonExportLib.write_to_file(package, path)
+	if err != OK:
+		_set_status("ERROR — could not write %s (code %d)" % [path.get_file(), err])
+		return
+	_set_status("Exported %s · %d colors · %d recipes" % [path.get_file(), package.palette.size(), package.craft_recipes.size()])
+
+# ---- Slice 4: Generate Season Package (SQL + quantized PNG + clipboard) -----
+
+func _on_generate_package() -> void:
+	if _state != AppState.READY_TO_EXPORT:
+		_set_status("Validate before generating the package.")
+		return
+	if _last_source_image == null:
+		_set_status("ERROR — no source image loaded.")
+		return
+
+	var season_num := int(_season_spin.value)
+	var width := int(_canvas_w_spin.value)
+	var height := int(_canvas_h_spin.value)
+	var mural_name := _mural_input.text.strip_edges()
+	if mural_name == "":
+		mural_name = "untitled_%d" % season_num
+
+	var palette_state: Array = []
+	for row in _color_rows:
+		palette_state.append(row.get_state())
+	var recipe_state: Array = []
+	for r in _recipe_rows:
+		recipe_state.append(r.get_state())
+
+	# Build target_pixels by quantizing source -> palette indices -> color ids.
+	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height)
+	var target_pixels := SeedSQLLib.build_target_pixels(palette_indices, season_num, palette_state)
+
+	# 1. SQL string -> clipboard.
+	var sql := SeedSQLLib.build(season_num, palette_state, recipe_state, target_pixels, width, height, mural_name)
+	DisplayServer.clipboard_set(sql)
+
+	# 2. Save the quantized PNG locally so the user can drag it into Storage.
+	var png_path := _save_quantized_png(season_num, width, height)
+
+	# 3. Show the next-step dialog.
+	_show_package_dialog(season_num, mural_name, sql, png_path)
+	_set_status("Generated season %d package — SQL on clipboard · PNG at %s" % [season_num, png_path])
+
+func _save_quantized_png(season_num: int, width: int, height: int) -> String:
+	var quant := QuantizeLib.quantize_to_palette(_last_source_image, _last_palette, width, height)
+	var dir_path := "res://exports/"
+	var abs_dir := ProjectSettings.globalize_path(dir_path)
+	if not DirAccess.dir_exists_absolute(abs_dir):
+		DirAccess.make_dir_recursive_absolute(abs_dir)
+	var out_path := "%sseason_%d.png" % [abs_dir, season_num]
+	quant.save_png(out_path)
+	return out_path
+
+func _show_package_dialog(season_num: int, mural_name: String, sql: String, png_path: String) -> void:
+	var dlg := AcceptDialog.new()
+	dlg.title = "Season %d package ready" % season_num
+	dlg.size = Vector2i(720, 480)
+	var preview := sql.left(800)
+	if sql.length() > 800:
+		preview += "\n\n… (%d more chars)" % (sql.length() - 800)
+	dlg.dialog_text = (
+		"Season %d · %s\n\n" +
+		"✓ SQL copied to clipboard (paste into Supabase SQL editor)\n" +
+		"✓ Quantized PNG saved at:\n   %s\n\n" +
+		"Next steps:\n" +
+		"  1. Drag the PNG into Supabase Storage at murals/season_%d.png\n" +
+		"  2. Paste & run the SQL in the Supabase SQL editor\n\n" +
+		"SQL preview:\n----------------------------------------\n%s"
+	) % [season_num, mural_name, png_path, season_num, preview]
+	add_child(dlg)
+	dlg.confirmed.connect(func(): dlg.queue_free())
+	dlg.canceled.connect(func(): dlg.queue_free())
+	dlg.popup_centered()
+
+func _build_export_package() -> Dictionary:
+	var season_num := int(_season_spin.value)
+	var width := int(_canvas_w_spin.value)
+	var height := int(_canvas_h_spin.value)
+	var mural_name := _mural_input.text.strip_edges()
+	var palette_state: Array = []
+	for row in _color_rows:
+		palette_state.append(row.get_state())
+	var recipe_state: Array = []
+	for r in _recipe_rows:
+		recipe_state.append(r.get_state())
+	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height)
+	var target_pixels := SeedSQLLib.build_target_pixels(palette_indices, season_num, palette_state)
+	return SeasonExportLib.build_package(season_num, mural_name, width, height, palette_state, recipe_state, target_pixels)

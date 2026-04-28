@@ -49,9 +49,8 @@ text = "Open PNG"
 
 [node name="WatchFolder" type="Button" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
 layout_mode = 2
-disabled = true
 text = "Watch Folder ▾"
-tooltip_text = "Slice 4"
+tooltip_text = "Pick a ComfyUI output folder to monitor for new mural PNGs"
 
 [node name="Spacer" type="Control" parent="Root/Toolbar/ToolbarMargin/ToolbarRow"]
 layout_mode = 2
@@ -105,7 +104,7 @@ size_flags_vertical = 3
 
 [node name="WatchHint" type="Label" parent="Root/Body/LeftCol/LeftMargin/LeftVBox"]
 layout_mode = 2
-text = "Slice 4: ComfyUI watch folder."
+text = "Click Watch Folder ▾ to pick a ComfyUI output dir."
 autowrap_mode = 2
 theme_override_colors/font_color = Color(0.628, 0.588, 0.535, 1)
 theme_override_font_sizes/font_size = 12
@@ -288,7 +287,7 @@ text = "Export JSON"
 [node name="Upload" type="Button" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
 layout_mode = 2
 disabled = true
-text = "Upload + Generate SQL (Slice 4)"
+text = "Generate Season Package"
 
 [node name="StatusBar" type="PanelContainer" parent="Root"]
 layout_mode = 2
