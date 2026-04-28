@@ -41,8 +41,8 @@ static func build_package(season_num: int, mural_name: String, width: int, heigh
 		"season_number": season_num,
 		"mural_name": mural_name,
 		"canvas": {"width": width, "height": height},
-		"palette": _palette_array(season_num, palette_state),
-		"craft_recipes": _recipes_array(season_num, palette_state, recipe_state),
+		"palette": palette_to_array(season_num, palette_state),
+		"craft_recipes": recipes_to_array(season_num, palette_state, recipe_state),
 		"target_pixels": target_pixels,
 	}
 
@@ -55,9 +55,12 @@ static func write_to_file(package: Dictionary, path: String) -> Error:
 	f.close()
 	return OK
 
-# ---- Internal helpers --------------------------------------------------------
+# ---- Public serializers (single source of truth — also used by SeedSQL) -----
 
-static func _palette_array(season_num: int, palette_state: Array) -> Array:
+# Build the palette JSON array (one entry per color row). Per-category
+# fields: case has tier+drop_weight_pct, shop has shop_price, craft has
+# neither. Schema must match the seed_next_mural() RPC's expectation.
+static func palette_to_array(season_num: int, palette_state: Array) -> Array:
 	var arr: Array = []
 	for c in palette_state:
 		var entry := {
@@ -77,7 +80,10 @@ static func _palette_array(season_num: int, palette_state: Array) -> Array:
 		arr.append(entry)
 	return arr
 
-static func _recipes_array(season_num: int, palette_state: Array, recipes: Array) -> Array:
+# Build the recipes JSON array. Out-of-range indices are silently skipped
+# at this layer because callers (build_package / SeedSQL.build) range-assert
+# before calling. The continue-skips below are a defensive belt-and-braces.
+static func recipes_to_array(season_num: int, palette_state: Array, recipes: Array) -> Array:
 	var arr: Array = []
 	for i in recipes.size():
 		var r = recipes[i]

@@ -15,6 +15,7 @@ class_name SeedSQL extends RefCounted
 # Pure function — no side effects. Test directly with a synthetic palette.
 
 const ValidationLib := preload("res://scripts/validation.gd")
+const SeasonExportLib := preload("res://scripts/season_export.gd")
 
 # palette_state matches color_row.get_state() entries.
 # recipe_state matches recipe_row.get_state() entries.
@@ -81,50 +82,15 @@ static func build_target_pixels(palette_indices: PackedInt32Array, season_num: i
 	return out
 
 # ---- JSON serializers --------------------------------------------------------
+# Delegate to SeasonExport so the JSON shape has a single source of truth —
+# any per-color or per-recipe field changes update both the JSON export and
+# the SQL output in lockstep.
 
 static func _palette_to_json(season_num: int, palette_state: Array) -> String:
-	var arr: Array = []
-	for c in palette_state:
-		var entry := {
-			"id": ValidationLib.build_color_id(season_num, c.name),
-			"name": c.name,
-			"hex": c.hex,
-			"category": c.category,
-			"base_value": 100,
-			"code": c.code,
-		}
-		match c.category:
-			"case":
-				entry["tier"] = c.tier
-				entry["drop_weight_pct"] = c.drop_weight_pct
-			"shop":
-				entry["shop_price"] = c.shop_price
-			"craft":
-				pass  # no extra fields
-		arr.append(entry)
-	return JSON.stringify(arr)
+	return JSON.stringify(SeasonExportLib.palette_to_array(season_num, palette_state))
 
 static func _recipes_to_json(season_num: int, palette_state: Array, recipes: Array) -> String:
-	var arr: Array = []
-	for i in recipes.size():
-		var r = recipes[i]
-		var output_idx: int = r.output_color_idx
-		if output_idx < 0 or output_idx >= palette_state.size():
-			continue
-		var output_id := ValidationLib.build_color_id(season_num, palette_state[output_idx].name)
-		var inputs := {}
-		for inp in r.inputs:
-			var c_idx: int = inp.color_idx
-			if c_idx < 0 or c_idx >= palette_state.size():
-				continue
-			var input_id := ValidationLib.build_color_id(season_num, palette_state[c_idx].name)
-			inputs[input_id] = inp.qty
-		arr.append({
-			"id": "s%d_r%d" % [season_num, i + 1],
-			"output_color_id": output_id,
-			"inputs": inputs,
-		})
-	return JSON.stringify(arr)
+	return JSON.stringify(SeasonExportLib.recipes_to_array(season_num, palette_state, recipes))
 
 # Quote a string as a PostgreSQL text literal — single quotes around it,
 # escape internal single quotes by doubling them.

@@ -524,9 +524,12 @@ func _on_generate_package() -> void:
 	_set_status("Generated season %d package — SQL on clipboard · PNG at %s" % [season_num, png_path])
 
 func _save_quantized_png(season_num: int, width: int, height: int) -> String:
+	# Write to user://exports/ rather than res://exports/ so the path is
+	# writable both in editor (project dir) AND in an exported binary
+	# (where res:// is packed into a read-only .pck). The dialog displays
+	# the absolute path so the user can drag the PNG into Supabase Storage.
 	var quant := QuantizeLib.quantize_to_palette(_last_source_image, _last_palette, width, height)
-	var dir_path := "res://exports/"
-	var abs_dir := ProjectSettings.globalize_path(dir_path)
+	var abs_dir := ProjectSettings.globalize_path("user://exports/")
 	if not DirAccess.dir_exists_absolute(abs_dir):
 		DirAccess.make_dir_recursive_absolute(abs_dir)
 	var out_path := "%sseason_%d.png" % [abs_dir, season_num]
@@ -536,22 +539,43 @@ func _save_quantized_png(season_num: int, width: int, height: int) -> String:
 func _show_package_dialog(season_num: int, mural_name: String, sql: String, png_path: String) -> void:
 	var dlg := AcceptDialog.new()
 	dlg.title = "Season %d package ready" % season_num
-	dlg.size = Vector2i(720, 480)
-	var preview := sql.left(800)
-	if sql.length() > 800:
-		preview += "\n\n… (%d more chars)" % (sql.length() - 800)
-	dlg.dialog_text = (
+	dlg.size = Vector2i(960, 640)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var summary := Label.new()
+	summary.text = (
 		"Season %d · %s\n\n" +
 		"✓ SQL copied to clipboard (paste into Supabase SQL editor)\n" +
 		"✓ Quantized PNG saved at:\n   %s\n\n" +
 		"Next steps:\n" +
 		"  1. Drag the PNG into Supabase Storage at murals/season_%d.png\n" +
-		"  2. Paste & run the SQL in the Supabase SQL editor\n\n" +
-		"SQL preview:\n----------------------------------------\n%s"
-	) % [season_num, mural_name, png_path, season_num, preview]
+		"  2. Paste & run the SQL in the Supabase SQL editor"
+	) % [season_num, mural_name, png_path, season_num]
+	summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(summary)
+
+	var preview_label := Label.new()
+	preview_label.text = "SQL preview (%d chars on clipboard):" % sql.length()
+	preview_label.add_theme_color_override("font_color", ThemeLib.BRASS)
+	vbox.add_child(preview_label)
+
+	# Scrollable, read-only TextEdit so the user can verify the SQL shape
+	# without the AcceptDialog Label's word-wrap mangling JSON.
+	var preview := TextEdit.new()
+	preview.text = sql
+	preview.editable = false
+	preview.scroll_smooth = true
+	preview.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	preview.custom_minimum_size = Vector2(880, 360)
+	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(preview)
+
+	dlg.add_child(vbox)
 	add_child(dlg)
-	dlg.confirmed.connect(func(): dlg.queue_free())
-	dlg.canceled.connect(func(): dlg.queue_free())
+	_free_on_close(dlg)
 	dlg.popup_centered()
 
 func _build_export_package() -> Dictionary:

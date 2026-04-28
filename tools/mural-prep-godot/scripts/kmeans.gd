@@ -176,11 +176,31 @@ static func _recompute_centroids(samples: Array[Vector3], labels: PackedInt32Arr
 	out.resize(k)
 	for c in k:
 		if counts[c] == 0:
-			# Empty cluster — keep previous centroid to avoid collapse
-			out[c] = prev[c]
+			# Empty cluster — re-seed from the sample farthest from its
+			# assigned centroid (standard "split largest cluster" heuristic).
+			# Fallback to keep-prev if everything tied at distance 0.
+			out[c] = _farthest_outlier(samples, labels, prev, c)
+			if out[c] == Vector3.ZERO and prev[c] != Vector3.ZERO:
+				out[c] = prev[c]
+			push_warning("KMeans: cluster %d emptied — split outlier as new centroid" % c)
 		else:
 			out[c] = sums[c] / float(counts[c])
 	return out
+
+# For an empty cluster, pick the LAB sample with maximum squared distance
+# to its currently-assigned centroid. Deterministic given fixed inputs.
+static func _farthest_outlier(samples: Array[Vector3], labels: PackedInt32Array, prev: Array[Vector3], skip_cluster: int) -> Vector3:
+	var best_d := -1.0
+	var best := Vector3.ZERO
+	for i in samples.size():
+		var lbl := labels[i]
+		if lbl == skip_cluster:
+			continue
+		var d := _sq_dist(samples[i], prev[lbl])
+		if d > best_d:
+			best_d = d
+			best = samples[i]
+	return best
 
 static func _converged(old_c: Array[Vector3], new_c: Array[Vector3]) -> bool:
 	var max_shift := 0.0

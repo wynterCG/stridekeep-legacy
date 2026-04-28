@@ -11,6 +11,9 @@ signal files_changed(entries: Array)  # Array of {path: String, name: String, mt
 
 const POLL_INTERVAL_SEC := 2.0
 const PNG_EXTENSIONS := ["png", "PNG"]
+# Cap surfaced entries — only the newest matter for picking. Avoids walking
+# 5000 entries on a year-old ComfyUI output dir.
+const MAX_ENTRIES := 50
 
 var folder_path: String = ""
 var _timer: Timer
@@ -70,4 +73,6 @@ static func _scan(path: String) -> Array:
 		file_name = dir.get_next()
 	dir.list_dir_end()
 	entries.sort_custom(func(a, b): return a.mtime > b.mtime)
+	if entries.size() > MAX_ENTRIES:
+		entries.resize(MAX_ENTRIES)
 	return entries
