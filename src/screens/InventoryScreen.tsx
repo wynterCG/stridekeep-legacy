@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -43,6 +43,23 @@ export default function InventoryScreen(): React.JSX.Element {
 
   const [actionFor, setActionFor] = useState<ColorDef | null>(null);
   const [craftFilterColorId, setCraftFilterColorId] = useState<string | null>(null);
+  const [pendingHomeNav, setPendingHomeNav] = useState(false);
+
+  // Tab nav fires from a useEffect AFTER the action sheet's Modal has
+  // been state-closed. Doing this inside the sheet's onPress causes the
+  // navigation dispatch to be silently dropped on Android (the Modal's
+  // native window is still mid-slide-down when the dispatch runs and
+  // the queued action gets eaten). Setting a flag + nav-on-effect runs
+  // the dispatch from InventoryScreen's main render tree, after React
+  // commits the modal-close state — outside the Modal's native context.
+  useEffect(() => {
+    if (!pendingHomeNav) return;
+    if (actionFor !== null) return; // wait for sheet state to close first
+    setPendingHomeNav(false);
+    console.warn('[stridekeep] InventoryScreen: jumping to Home tab');
+    const nav = navigation as unknown as { jumpTo: (route: string) => void };
+    nav.jumpTo('Home');
+  }, [pendingHomeNav, actionFor, navigation]);
 
   // For the SELL preview: floor the next-unit price from the shared
   // formula in data/colors.ts. Routes through the same helper the
@@ -182,17 +199,8 @@ export default function InventoryScreen(): React.JSX.Element {
               <Pressable
                 style={styles.sheetAction}
                 onPress={() => {
-                  // Tab change must happen BEFORE the sheet's close
-                  // animation kicks off — Android's Modal native window
-                  // swallows navigation dispatches that fire while it's
-                  // still mid-slide-down, leaving the user stuck on
-                  // Inventory after the sheet vanishes. jumpTo is the
-                  // canonical bottom-tab nav action; preferred over
-                  // navigate() which silently no-op'd from this context.
-                  const nav = navigation as unknown as {
-                    jumpTo: (route: string) => void;
-                  };
-                  nav.jumpTo('Home');
+                  console.warn('[stridekeep] PLACE ON CANVAS pressed');
+                  setPendingHomeNav(true);
                   closeSheet();
                 }}
               >
