@@ -85,6 +85,14 @@ export default function App(): React.JSX.Element | null {
 
   useEffect(() => {
     let cancelled = false;
+    // Single-flight guard. AppState foreground transitions can arrive
+    // mid-syncSeason (slow network, user task-switching), and without
+    // this guard two concurrent syncs can complete out of order — the
+    // later setSeasonPalette / setSeasonCraftRecipes write overwrites
+    // the fresher first one. Drop foreground triggers while a sync
+    // is in flight; the in-flight one will finish + the next foreground
+    // transition will re-sync naturally.
+    let syncInFlight = false;
 
     // Season sync: idempotent rollover heartbeat + palette/recipes load.
     // Decides reset-vs-refresh by comparing persisted store.seasonNumber
@@ -98,6 +106,16 @@ export default function App(): React.JSX.Element | null {
     //   - activeNumber === null (awaiting-mural state) → clear any stale
     //     palette so empty states render correctly.
     const syncSeason = async () => {
+      if (syncInFlight) return;
+      syncInFlight = true;
+      try {
+        await syncSeasonInner();
+      } finally {
+        syncInFlight = false;
+      }
+    };
+
+    const syncSeasonInner = async () => {
       try {
         await serverRolloverSeason();
       } catch (err) {
@@ -179,6 +197,11 @@ export default function App(): React.JSX.Element | null {
 
     // Re-sync on foreground. rollover_season is the heartbeat and the
     // function is idempotent — safe to call on every transition.
+    //
+    // Note: AppState.addEventListener('change') only fires on actual
+    // transitions, NOT for the initial 'active' state at mount time.
+    // The cold-start sync is covered by runBootstrap above (via the
+    // persist-hydration gate). Don't break this chain in future edits.
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active' && useGameStore.persist.hasHydrated()) {
         void syncSeason();

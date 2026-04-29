@@ -62,10 +62,9 @@ interface LogOpts {
 // Fire-and-forget event log. Clients call this from gameStore actions
 // (sellTile / craftTile / buyShopTile / openCase) — UI never awaits.
 //
-// 'tile_placed' is intentionally rejected here because place_tile RPC
-// owns those. Server-side log_feed_event RPC also rejects 'tile_placed'
-// as a defense-in-depth check; this client guard is the same intent
-// expressed earlier so we don't even ship the RPC call.
+// `tile_placed` is excluded at the type level via Exclude<>: callers can't
+// pass it. Server-side log_feed_event RPC also rejects it independently
+// (defense-in-depth) since place_tile is the only authoritative source.
 export async function logFeedEvent(
   kind: Exclude<FeedEventKind, 'tile_placed'>,
   opts: LogOpts,

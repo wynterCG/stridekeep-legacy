@@ -107,10 +107,15 @@ export type PlaceResult =
       // place_tile RPC returns just a boolean to keep the response small.
       badgeAwarded: boolean;
     }
-  | { ok: false; error: 'pixel_taken'; filledByTeam: Team; filledWithColor: string | null }
+  | { ok: false; error: 'pixel_taken'; filledByTeam: Team | null; filledWithColor: string | null }
   | { ok: false; error: 'canvas_complete' }
   | { ok: false; error: 'wrong_color'; expected: string | null }
   | { ok: false; error: 'season_mismatch'; activeSeasonNumber: number | null }
   | { ok: false; error: 'not_authenticated' }
   | { ok: false; error: 'not_owned' }
-  | { ok: false; error: 'network_error'; message: string };
+  | { ok: false; error: 'network_error'; message: string }
+  // Server returned an `ok: false` shape with an error discriminator the
+  // client doesn't recognise. Indicates schema drift between client and
+  // server; surface so the caller can show a "please update the app"
+  // message rather than a misleading "check your network connection."
+  | { ok: false; error: 'unknown'; serverError: string };

@@ -69,13 +69,41 @@ export interface RolloverResult {
   reason: RolloverReason;
 }
 
+function isRolloverReason(s: unknown): s is RolloverReason {
+  return (
+    s === 'still_active' ||
+    s === 'cap_no_queue' ||
+    s === 'ended_and_promoted' ||
+    s === 'promoted' ||
+    s === 'completion_no_queue' ||
+    s === 'no_active'
+  );
+}
+
 // Idempotent foreground heartbeat. Safe to call on every cold start +
 // every AppState transition to active. Server figures out whether
 // anything actually rolls over.
 export async function serverRolloverSeason(): Promise<RolloverResult> {
   const { data, error } = await supabase.rpc('rollover_season');
   if (error) throw error;
-  return data as RolloverResult;
+  if (!data || typeof data !== 'object') {
+    throw new Error('rollover_season returned non-object response');
+  }
+  const d = data as Record<string, unknown>;
+  if (!isRolloverReason(d.reason)) {
+    // Schema drift between client and server (server added a new reason
+    // string we don't know). Loud-log + safe fallback so the foreground
+    // heartbeat doesn't crash the whole bootstrap.
+    console.error('[stridekeep] rollover_season returned unknown reason:', d.reason);
+    return { reason: 'still_active' };
+  }
+  return {
+    noop: typeof d.noop === 'boolean' ? d.noop : undefined,
+    ended: typeof d.ended === 'boolean' ? d.ended : undefined,
+    promoted: typeof d.promoted === 'number' ? d.promoted : null,
+    cap_extended: typeof d.cap_extended === 'boolean' ? d.cap_extended : undefined,
+    reason: d.reason,
+  };
 }
 
 // Real place_tile RPC wrapper. Maps the server's jsonb return shape into
@@ -118,10 +146,13 @@ function mapPlaceResult(d: Record<string, unknown>): PlaceResult {
       return {
         ok: false,
         error: 'pixel_taken',
+        // Pass through whatever the RPC returned — null if absent, rather
+        // than fabricating a team. UI must handle null-by-displaying a
+        // generic "Beat you to it" rather than "Beat you to it (RED)."
         filledByTeam:
           d.filled_by_team === 'red' || d.filled_by_team === 'blue'
             ? (d.filled_by_team as Team)
-            : 'red',
+            : null,
         filledWithColor:
           typeof d.filled_with_color === 'string' ? d.filled_with_color : null,
       };
@@ -140,11 +171,14 @@ function mapPlaceResult(d: Record<string, unknown>): PlaceResult {
         activeSeasonNumber:
           d.active_season_number == null ? null : Number(d.active_season_number),
       };
-    default:
-      return {
-        ok: false,
-        error: 'network_error',
-        message: `unrecognised place_tile error: ${String(d.error)}`,
-      };
+    default: {
+      // The RPC ran (no network error) but returned an error discriminator
+      // this client doesn't know. Indicates schema drift between client and
+      // server. Loud-log so this surfaces in field debugging instead of
+      // hiding behind a generic network_error label.
+      const serverError = typeof d.error === 'string' ? d.error : String(d.error);
+      console.error('[stridekeep] place_tile returned unknown error:', serverError, d);
+      return { ok: false, error: 'unknown', serverError };
+    }
   }
 }

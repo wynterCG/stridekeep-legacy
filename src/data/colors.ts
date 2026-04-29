@@ -3,11 +3,9 @@
 // Phase-4 model: every season has its OWN palette, seeded server-side by the
 // standalone Godot mural-prep tool (tools/mural-prep-godot/). The palette is
 // stored in season_colors (one row per color per season) and craft recipes in
-// season_craft_recipes. Both tables land in migration 0009 (Phase-4 Step 5).
-//
-// Until Step 5 ships, the loaders below WILL throw at runtime — that's
-// expected. Step 6 wires them into gameStore.applySeasonReset; Step 4 has
-// already rewritten every consumer to read palette/recipes from the store.
+// season_craft_recipes — both tables shipped in Phase-4 Step 5 (migration
+// 0010). Loaded on every cold start + after every season rollover by
+// App.tsx's syncSeason flow (Step 6); never persisted client-side.
 
 import { supabase } from '../lib/supabase';
 import type { ColorDef, ColorTier, CraftRecipe } from '../types';
