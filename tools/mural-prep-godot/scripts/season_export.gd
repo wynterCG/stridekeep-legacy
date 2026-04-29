@@ -64,12 +64,12 @@ static func palette_to_array(season_num: int, palette_state: Array) -> Array:
 	var arr: Array = []
 	for c in palette_state:
 		var entry := {
-			"id": ValidationLib.build_color_id(season_num, c.name),
+			"color_id": ValidationLib.build_color_id(season_num, c.name),
 			"name": c.name,
 			"hex": c.hex,
 			"category": c.category,
 			"base_value": 100,
-			"code": c.code,
+			"color_code": c.code,
 		}
 		match c.category:
 			"case":
@@ -98,7 +98,7 @@ static func recipes_to_array(season_num: int, palette_state: Array, recipes: Arr
 				continue
 			inputs[ValidationLib.build_color_id(season_num, palette_state[c_idx].name)] = inp.qty
 		arr.append({
-			"id": "s%d_r%d" % [season_num, i + 1],
+			"recipe_id": "s%d_r%d" % [season_num, i + 1],
 			"output_color_id": output_id,
 			"inputs": inputs,
 		})
