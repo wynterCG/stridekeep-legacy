@@ -39,7 +39,11 @@ create table if not exists public.feed_events (
   nickname    text not null,
   team        text null check (team is null or team in ('red', 'blue')),
   color_id    text null,
-  qty         int null default 1 check (qty is null or qty > 0),
+  -- Every kind has a meaningful qty (tile_placed=1, case_opened=1,
+  -- crafted=produced count, sold/shop_bought=transaction qty), so qty
+  -- is non-null with a default of 1. Tighter than the original "null
+  -- allowed" shape; closes a 3-value test surface that had no use case.
+  qty         int not null default 1 check (qty > 0),
   tier        text null check (tier is null or tier in ('starter', 'quality', 'fine')),
   created_at  timestamptz not null default now()
 );

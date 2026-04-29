@@ -11,14 +11,6 @@
 -- monotonic ordering, we keep that here — seasons becomes 0009, palette
 -- becomes 0010. Plan numbering is corrected via this comment chain.
 
--- ─── Phase-3 → Phase-4 teams.total reset ──────────────────────────────────
--- teams.total is being repurposed from Phase-3 cumulative deposit dollars
--- to Phase-4 lifetime canvases-won count. The data is in disparate units
--- and there is no defensible conversion, so we zero out before any Phase-4
--- code reads or writes it. Plan §648 explicitly calls for this reset
--- inside one of the schema migrations.
-update public.teams set total = 0, updated_at = now();
-
 -- ─── seasons ──────────────────────────────────────────────────────────────
 -- One row per mural, queued or active or ended. State is implicit via the
 -- two timestamp columns:
@@ -49,7 +41,9 @@ create table if not exists public.seasons (
 -- Partial unique index on a constant predicate. Postgres-idiomatic way to
 -- enforce "at most one row matching this filter." Two concurrent calls to
 -- rollover_season() that both try to promote a queued row will hit this
--- index — the second commit fails atomically, the first wins.
+-- index — the second commit fails atomically, the first wins. The double-
+-- paren expression-form is required (Postgres parses single-paren `(1)` as
+-- a column-list).
 create unique index if not exists one_active_season
   on public.seasons ((1))
   where started_at is not null and ended_at is null;
@@ -58,12 +52,17 @@ create unique index if not exists one_active_season
 -- Each placed pixel: who placed it, which color, which team's canvas it
 -- belongs to. (Both teams paint the same target image in parallel — the
 -- (team, pixel_idx) pair determines uniqueness within a season.)
+--
+-- placed_by is NULLABLE so `on delete set null` actually works when an
+-- auth.users row is deleted. The pixel survives (canvas history is
+-- immutable once placed); attribution drops. my_contribution_count for a
+-- deleted user returns 0 — fine, the user is gone.
 create table if not exists public.canvas_pixels (
   season_number   int not null,
   team            text not null check (team in ('red', 'blue')),
   pixel_idx       int not null,
   color_id        text not null,
-  placed_by       uuid not null references auth.users(id) on delete set null,
+  placed_by       uuid null references auth.users(id) on delete set null,
   placed_at       timestamptz not null default now(),
   primary key (season_number, team, pixel_idx)
 );
@@ -71,10 +70,6 @@ create table if not exists public.canvas_pixels (
 -- Fast canvas load: SELECT * WHERE season_number = ? AND team = ? ORDER BY pixel_idx.
 create index if not exists canvas_pixels_team_idx
   on public.canvas_pixels (season_number, team);
-
--- Recent placements feed query (when feed_events also surfaces them).
-create index if not exists canvas_pixels_recent_idx
-  on public.canvas_pixels (placed_at desc);
 
 -- SeasonEndCeremony's my_contribution_count: COUNT(*) WHERE placed_by = auth.uid()
 -- AND season_number = ?. Without this index that's a full table scan.
@@ -112,3 +107,21 @@ create policy canvas_pixels_select_all on public.canvas_pixels
 drop policy if exists teams_canvas_progress_select_all on public.teams_canvas_progress;
 create policy teams_canvas_progress_select_all on public.teams_canvas_progress
   for select using (auth.role() = 'authenticated');
+
+-- ─── Phase-3 → Phase-4 teams.total reset (gated, idempotent) ──────────────
+-- teams.total is being repurposed from Phase-3 cumulative deposit dollars
+-- to Phase-4 lifetime canvases-won count. The data is in disparate units
+-- and there is no defensible conversion, so we zero out before any Phase-4
+-- code reads or writes it.
+--
+-- Gated on `not exists (select 1 from seasons)` so this fires exactly once
+-- on first apply. Re-running 0009 after Phase 4 is live (and seasons rows
+-- exist) is a no-op — without this guard the UPDATE would silently zero
+-- out actual lifetime canvases-won counts. Plan §648 calls for the reset
+-- but didn't specify the guard.
+do $$
+begin
+  if not exists (select 1 from public.seasons) then
+    update public.teams set total = 0, updated_at = now();
+  end if;
+end $$;
