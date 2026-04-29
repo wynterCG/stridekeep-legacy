@@ -121,21 +121,19 @@ export const useGameStore = create<GameStore>()(
         // diffed against the default lastSyncedTotal=null and silently re-anchor.
         if (!useGameStore.persist.hasHydrated()) return;
 
-        const { lastSyncedTotal, lastSyncedDate, steps, caseState, purse, strideLevel } = get();
+        const { lastSyncedTotal, lastSyncedDate, caseState, purse, strideLevel } = get();
         const today = todayKey();
 
-        // First sync after install OR first sync of a new local day:
-        // anchor lastSyncedTotal to the current Health Connect total without
-        // minting any cases. (Health Connect's daily Steps total resets at
-        // local midnight, so yesterday's anchor is meaningless today.)
-        // Use == null to also catch undefined from pre-Phase-2 persisted blobs.
-        if (lastSyncedTotal == null || lastSyncedDate !== today) {
-          set({ lastSyncedTotal: total, lastSyncedDate: today });
-          return;
-        }
+        // Baseline for delta math. On a new local day (or first install) HC's
+        // daily counter has reset, so all of `total` represents today's steps;
+        // baseline is 0 and we mint for the whole amount. On the same day,
+        // baseline is the previous reading and we mint only the new delta.
+        const sameDay = lastSyncedTotal != null && lastSyncedDate === today;
+        const baseline = sameDay ? lastSyncedTotal! : 0;
+        const delta = Math.max(0, total - baseline);
 
-        const delta = Math.max(0, total - lastSyncedTotal);
-        if (delta === 0) return;
+        // Same-day no-op: nothing to mint AND display already mirrors HC.
+        if (delta === 0 && sameDay) return;
 
         const earnedPurse = delta * (BALANCE.stride.baseValue + strideLevel);
         const newCaseState: CaseState = {
@@ -144,8 +142,12 @@ export const useGameStore = create<GameStore>()(
           luxury: addStepsToCase(caseState, 'luxury', delta),
         };
 
+        // `steps` mirrors HC's absolute today total (not a cumulative
+        // game-internal counter) so the InfoStrip "X STEPS" display matches
+        // what Samsung Health / Health Connect report. simulateWalk can
+        // temporarily push past HC; the next sync overwrites back.
         set({
-          steps: steps + delta,
+          steps: total,
           lastSyncedTotal: total,
           lastSyncedDate: today,
           caseState: newCaseState,

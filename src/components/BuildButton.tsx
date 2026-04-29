@@ -83,6 +83,11 @@ export default function BuildButton(): React.JSX.Element {
   const sweepWidth = sweep.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
   const disabled = isBatching || forTheTown <= 0 || !team;
+  // "Empty" = nothing buffered AND no batch in flight. The huge "$0" in
+  // the deposit-amount slot was the loudest thing on screen during this
+  // state — the user lands on an empty number. We reframe to lead with
+  // the next building target so the hero text is always informative.
+  const isEmpty = !isBatching && forTheTown <= 0;
 
   const leftLabel = isBatching ? 'DEPOSITING' : 'DEPOSIT';
   const leftAmount = isBatching
@@ -108,11 +113,13 @@ export default function BuildButton(): React.JSX.Element {
   const metaLeft = atFinalCap
     ? 'TOWN COMPLETE'
     : `$${teamTotal.toLocaleString()} of $${next.threshold.toLocaleString()}`;
-  const metaRight = disabled
-    ? isBatching
-      ? 'AUTO-COMMIT'
-      : 'WALK TO EARN'
-    : 'TAP TO BUILD →';
+  const metaRight = isEmpty
+    ? 'OPEN CASES → SELL'
+    : disabled
+      ? isBatching
+        ? 'AUTO-COMMIT'
+        : 'WALK TO EARN'
+      : 'TAP TO BUILD →';
 
   return (
     <Pressable
@@ -122,14 +129,40 @@ export default function BuildButton(): React.JSX.Element {
     >
       <View style={styles.row}>
         <View style={styles.leftBlock}>
-          <Text style={styles.leftLabel}>{leftLabel}</Text>
-          <Text style={[styles.leftAmount, { color: leftAmountColor }]}>{leftAmount}</Text>
+          {isEmpty ? (
+            <>
+              <Text style={styles.leftLabel}>BUILDING NEXT</Text>
+              <Text
+                style={[styles.emptyName, { color: teamColor }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {`${next.emoji} ${next.name}`}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.leftLabel}>{leftLabel}</Text>
+              <Text style={[styles.leftAmount, { color: leftAmountColor }]}>{leftAmount}</Text>
+            </>
+          )}
         </View>
         <View style={styles.rightBlock}>
-          <Text style={styles.rightKicker}>{rightKicker}</Text>
-          <Text style={[styles.rightName, { color: rightColor }]} numberOfLines={1}>
-            {rightName}
-          </Text>
+          {isEmpty ? (
+            <>
+              <Text style={styles.rightKicker}>UNLOCKS AT</Text>
+              <Text style={[styles.rightName, { color: colors.accent.brassLight }]}>
+                {`$${next.threshold.toLocaleString()}`}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.rightKicker}>{rightKicker}</Text>
+              <Text style={[styles.rightName, { color: rightColor }]} numberOfLines={1}>
+                {rightName}
+              </Text>
+            </>
+          )}
         </View>
       </View>
 
@@ -193,6 +226,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.playfairItalic,
     fontSize: 32,
     lineHeight: 34,
+  },
+  emptyName: {
+    fontFamily: fonts.playfairItalic,
+    fontSize: 22,
+    lineHeight: 26,
   },
   rightBlock: {
     alignItems: 'flex-end',

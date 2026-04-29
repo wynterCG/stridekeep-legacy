@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, RadialGradient, Stop, Defs, Circle } from 'react-native-svg';
 import { useGameStore } from '../store/gameStore';
-import { CURRENT_SEASON, dayOfSeason } from '../data/season';
+import { CURRENT_SEASON, fmtCountdown, msLeftInSeason } from '../data/season';
 import { colors, fonts, spacing } from '../theme';
 
 // Persistent state strip. Shows team identity (crest + name) on the left,
@@ -18,7 +18,17 @@ export default function TopHeader(): React.JSX.Element {
   // v1 keeps color-name team naming. Thematic rebrand (HEARTH/TIDE) is queued
   // in the review but scoped out of this batch.
   const teamName = team === 'red' ? 'RED' : team === 'blue' ? 'BLUE' : '—';
-  const day = dayOfSeason();
+
+  // Round countdown ticker. Coarse cadence (60s) when there's still hours
+  // left so we don't burn battery; switches to 1s when under an hour so
+  // the closing-minutes urgency reads in real time.
+  const [msLeft, setMsLeft] = useState(() => msLeftInSeason());
+  useEffect(() => {
+    const tick = () => setMsLeft(msLeftInSeason());
+    const interval = msLeft < 60 * 60 * 1000 ? 1000 : 60 * 1000;
+    const id = setInterval(tick, interval);
+    return () => clearInterval(id);
+  }, [msLeft < 60 * 60 * 1000]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -48,7 +58,10 @@ export default function TopHeader(): React.JSX.Element {
           </View>
           <View>
             <Text style={styles.teamName}>{teamName}</Text>
-            <Text style={styles.meta}>{`SEASON ${CURRENT_SEASON.number} · DAY ${day}`}</Text>
+            <Text style={styles.meta}>
+              {`S${CURRENT_SEASON.number} · `}
+              <Text style={styles.metaCountdown}>{fmtCountdown(msLeft)}</Text>
+            </Text>
           </View>
         </View>
 
@@ -101,6 +114,9 @@ const styles = StyleSheet.create({
     color: colors.accent.brassDeep,
     letterSpacing: 2,
     marginTop: 1,
+  },
+  metaCountdown: {
+    color: colors.accent.brass,
   },
   purseBlock: {
     flexDirection: 'row',
