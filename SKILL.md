@@ -559,7 +559,7 @@ Prove the technical path works before committing to the full build.
 
 **Shipped goal met**: multi-user, real competition with $-based deposits + milestone thresholds.
 
-### Phase 4: MOSAIC EDITION — PLANNED (17-20 days focused work)
+### Phase 4: MOSAIC EDITION — IN PROGRESS on `phase-4/mural-prep-godot` branch
 Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md` (approved 2026-04-23).
 
 **Fundamental pivot**: game was always about collaborative pixel art, not abstract town-building. Phase 4 replaces the money-deposit economy with material-tiles-on-a-canvas:
@@ -581,7 +581,33 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 - Season length is variable (14-day soft cap).
 - Mural queue system for solo-dev operational resilience.
 
-**Implementation order**: palette prototype (0.5d) → standalone Godot mural-prep tool MVP (3d) → feasibility threshold derivation (0.5d) → client state + data (2d) → UI components with colorblind codes + SeasonEndCeremony (4d) → backend migrations + pre-seed 2-3 murals (2.5d) → wire client (1d) → bot scripts (0.5d) → polish + verify (1.5d) → SKILL.md update (0.5d).
+**Implementation status (as of 2026-04-29):**
+
+✅ Standalone Godot mural-prep tool MVP — shipped (commits up to `b94a1e7`). §13 ship-checklist run on 3 real ComfyUI murals; auto-name dedup applied.
+
+✅ Step 3 — Client state + data files — shipped (`18cc3ab` C1 additive scaffolding + `ed46e0d` C2 semantic pivot + `31d112d` review fix). gameStore reshaped, `inventory: KeptItem[]` → `Record<colorId, qty>`, persist v1 with `onRehydrateStorage` Phase-3 shape-detection rescue (Phase-3 had no persist version, so Zustand `migrate` doesn't fire — the rescue runs at rehydration instead).
+
+✅ Step 4 / S4.B — Boot-restoration — shipped (`ceeba2b` + review). `ColorCell` primitive + Phase-4 `CaseCard` reveal + `InventoryScreen` palette grid + `BuildButton`/`TownHero`/`TownIllustration`/`MilestoneCelebrationWatcher`/`CelebrationOverlay` deleted. App boots compile-clean.
+
+✅ Step 5 / S5.A — Schema migrations 0009-0012 — shipped (`51ed3e5` + `8958d34` review). `seasons` + `canvas_pixels` + `teams_canvas_progress` + `season_colors` + `season_craft_recipes` + `user_badges` + `murals` storage bucket + `feed_events` (drops `deposits`). teams.total re-zeroed via gated `not exists (select 1 from seasons)` guard so re-applying 0009 is a no-op once Phase 4 is live. murals bucket writes are `service_role`-ONLY (no `to authenticated` policies — anon key in the APK is exploitable).
+
+✅ Step 5 / S5.B — RPC migrations 0013-0015a — shipped (`e8ae95f` + `0342b0d` review). `place_tile` + `_end_season_and_award` + `seed_next_mural` + `rollover_season` + `my_contribution_count` + `ended_canvas_snapshot` + `queue_status` + `tick_bots` rewrite + `log_feed_event`. Migrations renumbered relative to plan §326-485 to fix FK dependency order (plan's 0009_season_palette referenced seasons created in 0010; corrected here).
+
+✅ Step 6 — Wire client to server — shipped (`eecad51` + `a0142ea` review). Real `serverPlaceTile` (jsonb → `PlaceResult` mapping with discriminated `unknown` branch for schema drift), `loadFeedEvents` + `logFeedEvent` (replacing `lib/deposits.ts`), `loadMyBadges` + `badgeImageUrl`, App.tsx `syncSeason` flow (rollover heartbeat + reset-vs-refresh decision against persisted `seasonNumber`) gated on persist hydration with single-flight guard.
+
+⏳ **Apply migrations to live `fdygeoihelpgjyhbvxgu`** (operator step). Order: 0009 → 0010 → 0011 → 0011a → 0012 → 0013 → 0014 → 0015 → 0015a. Plus `alter publication supabase_realtime add table public.canvas_pixels, public.seasons, public.user_badges`. Phase-3 master-built phone install will start console-erroring once 0012 applies (drops `deposits` table) — install the `phase-4/mural-prep-godot` branch onto the phone first, OR accept the spam window through this transition.
+
+⏳ Step 5 / S5.C — Seed Season 1 mural via the Godot tool. ComfyUI generate → curate → tool emits `seed_next_mural(...)` SQL → paste + run.
+
+⏳ S4.B-canvas — `CanvasView` + `TilePicker` (the actual visible pixel-painting hero on Home).
+
+⏳ S4.C — `ShopModal` + `CraftModal` + InventoryScreen action sheet wiring.
+
+⏳ S4.D — `SeasonEndWatcher` + `SeasonEndCeremony` (full-screen modal) + `subscribeSeasonRollover` realtime channel. Plus TugOfWar refactor to read `teams_canvas_progress.filled_count` instead of `teams.total`.
+
+⏳ Step 7 — `scripts/bots.js` rewrite to emit `log_feed_event` only (atmospheric, never `place_tile`).
+
+⏳ Step 8 — Polish + queue-depth alert Edge Function + real-walk verification.
 
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
