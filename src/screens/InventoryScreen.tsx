@@ -94,20 +94,26 @@ export default function InventoryScreen(): React.JSX.Element {
             {paletteEntries.map((color) => {
               const qty = inventory[color.id] ?? 0;
               const interactive = qty > 0;
-              const cell = (
-                <View style={styles.cellWrap}>
+              const inner = (
+                <>
                   <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
                   <Text style={styles.cellName} numberOfLines={1}>
                     {color.name}
                   </Text>
-                </View>
+                </>
               );
               return interactive ? (
-                <Pressable key={color.id} onPress={() => setActionFor(color)}>
-                  {cell}
+                <Pressable
+                  key={color.id}
+                  onPress={() => setActionFor(color)}
+                  style={styles.cellWrap}
+                >
+                  {inner}
                 </Pressable>
               ) : (
-                <View key={color.id}>{cell}</View>
+                <View key={color.id} style={styles.cellWrap}>
+                  {inner}
+                </View>
               );
             })}
           </View>
