@@ -97,6 +97,8 @@ export default function CraftModal({
                       style={[styles.craftBtn, !canCraft && styles.craftBtnDisabled]}
                       onPress={() => canCraft && craftTile(recipe.id, 1)}
                       disabled={!canCraft}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Craft ${outputDef.name}`}
                     >
                       <Text style={styles.craftBtnText}>CRAFT</Text>
                     </Pressable>

@@ -8,6 +8,7 @@
 // App.tsx's syncSeason flow (Step 6); never persisted client-side.
 
 import { supabase } from '../lib/supabase';
+import { BALANCE } from '../balance';
 import type { ColorDef, ColorTier, CraftRecipe } from '../types';
 
 // Loaders ───────────────────────────────────────────────────────────────────
@@ -79,6 +80,26 @@ export function sellBaseValue(
   id: string,
 ): number {
   return palette?.[id]?.baseValue ?? 0;
+}
+
+// Per-unit decay value (UNFLOORED) for the next single tile sold of
+// this colorId, given how many have been sold today. Single source of
+// truth for the formula — both gameStore.sellTile and the preview row
+// in InventoryScreen must call this so the view layer can't drift
+// from the reducer's economy.
+//
+// Returns a float so multi-qty callers (the reducer's accumulate loop)
+// keep precision and floor exactly once at the end. Single-unit
+// callers (the preview) wrap the result in Math.floor themselves.
+export function rawNextSellPrice(
+  palette: Record<string, ColorDef> | null,
+  id: string,
+  soldToday: number,
+): number {
+  const baseValue = sellBaseValue(palette, id);
+  const floor = baseValue * BALANCE.sellDecay.floor;
+  const decayed = baseValue * Math.pow(BALANCE.sellDecay.factor, soldToday);
+  return Math.max(floor, decayed);
 }
 
 // Case-roll helper ──────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ import type {
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
 import { todayKey } from '../native/healthConnect';
-import { rollColorFromCase, sellBaseValue } from '../data/colors';
+import { rollColorFromCase, rawNextSellPrice } from '../data/colors';
 import { serverPlaceTile } from '../lib/teams';
 import { logFeedEvent } from '../lib/feedEvents';
 
@@ -332,15 +332,16 @@ export const useGameStore = create<GameStore>()(
             ? sellHistory
             : { date: today, counts: {} as Record<string, number> };
         const soldToday = history.counts[colorId] ?? 0;
-        const baseValue = sellBaseValue(seasonPalette, colorId);
 
         // Per-unit decay: each successive same-day sell of the same colorId
         // is worth factor × the previous, floored at floor × baseValue.
+        // The unfloored helper lives in data/colors.ts so InventoryScreen's
+        // "SELL 1 · $X" preview reads from the same formula — no view drift.
+        // We accumulate floats and floor once at the end so multi-qty sales
+        // don't lose a few cents to per-item rounding.
         let earned = 0;
-        const floor = baseValue * BALANCE.sellDecay.floor;
         for (let i = 0; i < qty; i += 1) {
-          const decayed = baseValue * Math.pow(BALANCE.sellDecay.factor, soldToday + i);
-          earned += Math.max(floor, decayed);
+          earned += rawNextSellPrice(seasonPalette, colorId, soldToday + i);
         }
         earned = Math.floor(earned);
 

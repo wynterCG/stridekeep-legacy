@@ -12,8 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
 import ColorCell from '../components/ColorCell';
 import CraftModal from '../components/CraftModal';
-import { sellBaseValue } from '../data/colors';
-import { BALANCE } from '../balance';
+import { rawNextSellPrice } from '../data/colors';
 import { todayKey } from '../native/healthConnect';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { ColorDef } from '../types';
@@ -45,18 +44,16 @@ export default function InventoryScreen(): React.JSX.Element {
   const [actionFor, setActionFor] = useState<ColorDef | null>(null);
   const [craftFilterColorId, setCraftFilterColorId] = useState<string | null>(null);
 
-  // For the SELL preview: simulate the next decayed sale price the
-  // sellTile reducer would compute. Mirrors the reducer's per-unit
-  // floor + factor maths so the player sees the exact $ they'd earn.
+  // For the SELL preview: floor the next-unit price from the shared
+  // formula in data/colors.ts. Routes through the same helper the
+  // reducer uses so a future change (streak bonus, tier multiplier)
+  // can't desync the preview from what the player actually earns.
   const sellPreviewFor = (colorId: string): number => {
-    const baseValue = sellBaseValue(seasonPalette, colorId);
     const today = todayKey();
     const soldToday = sellHistory.date === today
       ? (sellHistory.counts[colorId] ?? 0)
       : 0;
-    const floor = baseValue * BALANCE.sellDecay.floor;
-    const decayed = baseValue * Math.pow(BALANCE.sellDecay.factor, soldToday);
-    return Math.floor(Math.max(floor, decayed));
+    return Math.floor(rawNextSellPrice(seasonPalette, colorId, soldToday));
   };
 
   // Whether a color is referenced as an input in ANY of this season's
@@ -143,12 +140,14 @@ export default function InventoryScreen(): React.JSX.Element {
       {/* Action sheet for the tapped color cell. */}
       <Modal
         transparent
-        animationType="fade"
+        animationType="slide"
         visible={actionFor !== null}
         onRequestClose={closeSheet}
       >
         <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
           {actionFor && (
+            // No-op onPress consumes taps so the backdrop's onPress doesn't
+            // fire when the user taps inside the card.
             <Pressable style={styles.sheetCard} onPress={() => {}}>
               <View style={styles.sheetHeader}>
                 <ColorCell color={actionFor} size={48} qty={inventory[actionFor.id] ?? 0} />

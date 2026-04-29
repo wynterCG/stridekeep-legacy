@@ -57,6 +57,8 @@ export default function ShopModal({ visible, onClose }: Props): React.JSX.Elemen
                       style={[styles.buyBtn, !canAfford && styles.buyBtnDisabled]}
                       onPress={() => canAfford && buyShopTile(color.id, 1)}
                       disabled={!canAfford}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Buy ${color.name} for $${price}`}
                     >
                       <Text style={styles.buyBtnText}>BUY</Text>
                     </Pressable>
