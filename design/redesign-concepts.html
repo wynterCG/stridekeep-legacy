@@ -1703,6 +1703,394 @@ body::before {
   font-weight: 400;
 }
 
+/* ───────── CHART ALT A · improved line ───────── */
+.chart-alt-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.chart-alt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.chart-alt-title {
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--brass);
+  letter-spacing: 2.5px;
+}
+
+.chart-alt-sub {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+.chart-alt-lead {
+  text-align: right;
+}
+
+.chart-alt-lead-kicker {
+  font-family: var(--display);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.chart-alt-lead-val {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.chart-alt-svg {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+
+.chart-alt-xaxis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--display);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.chart-alt-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(199,156,74,0.15);
+}
+
+.chart-alt-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-alt-team .swatch {
+  width: 10px; height: 10px; border-radius: 2px;
+}
+
+.chart-alt-team-name {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--text-cream);
+}
+
+.chart-alt-team-num {
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--brass-light);
+}
+
+/* ───────── CHART ALT B · tug of war ───────── */
+.tug-card {
+  background:
+    radial-gradient(ellipse at center, rgba(199,156,74,0.06), transparent 70%),
+    var(--bg-card);
+  border-radius: 12px;
+  padding: 18px 16px;
+  margin-bottom: 12px;
+}
+
+.tug-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tug-side {
+  text-align: center;
+  min-width: 70px;
+}
+
+.tug-side .tug-team {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.tug-side.red .tug-team { color: var(--team-red); }
+.tug-side.blue .tug-team { color: var(--team-blue); }
+
+.tug-side .tug-amt {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--text-cream);
+}
+
+.tug-side .tug-amt-small {
+  display: block;
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+.tug-track {
+  position: relative;
+  height: 12px;
+  background: var(--bg-overlay);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.tug-track::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: -3px; bottom: -3px;
+  width: 1px;
+  background: var(--brass-deep);
+  transform: translateX(-50%);
+  opacity: 0.4;
+}
+
+.tug-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 4px;
+}
+
+.tug-fill.red {
+  right: 50%;
+  background: linear-gradient(90deg, var(--team-red-soft), var(--team-red));
+}
+
+.tug-fill.blue {
+  left: 50%;
+  background: linear-gradient(90deg, var(--team-blue), var(--team-blue-soft));
+}
+
+.tug-marker {
+  position: absolute;
+  top: -8px;
+  width: 14px;
+  height: 28px;
+  background: var(--brass-light);
+  border-radius: 3px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 10px rgba(240,208,145,0.6);
+}
+
+.tug-marker::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 4px; height: 4px;
+  background: var(--bg-overlay);
+  border-radius: 50%;
+}
+
+.tug-lead-bar {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tug-lead-bar .tug-lead-name {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.tug-lead-bar .tug-lead-amt {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--brass-light);
+}
+
+.tug-spark {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.tug-spark svg {
+  flex: 1;
+  height: 22px;
+}
+
+/* ───────── CHART ALT C · twin gauges ───────── */
+.gauges-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.gauges-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.gauges-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  padding: 8px 18px 0;
+}
+
+.gauge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.gauge-num {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.gauge-col.red .gauge-num { color: var(--team-red); }
+.gauge-col.blue .gauge-num { color: var(--team-blue); }
+
+.gauge-num-small {
+  font-family: var(--body);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.gauge-track {
+  position: relative;
+  width: 28px;
+  height: 130px;
+  background: var(--bg-overlay);
+  border-radius: 14px;
+  overflow: visible;
+  border: 1px solid var(--border);
+}
+
+.gauge-fill {
+  position: absolute;
+  bottom: 1px; left: 1px; right: 1px;
+  border-radius: 12px;
+}
+
+.gauge-col.red .gauge-fill {
+  background: linear-gradient(180deg, var(--team-red), var(--team-red-soft));
+  box-shadow: 0 0 12px rgba(196,75,58,0.4);
+}
+
+.gauge-col.blue .gauge-fill {
+  background: linear-gradient(180deg, var(--team-blue), var(--team-blue-soft));
+  box-shadow: 0 0 12px rgba(101,137,184,0.4);
+}
+
+.gauge-tick {
+  position: absolute;
+  right: -34px;
+  font-family: var(--display);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.gauge-tick::before {
+  content: '';
+  position: absolute;
+  left: -8px; top: 50%;
+  width: 4px; height: 1px;
+  background: var(--text-dim);
+}
+
+.gauge-col.red .gauge-tick {
+  right: auto;
+  left: -34px;
+  text-align: right;
+}
+
+.gauge-col.red .gauge-tick::before {
+  left: auto;
+  right: -8px;
+}
+
+.gauge-team {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.gauge-col.red .gauge-team { color: var(--team-red); }
+.gauge-col.blue .gauge-team { color: var(--team-blue); }
+
+/* Section: 3-up chart concepts grid */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+
+.chart-frame {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-frame-cap {
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--brass);
+  letter-spacing: 4px;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.chart-frame-cap small {
+  display: block;
+  font-family: var(--body);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
 /* ───────── ANNOTATION CARDS ───────── */
 .annotations {
   margin-top: 32px;
@@ -2358,6 +2746,212 @@ footer span { color: var(--brass); }
       <div class="annot">
         <div class="ref">TYPOGRAPHY</div>
         <p>Playfair Display 900 Italic for the team name carries the editorial Slate &amp; Brass voice. Bebas Neue for the epithet keeps the sport-condensed counterpoint intact.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 04 — TOWN CHART ALTERNATIVES ═══════════ -->
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <div class="section-no">CONCEPT 04</div>
+        <h2>Town chart — three alternatives</h2>
+      </div>
+      <div class="tag">PROBLEM · 90% EMPTY · NO Y-AXIS · CRAMMED FOOTER</div>
+    </div>
+
+    <div class="chart-grid">
+
+      <!-- ━━━ ALT A: improved line chart ━━━ -->
+      <div class="fade-up chart-frame">
+        <div class="chart-alt-card">
+          <div class="chart-alt-head">
+            <div>
+              <div class="chart-alt-title">LAST HOUR</div>
+              <div class="chart-alt-sub">cumulative deposits per team</div>
+            </div>
+            <div class="chart-alt-lead">
+              <div class="chart-alt-lead-kicker">🟦 BLUE LEADS</div>
+              <div class="chart-alt-lead-val" style="color: var(--team-blue)">+$2,100</div>
+            </div>
+          </div>
+
+          <svg class="chart-alt-svg" viewBox="0 0 320 110" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="redGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#c44b3a" stop-opacity="0.55"/>
+                <stop offset="1" stop-color="#c44b3a" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="blueGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#6589b8" stop-opacity="0.55"/>
+                <stop offset="1" stop-color="#6589b8" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Y-axis gridlines + LABELS (the real fix) -->
+            <line x1="8" y1="22" x2="312" y2="22" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+            <line x1="8" y1="50" x2="312" y2="50" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+            <line x1="8" y1="78" x2="312" y2="78" stroke="#4d5560" stroke-width="0.5" opacity="0.35"/>
+            <text x="312" y="20" text-anchor="end" font-family="Outfit" font-weight="700" font-size="8" fill="#8d959e">$22K</text>
+            <text x="312" y="48" text-anchor="end" font-family="Outfit" font-weight="700" font-size="8" fill="#8d959e">$15K</text>
+            <text x="312" y="76" text-anchor="end" font-family="Outfit" font-weight="700" font-size="8" fill="#8d959e">$7K</text>
+
+            <!-- AUTO-SCALED data: starts at first deposit, fills full width -->
+            <path d="M8 100 L8 96 L40 96 L40 88 L80 88 L80 78 L120 78 L120 64 L160 64 L160 52 L200 52 L200 44 L240 44 L240 32 L280 32 L280 22 L312 22 L312 100 Z" fill="url(#redGrad2)"/>
+            <path d="M8 96 L40 96 L40 88 L80 88 L80 78 L120 78 L120 64 L160 64 L160 52 L200 52 L200 44 L240 44 L240 32 L280 32 L280 22 L312 22" fill="none" stroke="#c44b3a" stroke-width="2.4" stroke-linejoin="miter"/>
+
+            <path d="M8 100 L8 98 L60 98 L60 92 L100 92 L100 84 L150 84 L150 72 L200 72 L200 56 L260 56 L260 36 L312 28 L312 100 Z" fill="url(#blueGrad2)"/>
+            <path d="M8 98 L60 98 L60 92 L100 92 L100 84 L150 84 L150 72 L200 72 L200 56 L260 56 L260 36 L312 28" fill="none" stroke="#6589b8" stroke-width="2.4" stroke-linejoin="miter"/>
+
+            <circle cx="312" cy="22" r="7" fill="#c44b3a" opacity="0.25"/>
+            <circle cx="312" cy="22" r="3.2" fill="#c44b3a"/>
+            <circle cx="312" cy="28" r="7" fill="#6589b8" opacity="0.25"/>
+            <circle cx="312" cy="28" r="3.2" fill="#6589b8"/>
+          </svg>
+
+          <!-- X-axis time markers -->
+          <div class="chart-alt-xaxis">
+            <span>1H AGO</span>
+            <span>30M</span>
+            <span>15M</span>
+            <span>NOW</span>
+          </div>
+
+          <div class="chart-alt-foot">
+            <div class="chart-alt-team">
+              <div class="swatch" style="background:#c44b3a"></div>
+              <div>
+                <div class="chart-alt-team-name">RED</div>
+                <div class="chart-alt-team-num">+$18,605</div>
+              </div>
+            </div>
+            <div class="chart-alt-team" style="text-align: right">
+              <div>
+                <div class="chart-alt-team-name" style="text-align:right">BLUE</div>
+                <div class="chart-alt-team-num">+$20,705</div>
+              </div>
+              <div class="swatch" style="background:#6589b8"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-frame-cap">ALT A · IMPROVED LINE<small>auto-scaled width · Y/X labels · cleaner foot</small></div>
+      </div>
+
+      <!-- ━━━ ALT B: tug of war ━━━ -->
+      <div class="fade-up chart-frame">
+        <div class="tug-card">
+          <div class="chart-alt-head" style="margin-bottom: 18px">
+            <div>
+              <div class="chart-alt-title">TUG OF WAR</div>
+              <div class="chart-alt-sub">last hour · cumulative</div>
+            </div>
+          </div>
+
+          <div class="tug-row">
+            <div class="tug-side red">
+              <div class="tug-team">RED</div>
+              <div class="tug-amt">$18.6K</div>
+              <span class="tug-amt-small">EARNED</span>
+            </div>
+            <div class="tug-track">
+              <!-- BLUE leads, so BLUE fill extends right of center -->
+              <div class="tug-fill red" style="width: 42%"></div>
+              <div class="tug-fill blue" style="width: 47%"></div>
+              <div class="tug-marker" style="left: 55%"></div>
+            </div>
+            <div class="tug-side blue">
+              <div class="tug-team">BLUE</div>
+              <div class="tug-amt">$20.7K</div>
+              <span class="tug-amt-small">EARNED</span>
+            </div>
+          </div>
+
+          <div class="tug-lead-bar">
+            <span class="tug-lead-name" style="color: var(--team-blue)">🟦 BLUE LEADS</span>
+            <span class="tug-lead-amt">+$2,100</span>
+          </div>
+
+          <div class="tug-spark">
+            <span>10m</span>
+            <svg viewBox="0 0 100 22" preserveAspectRatio="none">
+              <line x1="0" y1="11" x2="100" y2="11" stroke="#4d5560" stroke-width="0.5" opacity="0.4"/>
+              <!-- mini lead-over-time sparkline: starts tied, blue pulls ahead -->
+              <polyline points="0,11 15,12 30,10 45,8 60,7 75,6 90,5 100,4" fill="none" stroke="#6589b8" stroke-width="1.5"/>
+            </svg>
+            <span>NOW</span>
+          </div>
+        </div>
+        <div class="chart-frame-cap">ALT B · TUG OF WAR<small>marker shifts toward leader · zero chart literacy needed</small></div>
+      </div>
+
+      <!-- ━━━ ALT C: twin gauges ━━━ -->
+      <div class="fade-up chart-frame">
+        <div class="gauges-card">
+          <div class="gauges-head">
+            <div>
+              <div class="chart-alt-title">LAST HOUR</div>
+              <div class="chart-alt-sub">team gauges · cumulative</div>
+            </div>
+            <div class="chart-alt-lead">
+              <div class="chart-alt-lead-kicker">🟦 LEADS</div>
+              <div class="chart-alt-lead-val" style="color: var(--team-blue); font-size: 18px">+$2,100</div>
+            </div>
+          </div>
+
+          <div class="gauges-row">
+            <div class="gauge-col red">
+              <div class="gauge-num-small">EARNED</div>
+              <div class="gauge-num">$18.6K</div>
+              <div class="gauge-track">
+                <div class="gauge-fill" style="height: 88%"></div>
+                <span class="gauge-tick" style="bottom: 25%">15m</span>
+                <span class="gauge-tick" style="bottom: 50%">30m</span>
+                <span class="gauge-tick" style="bottom: 75%">45m</span>
+              </div>
+              <div class="gauge-team">RED</div>
+            </div>
+            <div class="gauge-col blue">
+              <div class="gauge-num-small">EARNED</div>
+              <div class="gauge-num">$20.7K</div>
+              <div class="gauge-track">
+                <div class="gauge-fill" style="height: 98%"></div>
+                <span class="gauge-tick" style="bottom: 25%">15m</span>
+                <span class="gauge-tick" style="bottom: 50%">30m</span>
+                <span class="gauge-tick" style="bottom: 75%">45m</span>
+              </div>
+              <div class="gauge-team">BLUE</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-frame-cap">ALT C · TWIN GAUGES<small>thermometer fills · time tick marks</small></div>
+      </div>
+
+    </div>
+
+    <div class="annotations">
+      <div class="annot">
+        <div class="ref">WHAT'S WRONG TODAY</div>
+        <p>Both lines hug the bottom for 90% of the visible window because cumulative-since-window starts at $0 and bots only just woke up. The chart looks empty most of the time. Y-axis has gridlines but no labels. Footer crams "+$X · Total: $Y · $Z · +$W" in one strip — confusing.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">ALT A · KEEP THE LINE</div>
+        <p>Auto-scale time window to start at first deposit (fills width). Add Y-axis $-labels (right-anchored). Add X-axis time markers (1H · 30M · 15M · NOW). Bigger lead callout in 22pt Playfair italic. Cleaner foot — RED/BLUE separated, no run-together totals.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">ALT B · TUG OF WAR</div>
+        <p>One bar across the card. RED fills left of center, BLUE fills right of center. The brass marker sits at the lead point — slides left when RED leads, right when BLUE leads. Mini sparkline below shows "lead over time" trend. Zero chart literacy needed; readable in 0.5s glance.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">ALT C · TWIN GAUGES</div>
+        <p>Two thermometer-style fills side-by-side. Each gauge shows that team's last-hour cumulative as a height. Tick marks at 15m/30m/45m back. Visceral "who's bigger" comparison. Lead chip in the header.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">PERFORMANCE COST</div>
+        <p>All three options remove the SVG-area-path computation, which means simpler render code and no more "auto-scale vMax" math. Tug + gauges are CSS-only (no SVG at all). Alt A keeps SVG but with simpler, fixed gridlines.</p>
+      </div>
+      <div class="annot">
+        <div class="ref">RECOMMENDATION</div>
+        <p>If you want the rivalry to land in 0.5s during a walk → <em>Alt B (Tug of War)</em>. If you want trend-over-time visible → <em>Alt A</em>. If you want the most dramatic / "race to the top" feel → <em>Alt C</em>.</p>
       </div>
     </div>
   </section>

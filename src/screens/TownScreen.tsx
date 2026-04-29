@@ -5,7 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import { MILESTONES } from '../data/cases';
 import SeasonBanner from '../components/SeasonBanner';
 import LiveFeed from '../components/LiveFeed';
-import TradingChart from '../components/TradingChart';
+import TugOfWar from '../components/TugOfWar';
 import { useTownFeed } from '../hooks/useTownFeed';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -35,7 +35,7 @@ export default function TownScreen(): React.JSX.Element {
           </View>
         )}
 
-        <TradingChart deposits={deposits} />
+        <TugOfWar />
 
         <LiveFeed deposits={deposits} loading={loading} />
 

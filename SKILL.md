@@ -1,11 +1,11 @@
 ---
 name: stridekeep
-description: Use this skill when working on Stridekeep, a native mobile team-based idle walking game where real-world steps build a shared medieval town. Covers the audience (working-class adults with physical jobs), design philosophy (dignified, integrity over retention, activity-as-only-currency), tech stack (React Native + Expo + Supabase + Health Connect/HealthKit), mechanics, UI rules, and an explicit list of anti-patterns we will NOT build. Reference this whenever making decisions about features, code, copy, or visuals.
+description: Use this skill when working on Stridekeep, a native mobile team-based idle walking game where real-world steps paint a shared pixel-art mural. Covers the audience (working-class adults with physical jobs), design philosophy (dignified, integrity over retention, activity-as-only-currency), tech stack (React Native + Expo + Supabase + Health Connect/HealthKit), mechanics, UI rules, and an explicit list of anti-patterns we will NOT build. Reference this whenever making decisions about features, code, copy, or visuals.
 ---
 
 # Stridekeep
 
-> Real walking. Shared towns. Team victories earned, not bought.
+> Real walking. Shared murals. Team victories earned, not bought.
 
 ## 1. What Stridekeep is
 
@@ -13,7 +13,7 @@ description: Use this skill when working on Stridekeep, a native mobile team-bas
 
 A **native mobile team-based idle game** where the player's real-world step count is the only resource. Players are randomly assigned to Team Red or Team Blue on first launch. Walking unlocks **material cases** that drop **colored tiles**. Each season has a **ComfyUI-generated pixel-art mural** (a "mosaic") — each team races to complete their canvas by placing tiles of the correct color on each pixel (paint-by-numbers). The winning team's players each receive the completed mural as a permanent collectible badge. Season ends when either team completes the canvas OR a 14-day soft cap passes. Everything resets between seasons except badges.
 
-Colors form a small per-season economy: most drop from walking cases, some are bought with Purse (from selling surplus tiles), a few are crafted by mixing other colors. Each season's palette is unique, extracted from that season's mural by a Godot editor plugin and curated by the developer. Tiers (starter/quality/fine) and categories (case/shop/craft) are stable; only the actual colors change season to season.
+Colors form a small per-season economy: most drop from walking cases, some are bought with Purse (from selling surplus tiles), a few are crafted by mixing other colors. Each season's palette is unique, extracted from that season's mural by a standalone Godot tool (`tools/mural-prep-godot/`) and curated by the developer. Tiers (starter/quality/fine) and categories (case/shop/craft) are stable; only the actual colors change season to season.
 
 The game is **free, no microtransactions, no loot-box gambling mechanics, no real-money anything**. It targets adults whose lives already involve significant physical movement who want that effort to mean something.
 
@@ -33,7 +33,7 @@ Working-class adults aged 25–55 whose jobs naturally generate 10,000+ steps pe
 - Farmers, landscapers, gardeners
 - Security guards on foot patrols
 
-They're tired at the end of the day. They don't want luxury fantasy, cute cartoon characters, or casino slickness. They want something earned and worth their time.
+They're tired at the end of the day. They want something earned and worth their time, not cheerleading or persuasion-based hype.
 
 ### Secondary audience
 Joggers, marathon trainers, hikers, ruckers, cyclists with wearables, dog-walkers, desk workers who exercise intentionally.
@@ -131,7 +131,7 @@ Reset everything except badges. Next season's palette + mural load from queue.
 
 ### Per-season palettes
 
-Each season has a UNIQUE palette (10-16 colors typically; extracted from that season's ComfyUI mural via Godot plugin k-means clustering + user curation). Tiers are stable; color identities change. Color IDs are season-scoped (e.g., `s1_bone`, `s2_pine`). Plugin enforces invariants:
+Each season has a UNIQUE palette (10-16 colors typically; extracted from that season's ComfyUI mural via the standalone Godot tool's k-means clustering + user curation). Tiers are stable; color identities change. Color IDs are season-scoped (e.g., `s1_bone`, `s2_pine`). Tool enforces invariants:
 - At least one tier-1 case color per season.
 - Tier-3 colors NEVER appear as craft-recipe inputs.
 - Drop weights sum to 100% per tier.
@@ -182,10 +182,9 @@ Previous versions had a Stride Power upgrade ($1/step scaling) and Inventory Slo
 
 ## 7. UI rules
 
-### Aesthetic: medieval artisan, NOT casino luxury
+### Visual defaults (UI chrome; mural subject is unrestricted)
 
-- **Palette:** warm espresso background `#2a1f17`, cream text `#f5ecdb`, warm brass accent `#c8923c / #f2c77a`, team red `#c9452b` (brick/heraldic), team blue `#3b5998` (guild indigo)
-- **Mood:** candlelight tavern, forged iron, timber, parchment. Dignified.
+- **Palette (Slate & Brass, current):** slate background `#2b3138`, card `#353c46`, cream text `#f1ede4`, brass accent `#c79c4a / #f0d091`, team red `#c44b3a`, team blue `#6589b8`. See [theme.ts](e:/Vibe%20Coding/Stridekeep/src/theme.ts) for the full 11-token palette. Mural PALETTE is separate and regenerates per season from the ComfyUI source image — it is NOT constrained to match the UI chrome.
 - **Typography:** Bebas Neue (condensed caps for labels/CTAs), Playfair Display italic (milestone names, page headers), Outfit (body text)
 - **Border radius:** 10-14px for cards, 20px for badges/chips
 - **Animations:** cubic-bezier easing, ~0.3-0.5s durations. No slot-machine spinning. No Candy-Crush style explosions.
@@ -199,7 +198,7 @@ Team state must be communicated via more than hue alone. Always include text lab
 
 ### Palette as aesthetic (Phase 4 Mosaic Edition)
 
-Each season has a curated 10-16 color palette extracted from that season's mural. The restricted palette count (not any specific colors) carries the medieval-artisan aesthetic — any subject rendered in a small, hand-curated palette reads as mosaic. ComfyUI is free to generate any subject matter as long as anti-patterns (§8) are respected. Each mural becomes a visually unique badge when a team completes it.
+Each season has a curated 10-16 color palette extracted from that season's mural. The restricted palette count (not any specific colors) gives every mural a coherent "mosaic" read regardless of subject — any subject rendered in a small, hand-curated palette looks intentional. Mural subject matter is unrestricted; ComfyUI can generate anything. Each completed mural becomes a visually unique badge.
 
 ### Copy tone
 
@@ -211,7 +210,7 @@ Each season has a curated 10-16 color palette extracted from that season's mural
 
 ❌ Don't use:
 - "AMAZING! Great job stepping today! 🎉🎉🎉"
-- "Your luxury yacht awaits! 💰"
+- "Claim your reward now! 💰" (persuasion hype)
 - "Swipe here, champion!"
 - "Don't lose your streak!" (pressure-based)
 
@@ -244,9 +243,6 @@ These are decisions we've explicitly rejected. Don't reintroduce them.
 - ❌ **A web version.** Native-only.
 - ❌ **Tap-to-earn / clicker mechanics.**
 - ❌ **Mini-games that pay cash.** If added, pay bonuses only (free case, odds boost), never cash equivalents.
-- ❌ **Casino aesthetic.** Warm medieval tavern, never neon casino.
-- ❌ **Luxury/wealth theming.** Rejected after recognizing it alienates working-class audience.
-- ❌ **Cute cartoon style.** Adults, not children.
 - ❌ **Hardcoded pixel positions for onboarding.** Use refs + measure.
 - ❌ **Long cooldowns as artificial pacing.** Real walking is the pacing.
 - ❌ **Client-authoritative economy** for critical-integrity-path operations — not acceptable long-term. Phase 4 defers server-auth for case opens + Purse + inventory (tracked in audit-log tables 0016 for the eventual migration). **Tile placements, badge awards, and season rollovers ARE server-authoritative in Phase 4** because they determine win state. Full server-auth migration (case opens, sells, shop buys, crafts) is a Phase-5 blocker before public beta.
@@ -271,7 +267,7 @@ type ColorDef = {
   shopPrice?: number;      // required for shop; null otherwise
   baseValue: number;       // sell price ceiling
   dropWeightPct?: number;  // case only
-  colorCode: string;       // 2-char a11y code e.g. 'S1', 'Q1', 'F1', 'P1', 'C1' — deterministic, seeded by plugin
+  colorCode: string;       // 2-char a11y code e.g. 'S1', 'Q1', 'F1', 'P1', 'C1' — deterministic, seeded by mural-prep tool
 };
 
 // Craft recipe for the current season
@@ -375,7 +371,7 @@ feed_events — replaces old `deposits` table
   self-trims to 100 rows via trigger
 ```
 
-**Storage bucket**: `murals` (public). Deterministic path `murals/season_{N}.png`. Uploaded by Godot plugin; referenced by badges via derived URL.
+**Storage bucket**: `murals` (public). Deterministic path `murals/season_{N}.png`. Uploaded by the standalone Godot mural-prep tool; referenced by badges via derived URL.
 
 **Key RPCs**:
 - `seed_next_mural(target_pixels, palette, craft_recipes, width, height, name)` — appends a queued season. Validates tier-3 craft invariant + palette coverage + drop weight sums.
@@ -383,7 +379,7 @@ feed_events — replaces old `deposits` table
 - `rollover_season()` — idempotent; called on every app foreground. Ends current season if completed or capped, awards badges, promotes next queued season (or extends cap if queue empty on cap-timeout path).
 - `log_feed_event(kind, color_id?, qty?, tier?)` — real-player atmospheric events.
 - `my_contribution_count(season_number)` — for SeasonEndCeremony.
-- `queue_status()` — admin/plugin visibility into queued seasons.
+- `queue_status()` — admin/tool visibility into queued seasons.
 - `tick_bots()` — 2-5 atmospheric events per call, no tile placements, re-reads active palette each invocation.
 
 **Pre-launch deploys 2-3 pre-seeded murals**: Season 1 in onboarding-mode (zero shop, zero craft, ≥65% tier-1).
@@ -516,7 +512,7 @@ export const BALANCE = {
   canvas: {
     defaultWidth: 32,
     defaultHeight: 32,
-    // Actual dimensions per-season on the seasons row — these are plugin defaults
+    // Actual dimensions per-season on the seasons row — these are tool defaults
   },
   season: {
     softCapDays: 14,  // variable-length seasons; cap = fallback end
@@ -580,12 +576,12 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 - New tables: `season_colors`, `season_craft_recipes`, `canvas_pixels`, `teams_canvas_progress`, `user_badges`.
 - New components: `CanvasView`, `TilePicker`, `SeasonEndCeremony`, `ShopModal`, `CraftModal`, `ColorCell` (with colorblind codes).
 - `BuildButton` DELETED.
-- Godot editor plugin (new tool outside Expo tree) handles per-season mural prep pipeline.
+- Standalone Godot 4 project at `tools/mural-prep-godot/` (NOT an editor plugin; new tool outside Expo tree) handles per-season mural prep pipeline. Run via `godot --path` or as a desktop exe.
 - Bots become pure atmosphere (no canvas placement).
 - Season length is variable (14-day soft cap).
 - Mural queue system for solo-dev operational resilience.
 
-**Implementation order**: palette prototype (0.5d) → Godot plugin MVP (3d) → feasibility threshold derivation (0.5d) → client state + data (2d) → UI components with colorblind codes + SeasonEndCeremony (4d) → backend migrations + pre-seed 2-3 murals (2.5d) → wire client (1d) → bot scripts (0.5d) → polish + verify (1.5d) → SKILL.md update (0.5d).
+**Implementation order**: palette prototype (0.5d) → standalone Godot mural-prep tool MVP (3d) → feasibility threshold derivation (0.5d) → client state + data (2d) → UI components with colorblind codes + SeasonEndCeremony (4d) → backend migrations + pre-seed 2-3 murals (2.5d) → wire client (1d) → bot scripts (0.5d) → polish + verify (1.5d) → SKILL.md update (0.5d).
 
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
