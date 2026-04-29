@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, RadialGradient, Stop, Defs, Circle } from 'react-native-svg';
 import { useGameStore } from '../store/gameStore';
 import { fmtCountdown, msLeftInSeason } from '../data/season';
 import { colors, fonts, spacing } from '../theme';
+import ShopModal from './ShopModal';
 
 // Persistent state strip. Shows team identity (crest + name) on the left,
 // the player's purse on the right. Sized for glance-readability in motion —
@@ -38,6 +39,8 @@ export default function TopHeader(): React.JSX.Element {
     const id = setInterval(tick, interval);
     return () => clearInterval(id);
   }, [seasonStartedAt, seasonSoftCapAt, msLeft != null && msLeft < 60 * 60 * 1000]);
+
+  const [shopOpen, setShopOpen] = useState(false);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -76,12 +79,18 @@ export default function TopHeader(): React.JSX.Element {
           </View>
         </View>
 
-        <View style={styles.purseBlock}>
+        <Pressable
+          style={styles.purseBlock}
+          onPress={() => setShopOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open shop"
+        >
           <Text style={styles.purseLabel}>PURSE</Text>
           <Text style={styles.purseDiamond}>◆</Text>
           <Text style={styles.purseValue}>{`$${purse.toLocaleString()}`}</Text>
-        </View>
+        </Pressable>
       </View>
+      <ShopModal visible={shopOpen} onClose={() => setShopOpen(false)} />
     </SafeAreaView>
   );
 }

@@ -1,21 +1,79 @@
-import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
 import ColorCell from '../components/ColorCell';
+import CraftModal from '../components/CraftModal';
+import { sellBaseValue } from '../data/colors';
+import { BALANCE } from '../balance';
+import { todayKey } from '../native/healthConnect';
 import { colors, fonts, radii, spacing } from '../theme';
+import type { ColorDef } from '../types';
 
-// Phase-4 inventory: per-season palette grid + persistent badge gallery.
-// Read-only for now — Phase-3 keep/sell + upgrade rows are gone, and the
-// tap-to-sell / place-on-canvas / craft-with action sheet (plan §272) lands
-// later with the modals (S4.C) and canvas (S4.B). For S4.B / boot-restoration
-// the goal is just "screen renders without breaking the app."
+// Phase-4 inventory: per-season palette grid + persistent badge gallery +
+// tap-to-act action sheet (S4.C). Tapping a kept color (qty > 0) opens
+// a sheet with up to three actions:
+//   - SELL (case category only): single tile sale at the next decayed
+//     price tier. Live-previews the actual amount the player will earn
+//     before they confirm.
+//   - PLACE ON CANVAS: navigates to the Home tab so the player can tap
+//     a target pixel matching this color.
+//   - CRAFT WITH: only shown if this color appears in any of this
+//     season's recipes. Opens CraftModal pre-filtered to those recipes.
+//
+// 0-qty cells stay non-interactive (the action sheet would show only
+// dead links).
 export default function InventoryScreen(): React.JSX.Element {
   const inventory = useGameStore((s) => s.inventory);
   const seasonPalette = useGameStore((s) => s.seasonPalette);
+  const seasonCraftRecipes = useGameStore((s) => s.seasonCraftRecipes);
+  const sellHistory = useGameStore((s) => s.sellHistory);
+  const sellTile = useGameStore((s) => s.sellTile);
   const badges = useGameStore((s) => s.badges);
+  const navigation = useNavigation();
 
   const paletteEntries = seasonPalette ? Object.values(seasonPalette) : [];
+
+  const [actionFor, setActionFor] = useState<ColorDef | null>(null);
+  const [craftFilterColorId, setCraftFilterColorId] = useState<string | null>(null);
+
+  // For the SELL preview: simulate the next decayed sale price the
+  // sellTile reducer would compute. Mirrors the reducer's per-unit
+  // floor + factor maths so the player sees the exact $ they'd earn.
+  const sellPreviewFor = (colorId: string): number => {
+    const baseValue = sellBaseValue(seasonPalette, colorId);
+    const today = todayKey();
+    const soldToday = sellHistory.date === today
+      ? (sellHistory.counts[colorId] ?? 0)
+      : 0;
+    const floor = baseValue * BALANCE.sellDecay.floor;
+    const decayed = baseValue * Math.pow(BALANCE.sellDecay.factor, soldToday);
+    return Math.floor(Math.max(floor, decayed));
+  };
+
+  // Whether a color is referenced as an input in ANY of this season's
+  // recipes. Drives the visibility of the "CRAFT WITH" action.
+  const usedAsCraftInput = useMemo(() => {
+    const set = new Set<string>();
+    if (seasonCraftRecipes) {
+      for (const r of Object.values(seasonCraftRecipes)) {
+        for (const inputId of Object.keys(r.inputs)) {
+          set.add(inputId);
+        }
+      }
+    }
+    return set;
+  }, [seasonCraftRecipes]);
+
+  const closeSheet = () => setActionFor(null);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -25,9 +83,7 @@ export default function InventoryScreen(): React.JSX.Element {
         <Text style={styles.section}>COLORS</Text>
         {seasonPalette === null ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              Loading this season's palette…
-            </Text>
+            <Text style={styles.emptyText}>Loading this season's palette…</Text>
             <Text style={styles.emptySub}>
               The mural prep tool seeds colors at season start.
             </Text>
@@ -40,13 +96,21 @@ export default function InventoryScreen(): React.JSX.Element {
           <View style={styles.grid}>
             {paletteEntries.map((color) => {
               const qty = inventory[color.id] ?? 0;
-              return (
-                <View key={color.id} style={styles.cellWrap}>
+              const interactive = qty > 0;
+              const cell = (
+                <View style={styles.cellWrap}>
                   <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
                   <Text style={styles.cellName} numberOfLines={1}>
                     {color.name}
                   </Text>
                 </View>
+              );
+              return interactive ? (
+                <Pressable key={color.id} onPress={() => setActionFor(color)}>
+                  {cell}
+                </Pressable>
+              ) : (
+                <View key={color.id}>{cell}</View>
               );
             })}
           </View>
@@ -55,9 +119,7 @@ export default function InventoryScreen(): React.JSX.Element {
         <Text style={styles.section}>BADGES</Text>
         {badges.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              Win a season to earn your first badge.
-            </Text>
+            <Text style={styles.emptyText}>Win a season to earn your first badge.</Text>
             <Text style={styles.emptySub}>
               Badges are completed murals — your only cross-season keep.
             </Text>
@@ -77,6 +139,76 @@ export default function InventoryScreen(): React.JSX.Element {
           </View>
         )}
       </ScrollView>
+
+      {/* Action sheet for the tapped color cell. */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={actionFor !== null}
+        onRequestClose={closeSheet}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
+          {actionFor && (
+            <Pressable style={styles.sheetCard} onPress={() => {}}>
+              <View style={styles.sheetHeader}>
+                <ColorCell color={actionFor} size={48} qty={inventory[actionFor.id] ?? 0} />
+                <View style={styles.sheetHeaderText}>
+                  <Text style={styles.sheetTitle}>{actionFor.name}</Text>
+                  <Text style={styles.sheetSub}>
+                    {`You have ${inventory[actionFor.id] ?? 0} tiles`}
+                  </Text>
+                </View>
+              </View>
+
+              {actionFor.category === 'case' && (
+                <Pressable
+                  style={styles.sheetAction}
+                  onPress={() => {
+                    sellTile(actionFor.id, 1);
+                    closeSheet();
+                  }}
+                >
+                  <Text style={styles.sheetActionText}>
+                    {`SELL 1 · $${sellPreviewFor(actionFor.id).toLocaleString()}`}
+                  </Text>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={styles.sheetAction}
+                onPress={() => {
+                  closeSheet();
+                  navigation.navigate('Home' as never);
+                }}
+              >
+                <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>
+              </Pressable>
+
+              {usedAsCraftInput.has(actionFor.id) && (
+                <Pressable
+                  style={styles.sheetAction}
+                  onPress={() => {
+                    setCraftFilterColorId(actionFor.id);
+                    closeSheet();
+                  }}
+                >
+                  <Text style={styles.sheetActionText}>CRAFT WITH</Text>
+                </Pressable>
+              )}
+
+              <Pressable style={styles.sheetCancel} onPress={closeSheet}>
+                <Text style={styles.sheetCancelText}>CANCEL</Text>
+              </Pressable>
+            </Pressable>
+          )}
+        </Pressable>
+      </Modal>
+
+      <CraftModal
+        visible={craftFilterColorId !== null}
+        onClose={() => setCraftFilterColorId(null)}
+        filterByInputColorId={craftFilterColorId ?? undefined}
+      />
     </SafeAreaView>
   );
 }
@@ -165,5 +297,65 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.text.cream,
     textAlign: 'center',
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  sheetCard: {
+    backgroundColor: colors.bg.card,
+    borderTopLeftRadius: radii.card,
+    borderTopRightRadius: radii.card,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+    marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ui.border,
+  },
+  sheetHeaderText: {
+    flex: 1,
+  },
+  sheetTitle: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 20,
+    color: colors.accent.brassLight,
+    letterSpacing: 1,
+  },
+  sheetSub: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: 2,
+  },
+  sheetAction: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: colors.bg.cardHi,
+    borderRadius: radii.button,
+    marginTop: spacing.sm,
+  },
+  sheetActionText: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 15,
+    color: colors.text.cream,
+    letterSpacing: 2,
+  },
+  sheetCancel: {
+    marginTop: spacing.sm,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  sheetCancelText: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 13,
+    color: colors.text.muted,
+    letterSpacing: 2,
   },
 });
