@@ -1,5 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import type { PlaceResult } from '../types';
 
 export type TeamTotals = { red: number; blue: number };
 
@@ -41,4 +42,14 @@ export async function serverDeposit(amount: number): Promise<number> {
   const total = Number(data);
   if (!Number.isFinite(total)) throw new Error('deposit_for_town returned non-numeric value');
   return total;
+}
+
+// Phase-4 place_tile RPC wrapper — stub until Step 6 wires it to the real RPC
+// (which itself depends on migration 0011 in Step 5). gameStore.placeTile
+// imports this so the type surface stays stable through Step 3 / Step 4.
+export async function serverPlaceTile(
+  _colorId: string,
+  _pixelIdx: number,
+): Promise<PlaceResult> {
+  throw new Error('serverPlaceTile: not yet implemented (Phase-4 Step 6)');
 }
