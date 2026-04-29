@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
 import { colors, radii } from '../theme';
@@ -37,13 +37,13 @@ export default function CanvasView({
   palette,
   onPixelTap,
 }: Props): React.JSX.Element {
-  // Default canvas size: fill the screen width minus side padding. Caller
-  // may override via wrapping in a fixed-size View — Dimensions.get('window')
-  // is read once at render; orientation changes are handled by App.tsx
-  // re-rendering the screen tree on layout if/when the user rotates.
-  const screenWidth = Dimensions.get('window').width;
-  const sideMin = Math.min(screenWidth - 32, 360);
-  const canvasPx = sideMin;
+  // Default canvas size: fill the screen width minus side padding.
+  // useWindowDimensions re-renders on orientation change so the canvas
+  // resizes correctly. Caller may override the width via wrapping in a
+  // fixed-size View if a different size is required (e.g. Town side-by-
+  // side previews in S4.D).
+  const { width: screenWidth } = useWindowDimensions();
+  const canvasPx = Math.min(screenWidth - 32, 360);
   const cellPx = canvasPx / width;
 
   // Render rects in pixel-index order. We avoid memoizing per-pixel since

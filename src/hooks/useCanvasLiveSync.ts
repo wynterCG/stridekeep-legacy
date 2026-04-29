@@ -40,6 +40,27 @@ export function useCanvasLiveSync(team: Team | null, seasonNumber: number | null
       const open = async () => {
         if (team === null || seasonNumber === null) return;
         close();
+
+        // Subscribe-before-load to close the race window where INSERTs
+        // land between the SELECT snapshot and the realtime JOIN: those
+        // updates would otherwise be dropped silently and the player
+        // would see "missing" pixels until the next focus-regain.
+        // Events arriving before `loaded === true` are buffered and
+        // replayed once the snapshot lands. applyPlacedPixel is
+        // idempotent (key replace), so any pixel that appears in BOTH
+        // the snapshot and the buffer is overwritten with the same
+        // value — duplicates are safe.
+        const buffer: { pixelIdx: number; colorId: string }[] = [];
+        let loaded = false;
+        channel = subscribeCanvasPixels(team, seasonNumber, ({ pixelIdx, colorId }) => {
+          if (!activeRef) return;
+          if (loaded) {
+            useGameStore.getState().applyPlacedPixel(team, pixelIdx, colorId);
+          } else {
+            buffer.push({ pixelIdx, colorId });
+          }
+        });
+
         try {
           // Parallel load: target_pixels (~30 KB jsonb on the seasons row)
           // and the team's placed pixels. Both fire-and-forget into the
@@ -54,9 +75,10 @@ export function useCanvasLiveSync(team: Team | null, seasonNumber: number | null
           const placedMap: Record<number, string> = {};
           for (const p of placed) placedMap[p.pixelIdx] = p.colorId;
           store.setTeamCanvas(team, placedMap);
-          channel = subscribeCanvasPixels(team, seasonNumber, ({ pixelIdx, colorId }) => {
-            useGameStore.getState().applyPlacedPixel(team, pixelIdx, colorId);
-          });
+          loaded = true;
+          for (const p of buffer) {
+            store.applyPlacedPixel(team, p.pixelIdx, p.colorId);
+          }
         } catch (err) {
           console.warn('[stridekeep] canvas live-sync open failed:', err);
         }

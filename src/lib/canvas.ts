@@ -49,7 +49,8 @@ export async function loadTeamCanvas(
   for (const row of data ?? []) {
     const idx = Number(row.pixel_idx);
     const colorId = row.color_id;
-    if (!Number.isInteger(idx) || typeof colorId !== 'string') continue;
+    if (!Number.isInteger(idx)) continue;
+    if (typeof colorId !== 'string' || colorId.length === 0) continue;
     out.push({ pixelIdx: idx, colorId });
   }
   return out;
@@ -83,7 +84,8 @@ export function subscribeCanvasPixels(
         if (!row) return;
         if (row.team !== team) return;
         const idx = Number(row.pixel_idx);
-        if (!Number.isInteger(idx) || typeof row.color_id !== 'string') return;
+        if (!Number.isInteger(idx)) return;
+        if (typeof row.color_id !== 'string' || row.color_id.length === 0) return;
         onPlace({ pixelIdx: idx, colorId: row.color_id });
       },
     )

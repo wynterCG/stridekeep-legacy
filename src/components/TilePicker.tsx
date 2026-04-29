@@ -56,11 +56,15 @@ export default function TilePicker({
       case 'pixel_taken':
         message = 'Beat you to it!';
         break;
-      case 'wrong_color':
-        message = result.expected
-          ? `That pixel needs a different color.`
+      case 'wrong_color': {
+        const expectedName = result.expected && palette
+          ? palette[result.expected]?.name
+          : null;
+        message = expectedName
+          ? `That pixel needs ${expectedName}.`
           : 'That pixel needs a different color.';
         break;
+      }
       case 'canvas_complete':
         message = 'Canvas complete — season just ended.';
         break;
