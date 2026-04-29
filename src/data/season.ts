@@ -17,8 +17,12 @@ export function dayOfSeason(now: Date = new Date()): number {
 }
 
 export function endOfSeason(): Date {
+  // Phase 4: client estimate based on soft-cap fallback. Server's
+  // seasons.soft_cap_at is the canonical end (and a season can also end
+  // early when a team completes the canvas). Step 6 swaps this to read
+  // from the seasons row.
   return new Date(
-    CURRENT_SEASON.startedAt.getTime() + BALANCE.season.durationDays * MS_PER_DAY,
+    CURRENT_SEASON.startedAt.getTime() + BALANCE.season.softCapDays * MS_PER_DAY,
   );
 }
 

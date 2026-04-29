@@ -26,8 +26,8 @@ export default function HomeScreen(): React.JSX.Element {
         <TownHero />
         <InfoStrip />
         <SectionKicker label="materials" />
-        <CaseCard tier="luxury" />
-        <CaseCard tier="premium" />
+        <CaseCard tier="fine" />
+        <CaseCard tier="quality" />
         <CaseCard tier="starter" />
         {__DEV__ && <SimulateWalkButton />}
       </ScrollView>

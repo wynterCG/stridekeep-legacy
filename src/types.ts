@@ -2,7 +2,11 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type Team = 'red' | 'blue';
 
-export type CaseTier = 'starter' | 'premium' | 'luxury';
+// Case tiers and color tiers are the same union in Phase 4 — a case of tier T
+// rolls colors of tier T from the season palette. CaseTier exists as a public
+// alias so call sites that semantically deal with "the case the player is
+// opening" stay readable.
+export type CaseTier = ColorTier;
 
 export type RarityWeights = Partial<Record<Rarity, number>>;
 
@@ -24,14 +28,10 @@ export interface Item {
   value: number;
 }
 
-export interface KeptItem extends Item {
-  uid: string;
-}
-
 export interface CaseState {
   starter: { progress: number; pending: number };
-  premium: { progress: number; pending: number };
-  luxury: { progress: number; pending: number };
+  quality: { progress: number; pending: number };
+  fine: { progress: number; pending: number };
 }
 
 export interface Milestone {

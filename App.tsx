@@ -105,24 +105,6 @@ export default function App(): React.JSX.Element | null {
   }, []);
 
   useEffect(() => {
-    // Recover from a mid-batch app kill: if the persisted state shows a
-    // pending batch (regardless of whether the window already expired),
-    // commit it now. The user lost the animation but their money still
-    // arrives on next launch.
-    const tryCommit = () => {
-      const { pendingBatch, team } = useGameStore.getState();
-      if (pendingBatch > 0 && team) {
-        void useGameStore.getState().commitPendingBatch();
-      }
-    };
-    if (useGameStore.persist.hasHydrated()) {
-      tryCommit();
-      return;
-    }
-    return useGameStore.persist.onFinishHydration(tryCommit);
-  }, []);
-
-  useEffect(() => {
     // Ambient bot activity. Server-side tick_bots() generates 2-5
     // synthetic deposits each call; we ping it every 4s while the app
     // is foregrounded so the live feed + chart never look empty when a

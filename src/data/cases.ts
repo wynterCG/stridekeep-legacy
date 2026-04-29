@@ -9,16 +9,16 @@ export const CASES: Record<CaseTier, Case> = {
     valueBand: { min: 100, max: 200 },
     rarityWeights: { common: 60, uncommon: 30, rare: 10 },
   },
-  premium: {
-    tier: 'premium',
+  quality: {
+    tier: 'quality',
     name: 'Quality Materials',
     emoji: '🧰',
     stepsRequired: 1500,
     valueBand: { min: 520, max: 850 },
     rarityWeights: { common: 50, uncommon: 30, rare: 15, epic: 5 },
   },
-  luxury: {
-    tier: 'luxury',
+  fine: {
+    tier: 'fine',
     name: 'Fine Craftsmanship',
     emoji: '🏛️',
     stepsRequired: 5000,
@@ -37,26 +37,31 @@ export const ITEMS_BY_TIER: Record<CaseTier, Item[]> = {
     { id: 'hand_tools', name: 'Hand Tools', emoji: '🔨', rarity: 'uncommon', tier: 'starter', value: 180 },
     { id: 'blueprints', name: 'Blueprints', emoji: '📜', rarity: 'rare', tier: 'starter', value: 200 },
   ],
-  premium: [
-    { id: 'cut_limestone', name: 'Cut Limestone', emoji: '🪨', rarity: 'common', tier: 'premium', value: 520 },
-    { id: 'slate_tiles', name: 'Slate Tiles', emoji: '🟫', rarity: 'common', tier: 'premium', value: 580 },
-    { id: 'cast_iron_hinges', name: 'Cast-Iron Hinges', emoji: '⚙️', rarity: 'uncommon', tier: 'premium', value: 600 },
-    { id: 'copper_piping', name: 'Copper Piping', emoji: '🟠', rarity: 'uncommon', tier: 'premium', value: 650 },
-    { id: 'stained_glass', name: 'Stained Glass', emoji: '🪟', rarity: 'rare', tier: 'premium', value: 720 },
-    { id: 'wrought_iron_gate', name: 'Wrought Iron Gate', emoji: '🚪', rarity: 'rare', tier: 'premium', value: 780 },
-    { id: 'master_carpenter', name: 'Master Carpenter', emoji: '👷', rarity: 'epic', tier: 'premium', value: 850 },
+  quality: [
+    { id: 'cut_limestone', name: 'Cut Limestone', emoji: '🪨', rarity: 'common', tier: 'quality', value: 520 },
+    { id: 'slate_tiles', name: 'Slate Tiles', emoji: '🟫', rarity: 'common', tier: 'quality', value: 580 },
+    { id: 'cast_iron_hinges', name: 'Cast-Iron Hinges', emoji: '⚙️', rarity: 'uncommon', tier: 'quality', value: 600 },
+    { id: 'copper_piping', name: 'Copper Piping', emoji: '🟠', rarity: 'uncommon', tier: 'quality', value: 650 },
+    { id: 'stained_glass', name: 'Stained Glass', emoji: '🪟', rarity: 'rare', tier: 'quality', value: 720 },
+    { id: 'wrought_iron_gate', name: 'Wrought Iron Gate', emoji: '🚪', rarity: 'rare', tier: 'quality', value: 780 },
+    { id: 'master_carpenter', name: 'Master Carpenter', emoji: '👷', rarity: 'epic', tier: 'quality', value: 850 },
   ],
-  luxury: [
-    { id: 'polished_marble', name: 'Polished Marble', emoji: '⬜', rarity: 'common', tier: 'luxury', value: 2200 },
-    { id: 'clock_mechanism', name: 'Clock Mechanism', emoji: '⏰', rarity: 'uncommon', tier: 'luxury', value: 2500 },
-    { id: 'bronze_statue', name: 'Bronze Statue', emoji: '🗿', rarity: 'uncommon', tier: 'luxury', value: 2800 },
-    { id: 'gilded_dome', name: 'Gilded Dome', emoji: '🏛️', rarity: 'rare', tier: 'luxury', value: 3100 },
-    { id: 'carved_archway', name: 'Carved Archway', emoji: '🕍', rarity: 'rare', tier: 'luxury', value: 3400 },
-    { id: 'grand_chandelier', name: 'Grand Chandelier', emoji: '💎', rarity: 'epic', tier: 'luxury', value: 3800 },
-    { id: 'master_architect', name: 'Master Architect', emoji: '👑', rarity: 'legendary', tier: 'luxury', value: 4200 },
+  fine: [
+    { id: 'polished_marble', name: 'Polished Marble', emoji: '⬜', rarity: 'common', tier: 'fine', value: 2200 },
+    { id: 'clock_mechanism', name: 'Clock Mechanism', emoji: '⏰', rarity: 'uncommon', tier: 'fine', value: 2500 },
+    { id: 'bronze_statue', name: 'Bronze Statue', emoji: '🗿', rarity: 'uncommon', tier: 'fine', value: 2800 },
+    { id: 'gilded_dome', name: 'Gilded Dome', emoji: '🏛️', rarity: 'rare', tier: 'fine', value: 3100 },
+    { id: 'carved_archway', name: 'Carved Archway', emoji: '🕍', rarity: 'rare', tier: 'fine', value: 3400 },
+    { id: 'grand_chandelier', name: 'Grand Chandelier', emoji: '💎', rarity: 'epic', tier: 'fine', value: 3800 },
+    { id: 'master_architect', name: 'Master Architect', emoji: '👑', rarity: 'legendary', tier: 'fine', value: 4200 },
   ],
 };
 
+// MILESTONES is dead data in Phase 4 (the dollar-milestone progression model
+// is replaced by per-season pixel completion). Kept here as Step-4 ballast —
+// removing it now would tsc-cascade into BuildButton / TownScreen / TownHero /
+// MilestoneCelebrationWatcher, all of which are being rewritten in Step 4
+// anyway. Cleaner to remove this declaration when those four files go away.
 export const MILESTONES: Milestone[] = [
   { id: 'village_fountain', name: 'Village Fountain', emoji: '⛲', threshold: 5000 },
   { id: 'stone_houses', name: 'Stone Houses', emoji: '🏘️', threshold: 25000 },

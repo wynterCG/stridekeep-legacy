@@ -1,11 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Team, CaseTier, Item, KeptItem, CaseState } from '../types';
-import { CASES, ITEMS_BY_TIER } from '../data/cases';
+import type {
+  Team,
+  CaseTier,
+  CaseState,
+  ColorDef,
+  CraftRecipe,
+  Badge,
+} from '../types';
+import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
 import { todayKey } from '../native/healthConnect';
-import { serverDeposit } from '../lib/teams';
+import { rollColorFromCase, sellBaseValue } from '../data/colors';
+import { serverPlaceTile } from '../lib/teams';
 
 interface GameState {
   team: Team | null;
@@ -14,70 +22,61 @@ interface GameState {
   lastSyncedDate: string | null;
   caseState: CaseState;
   purse: number;
-  forTheTown: number;
-  // Money snapped from forTheTown the moment BUILD was tapped. RPC fires
-  // when the batch window ends. Persisted so a mid-batch app kill doesn't
-  // lose the deposit — it'll be committed on next launch instead.
-  pendingBatch: number;
-  pendingBatchEndsAt: number | null;
   teamTotals: { red: number; blue: number };
-  inventory: KeptItem[];
-  maxSlots: number;
-  strideLevel: number;
+  // Phase-4 inventory: colorId → qty. Replaces the Phase-3 KeptItem[] array.
+  // Phase-3 callers that did inventory.length / inventory.map iteration WILL
+  // break in Step 4 — that's the intended bisect-boundary breakage.
+  inventory: Record<string, number>;
+  // Persistent across seasons.
+  badges: Badge[];
+  // Per-season server data — non-persisted (re-fetched on launch / rollover).
+  seasonPalette: Record<string, ColorDef> | null;
+  seasonCraftRecipes: Record<string, CraftRecipe> | null;
+  // Pity counter. Increments on any case roll whose color is NOT fine-tier;
+  // resets when a fine-tier color drops or at season rollover. When
+  // pityCounter.fine >= BALANCE.pity.fine.threshold, the next case roll
+  // forces a fine-tier color regardless of which case the player opened.
+  pityCounter: { fine: number };
+  // Intra-day sell-decay history. Resets at midnight (when date changes)
+  // and at season rollover.
+  sellHistory: { date: string; counts: Record<string, number> };
   lastSimulateAt: number;
 }
 
 interface GameActions {
   simulateWalk: () => void;
   applyRealSteps: (total: number) => void;
-  openCase: (tier: CaseTier) => Item | null;
-  sellItem: (item: Item) => void;
-  keepItem: (item: Item) => boolean;
-  // Snaps forTheTown into pendingBatch + sets pendingBatchEndsAt = now+batchMs.
-  // The actual RPC call is deferred to commitPendingBatch when the window
-  // expires (UI sets a timer; App.tsx also calls it on hydrate if needed).
-  depositForTown: () => void;
-  commitPendingBatch: () => Promise<void>;
+  openCase: (tier: CaseTier) => { colorId: string; tier: CaseTier } | null;
+  // Server-authoritative tile placement on the team canvas. Optimistic
+  // deduction; rollback on every PlaceResult error branch (Step 4 UIs render
+  // user-visible feedback for the discriminated branches).
+  placeTile: (colorId: string, pixelIdx: number) => Promise<void>;
+  sellTile: (colorId: string, qty: number) => void;
+  craftTile: (recipeId: string, qty: number) => void;
+  buyShopTile: (colorId: string, qty: number) => void;
+  // Called by SeasonEndCeremony (Step 4) after the user dismisses the
+  // ceremony. Wipes intra-season state, swaps in the new palette + recipes.
+  // Badges and team persist.
+  applySeasonReset: (
+    newSeasonNumber: number,
+    newPalette: Record<string, ColorDef>,
+    newRecipes: Record<string, CraftRecipe>,
+  ) => void;
   setTeam: (team: Team) => void;
   setTeamTotals: (totals: { red: number; blue: number }) => void;
   setTeamTotal: (color: 'red' | 'blue', total: number) => void;
-  upgradeStridePower: () => void;
-  upgradeSlots: () => void;
+  setSeasonPalette: (palette: Record<string, ColorDef> | null) => void;
+  setSeasonCraftRecipes: (recipes: Record<string, CraftRecipe> | null) => void;
+  setBadges: (badges: Badge[]) => void;
 }
 
 type GameStore = GameState & GameActions;
 
 const defaultCaseState: CaseState = {
   starter: { progress: 0, pending: 0 },
-  premium: { progress: 0, pending: 0 },
-  luxury: { progress: 0, pending: 0 },
+  quality: { progress: 0, pending: 0 },
+  fine: { progress: 0, pending: 0 },
 };
-
-function pickItemByRarity(tier: CaseTier): Item {
-  const weights = CASES[tier].rarityWeights;
-  const items = ITEMS_BY_TIER[tier];
-
-  const totalWeight = Object.values(weights).reduce((sum, w) => sum + (w ?? 0), 0);
-  let roll = Math.random() * totalWeight;
-
-  const rarityOrder: Array<keyof typeof weights> = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-  let selectedRarity: string = rarityOrder[0];
-
-  for (const rarity of rarityOrder) {
-    const w = weights[rarity] ?? 0;
-    if (roll < w) {
-      selectedRarity = rarity;
-      break;
-    }
-    roll -= w;
-  }
-
-  const candidates = items.filter((i) => i.rarity === selectedRarity);
-  if (candidates.length === 0) {
-    return items[0];
-  }
-  return candidates[Math.floor(Math.random() * candidates.length)];
-}
 
 function addStepsToCase(
   state: CaseState,
@@ -105,13 +104,13 @@ export const useGameStore = create<GameStore>()(
       lastSyncedDate: null,
       caseState: defaultCaseState,
       purse: 0,
-      forTheTown: 0,
-      pendingBatch: 0,
-      pendingBatchEndsAt: null,
       teamTotals: { red: 0, blue: 0 },
-      inventory: [],
-      maxSlots: BALANCE.inventory.defaultSlots,
-      strideLevel: 0,
+      inventory: {},
+      badges: [],
+      seasonPalette: null,
+      seasonCraftRecipes: null,
+      pityCounter: { fine: 0 },
+      sellHistory: { date: todayKey(), counts: {} },
       lastSimulateAt: 0,
 
       applyRealSteps: (total: number) => {
@@ -121,7 +120,7 @@ export const useGameStore = create<GameStore>()(
         // diffed against the default lastSyncedTotal=null and silently re-anchor.
         if (!useGameStore.persist.hasHydrated()) return;
 
-        const { lastSyncedTotal, lastSyncedDate, caseState, purse, strideLevel } = get();
+        const { lastSyncedTotal, lastSyncedDate, caseState, purse } = get();
         const today = todayKey();
 
         // Baseline for delta math. On a new local day (or first install) HC's
@@ -135,11 +134,12 @@ export const useGameStore = create<GameStore>()(
         // Same-day no-op: nothing to mint AND display already mirrors HC.
         if (delta === 0 && sameDay) return;
 
-        const earnedPurse = delta * (BALANCE.stride.baseValue + strideLevel);
+        // Phase 4: flat $1/step. Stride Power upgrade is gone.
+        const earnedPurse = delta * BALANCE.stride.baseValue;
         const newCaseState: CaseState = {
           starter: addStepsToCase(caseState, 'starter', delta),
-          premium: addStepsToCase(caseState, 'premium', delta),
-          luxury: addStepsToCase(caseState, 'luxury', delta),
+          quality: addStepsToCase(caseState, 'quality', delta),
+          fine: addStepsToCase(caseState, 'fine', delta),
         };
 
         // `steps` mirrors HC's absolute today total (not a cumulative
@@ -157,7 +157,7 @@ export const useGameStore = create<GameStore>()(
 
       simulateWalk: () => {
         const now = Date.now();
-        const { lastSimulateAt, steps, caseState, purse, strideLevel } = get();
+        const { lastSimulateAt, steps, caseState, purse } = get();
 
         if (now - lastSimulateAt < BALANCE.simulate.cooldownMs) {
           return;
@@ -165,12 +165,12 @@ export const useGameStore = create<GameStore>()(
 
         const added = 300 + Math.floor(Math.random() * 201);
         const newSteps = steps + added;
-        const earnedPurse = added * (BALANCE.stride.baseValue + strideLevel);
+        const earnedPurse = added * BALANCE.stride.baseValue;
 
         const newCaseState: CaseState = {
           starter: addStepsToCase(caseState, 'starter', added),
-          premium: addStepsToCase(caseState, 'premium', added),
-          luxury: addStepsToCase(caseState, 'luxury', added),
+          quality: addStepsToCase(caseState, 'quality', added),
+          fine: addStepsToCase(caseState, 'fine', added),
         };
 
         set({
@@ -181,79 +181,166 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
-      openCase: (tier: CaseTier): Item | null => {
-        const { caseState } = get();
-        if (caseState[tier].pending <= 0) {
-          return null;
-        }
+      openCase: (tier: CaseTier): { colorId: string; tier: CaseTier } | null => {
+        const { caseState, seasonPalette, pityCounter, inventory } = get();
+        if (caseState[tier].pending <= 0) return null;
 
+        // Palette-null guard: caseState[tier].pending is left intact so the
+        // reveal fires once palette loads. Step pressure is already absorbed
+        // into caseState.progress by applyRealSteps; nothing is lost.
+        if (seasonPalette === null) return null;
+
+        const pityHit = pityCounter.fine >= BALANCE.pity.fine.threshold;
+        const colorId = rollColorFromCase(seasonPalette, tier, pityHit);
+        if (colorId === null) return null;
+
+        const rolledTier = (seasonPalette[colorId]?.tier ?? tier) as CaseTier;
         const newPending = caseState[tier].pending - 1;
+        const newPity =
+          rolledTier === 'fine'
+            ? { fine: 0 }
+            : { fine: pityCounter.fine + 1 };
+        const newInventory: Record<string, number> = {
+          ...inventory,
+          [colorId]: (inventory[colorId] ?? 0) + 1,
+        };
+
         set({
           caseState: {
             ...caseState,
             [tier]: { ...caseState[tier], pending: newPending },
           },
+          pityCounter: newPity,
+          inventory: newInventory,
         });
 
-        return pickItemByRarity(tier);
+        return { colorId, tier: rolledTier };
       },
 
-      sellItem: (item: Item) => {
-        set((state) => ({ forTheTown: state.forTheTown + item.value }));
-      },
-
-      keepItem: (item: Item): boolean => {
-        const { inventory, maxSlots } = get();
-        if (inventory.length >= maxSlots) {
-          return false;
+      placeTile: async (colorId: string, pixelIdx: number) => {
+        const { inventory } = get();
+        const have = inventory[colorId] ?? 0;
+        if (have <= 0) return;
+        // Optimistic deduction. The discriminated PlaceResult branches are
+        // Step-4's job to render user feedback for; here we only manage state.
+        set({ inventory: { ...inventory, [colorId]: have - 1 } });
+        try {
+          const result = await serverPlaceTile(colorId, pixelIdx);
+          if (!result.ok) {
+            // Restore on every failure branch.
+            set((s) => ({
+              inventory: {
+                ...s.inventory,
+                [colorId]: (s.inventory[colorId] ?? 0) + 1,
+              },
+            }));
+            return;
+          }
+          // Server may signal season completion via `seasonEnded` /
+          // `badgeAwarded`; SeasonEndWatcher (Step 4) listens to
+          // subscribeSeasonRollover and drives applySeasonReset.
+        } catch (err) {
+          set((s) => ({
+            inventory: {
+              ...s.inventory,
+              [colorId]: (s.inventory[colorId] ?? 0) + 1,
+            },
+          }));
+          console.warn('[stridekeep] placeTile failed:', err);
         }
-        const keptItem: KeptItem = {
-          ...item,
-          uid: `${item.id}_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        };
-        set((state) => ({ inventory: [...state.inventory, keptItem] }));
-        return true;
       },
 
-      depositForTown: () => {
-        const { forTheTown, team, pendingBatch } = get();
-        if (!team || forTheTown <= 0) return;
-        // If a batch is already in flight, ignore this tap — the existing
-        // window will commit on its own. Sells continue to accrue into a
-        // fresh forTheTown, which the user can BUILD again after the
-        // current batch settles.
-        if (pendingBatch > 0) return;
+      sellTile: (colorId: string, qty: number) => {
+        if (qty <= 0) return;
+        const { inventory, seasonPalette, sellHistory, purse } = get();
+        const have = inventory[colorId] ?? 0;
+        if (have < qty) return;
+
+        // Reset history bucket on date rollover.
+        const today = todayKey();
+        const history =
+          sellHistory.date === today
+            ? sellHistory
+            : { date: today, counts: {} as Record<string, number> };
+        const soldToday = history.counts[colorId] ?? 0;
+        const baseValue = sellBaseValue(seasonPalette, colorId);
+
+        // Per-unit decay: each successive same-day sell of the same colorId
+        // is worth factor × the previous, floored at floor × baseValue.
+        let earned = 0;
+        const floor = baseValue * BALANCE.sellDecay.floor;
+        for (let i = 0; i < qty; i += 1) {
+          const decayed = baseValue * Math.pow(BALANCE.sellDecay.factor, soldToday + i);
+          earned += Math.max(floor, decayed);
+        }
+        earned = Math.floor(earned);
 
         set({
-          pendingBatch: forTheTown,
-          pendingBatchEndsAt: Date.now() + BALANCE.deposit.batchMs,
-          forTheTown: 0,
+          inventory: { ...inventory, [colorId]: have - qty },
+          purse: purse + earned,
+          sellHistory: {
+            date: today,
+            counts: { ...history.counts, [colorId]: soldToday + qty },
+          },
         });
+        // TODO(step-6): logFeedEvent('sold', { color_id: colorId, qty });
       },
 
-      commitPendingBatch: async () => {
-        const { pendingBatch, team } = get();
-        if (!team || pendingBatch <= 0) return;
+      craftTile: (recipeId: string, qty: number) => {
+        if (qty <= 0) return;
+        const { inventory, seasonCraftRecipes } = get();
+        if (!seasonCraftRecipes) return;
+        const recipe = seasonCraftRecipes[recipeId];
+        if (!recipe) return;
 
-        // Optimistically end the batch so the UI returns to its idle state
-        // immediately. We hold the amount in a local so we can roll it back
-        // if the RPC fails.
-        const amount = pendingBatch;
-        set({ pendingBatch: 0, pendingBatchEndsAt: null });
-
-        try {
-          const newTotal = await serverDeposit(amount);
-          // Self-heal: apply RPC return as a floor in case the realtime
-          // push is delayed or dropped.
-          const cur = get().teamTotals[team];
-          if (newTotal > cur) {
-            set({ teamTotals: { ...get().teamTotals, [team]: newTotal } });
-          }
-        } catch (err) {
-          // Roll back to forTheTown so the player can retry the deposit.
-          set((state) => ({ forTheTown: state.forTheTown + amount }));
-          console.warn('[stridekeep] deposit_for_town failed:', err);
+        // Verify enough of every input × qty.
+        for (const [inputId, perUnit] of Object.entries(recipe.inputs)) {
+          if ((inventory[inputId] ?? 0) < perUnit * qty) return;
         }
+
+        const newInventory: Record<string, number> = { ...inventory };
+        for (const [inputId, perUnit] of Object.entries(recipe.inputs)) {
+          newInventory[inputId] = (newInventory[inputId] ?? 0) - perUnit * qty;
+        }
+        newInventory[recipe.outputColorId] =
+          (newInventory[recipe.outputColorId] ?? 0) + qty;
+
+        set({ inventory: newInventory });
+        // TODO(step-6): logFeedEvent('crafted', { color_id: recipe.outputColorId, qty });
+      },
+
+      buyShopTile: (colorId: string, qty: number) => {
+        if (qty <= 0) return;
+        const { seasonPalette, inventory, purse } = get();
+        if (!seasonPalette) return;
+        const def = seasonPalette[colorId];
+        if (!def || def.category !== 'shop' || def.shopPrice == null) return;
+        const totalCost = def.shopPrice * qty;
+        if (purse < totalCost) return;
+        set({
+          purse: purse - totalCost,
+          inventory: {
+            ...inventory,
+            [colorId]: (inventory[colorId] ?? 0) + qty,
+          },
+        });
+        // TODO(step-6): logFeedEvent('shop_bought', { color_id: colorId, qty });
+      },
+
+      applySeasonReset: (
+        _newSeasonNumber: number,
+        newPalette: Record<string, ColorDef>,
+        newRecipes: Record<string, CraftRecipe>,
+      ) => {
+        set({
+          inventory: {},
+          purse: 0,
+          pityCounter: { fine: 0 },
+          sellHistory: { date: todayKey(), counts: {} },
+          caseState: defaultCaseState,
+          seasonPalette: newPalette,
+          seasonCraftRecipes: newRecipes,
+        });
       },
 
       setTeam: (team: Team) => set({ team }),
@@ -264,36 +351,32 @@ export const useGameStore = create<GameStore>()(
       setTeamTotal: (color: 'red' | 'blue', total: number) =>
         set((state) => ({ teamTotals: { ...state.teamTotals, [color]: total } })),
 
-      upgradeStridePower: () => {
-        const { strideLevel, purse } = get();
-        const cost = Math.floor(
-          BALANCE.stride.costBase * Math.pow(BALANCE.stride.costMultiplier, strideLevel),
-        );
-        if (purse < cost) {
-          return;
-        }
-        set({ purse: purse - cost, strideLevel: strideLevel + 1 });
-      },
+      setSeasonPalette: (palette: Record<string, ColorDef> | null) =>
+        set({ seasonPalette: palette }),
 
-      upgradeSlots: () => {
-        const { maxSlots, purse } = get();
-        if (maxSlots >= BALANCE.inventory.maxSlots) {
-          return;
-        }
-        const upgradesUsed = maxSlots - BALANCE.inventory.defaultSlots;
-        const cost = BALANCE.inventory.slotUpgradeCost[upgradesUsed];
-        if (cost === undefined || purse < cost) {
-          return;
-        }
-        set({ purse: purse - cost, maxSlots: maxSlots + 1 });
-      },
+      setSeasonCraftRecipes: (recipes: Record<string, CraftRecipe> | null) =>
+        set({ seasonCraftRecipes: recipes }),
+
+      setBadges: (badges: Badge[]) => set({ badges }),
     }),
     {
       name: 'stridekeep-game-state',
       storage: createJSONStorage(() => AsyncStorage),
-      // Team is no longer assigned client-side. The server is the source of
-      // truth (assigned by the handle_new_user trigger on signup) and App.tsx
-      // calls setTeam after the auth + fetch round-trip resolves.
+      version: 1,
+      // Phase 3 → Phase 4 schema is incompatible (inventory shape inverted,
+      // forTheTown / strideLevel / maxSlots removed). Discard any persisted
+      // blob whose version isn't exactly 1; Zustand falls back to the
+      // initial state passed to create().
+      migrate: (_persisted, version) => {
+        if (version !== 1) return undefined as unknown as GameStore;
+        return _persisted as GameStore;
+      },
+      // seasonPalette + seasonCraftRecipes are server data and re-fetched
+      // on every launch / rollover — never persist them.
+      partialize: (state) => {
+        const { seasonPalette: _p, seasonCraftRecipes: _r, ...rest } = state;
+        return rest as GameStore;
+      },
     },
   ),
 );
