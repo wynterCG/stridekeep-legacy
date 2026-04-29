@@ -1,36 +1,30 @@
 import { useCallback, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { loadDeposits, type DepositRow } from '../lib/deposits';
+import { loadFeedEvents } from '../lib/feedEvents';
 import { loadInitialTeams } from '../lib/teams';
+import type { FeedEvent } from '../types';
 import { useGameStore } from '../store/gameStore';
 
-// Incremental polling: every 1s we fetch "deposits with id > lastSeenId".
+// Incremental polling: every 1s we fetch "feed_events with id > lastSeenId".
 // Caught-up ticks return ZERO rows (~100-byte response) instead of "the
 // last 50 again" (~5KB). Full snapshot only fires on focus / re-entry to
 // catch up on whatever happened while we were away.
 //
-// Net egress: ~360 KB/hr per active Town viewer (vs the old 30s full
-// snapshot's 600 KB/hr). Feels fully real-time; free-tier-safe up to
-// ~20 concurrent Town viewers. For more, raise POLL_MS to 3-5s or move
-// to a realtime broadcast model.
+// Phase-4 feed_events replaces Phase-3 deposits — same polling pattern,
+// new event-shape consumed by LiveFeed (5 kinds: tile_placed / case_opened /
+// crafted / sold / shop_bought).
 const POLL_MS = 1_000;
 const FEED_CAP = 50;
 
-/**
- * Polls public.deposits every 30s while the calling screen is focused AND
- * the app is in the foreground. Polling stops on blur/background; an immediate
- * refresh fires on the next focus or AppState=active transition.
- *
- * Intentionally NOT realtime: the live feed is the highest-fanout candidate
- * (every deposit broadcast × every subscriber), so we eat a 30s latency to
- * keep the project comfortably inside Supabase's free tier.
- */
-export function useTownFeed(): { deposits: DepositRow[]; loading: boolean } {
-  const [deposits, setDeposits] = useState<DepositRow[]>([]);
+// Polls public.feed_events while the calling screen is focused AND the
+// app is in the foreground. Polling stops on blur/background; an
+// immediate refresh fires on the next focus or AppState=active transition.
+export function useTownFeed(): { events: FeedEvent[]; loading: boolean } {
+  const [events, setEvents] = useState<FeedEvent[]>([]);
   const [loading, setLoading] = useState(false);
-  // Highest deposit id we've already merged into local state. Each
-  // subsequent poll only fetches strictly newer rows.
+  // Highest event id we've already merged into local state. Each subsequent
+  // poll only fetches strictly newer rows.
   const lastSeenIdRef = useRef<number | null>(null);
   // Overlap guard: setInterval fires every POLL_MS regardless of whether
   // the previous tick() has returned. Without this, on slow networks two
@@ -48,11 +42,11 @@ export function useTownFeed(): { deposits: DepositRow[]; loading: boolean } {
 
       const fullSnapshot = async () => {
         const [rows, totals] = await Promise.all([
-          loadDeposits({ limit: FEED_CAP }),
+          loadFeedEvents({ limit: FEED_CAP }),
           loadInitialTeams(),
         ]);
         if (!activeRef) return;
-        setDeposits(rows);
+        setEvents(rows);
         useGameStore.getState().setTeamTotals(totals);
         if (rows.length > 0) lastSeenIdRef.current = rows[0].id;
       };
@@ -64,17 +58,17 @@ export function useTownFeed(): { deposits: DepositRow[]; loading: boolean } {
           return;
         }
         const [newRows, totals] = await Promise.all([
-          loadDeposits({ sinceId, limit: FEED_CAP }),
+          loadFeedEvents({ sinceId, limit: FEED_CAP }),
           loadInitialTeams(),
         ]);
         if (!activeRef) return;
-        // teamTotals is small (2 rows × ~64 bytes) and the chart needs it
-        // fresh — refresh on every poll regardless of whether deposits
+        // teamTotals is small (2 rows × ~64 bytes) and TugOfWar needs it
+        // fresh — refresh on every poll regardless of whether feed
         // changed.
         useGameStore.getState().setTeamTotals(totals);
         if (newRows.length === 0) return;
         lastSeenIdRef.current = newRows[0].id;
-        setDeposits((prev) => [...newRows, ...prev].slice(0, FEED_CAP));
+        setEvents((prev) => [...newRows, ...prev].slice(0, FEED_CAP));
       };
 
       const tick = async () => {
@@ -108,7 +102,7 @@ export function useTownFeed(): { deposits: DepositRow[]; loading: boolean } {
     }, []),
   );
 
-  return { deposits, loading };
+  return { events, loading };
 }
 
 export function relativeTime(iso: string, now: Date = new Date()): string {

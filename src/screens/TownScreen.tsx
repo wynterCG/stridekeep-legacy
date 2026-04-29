@@ -12,9 +12,9 @@ import { colors, fonts, spacing } from '../theme';
 // replaces the milestone idea entirely). Side-by-side mini-canvas previews
 // + 14-day countdown (plan §276-282) land in a later S4 slice.
 export default function TownScreen(): React.JSX.Element {
-  // Single poll source for the feed. Phase 4 will swap the underlying
-  // shape from `deposits` rows to `feed_events` in Step 6.
-  const { deposits, loading } = useTownFeed();
+  // Single poll source for the feed. Now reads feed_events (Phase-4
+  // 5-kind shape) — useTownFeed was migrated in Step 6.
+  const { events, loading } = useTownFeed();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -23,7 +23,7 @@ export default function TownScreen(): React.JSX.Element {
 
         <SeasonBanner />
         <TugOfWar />
-        <LiveFeed deposits={deposits} loading={loading} />
+        <LiveFeed events={events} loading={loading} />
       </ScrollView>
     </SafeAreaView>
   );

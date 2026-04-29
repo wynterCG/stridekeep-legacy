@@ -17,11 +17,6 @@ import type { ColorDef, ColorTier, CraftRecipe } from '../types';
 export async function loadSeasonPalette(
   seasonNumber: number,
 ): Promise<Record<string, ColorDef>> {
-  // TODO(phase-4 step-5): remove warning once season_colors table exists.
-  console.warn(
-    '[stridekeep] loadSeasonPalette: season_colors table is not yet migrated; this call will fail until Phase-4 Step 5 lands',
-  );
-
   const { data, error } = await supabase
     .from('season_colors')
     .select('color_id, name, hex, category, tier, shop_price, base_value, drop_weight_pct, color_code')
@@ -48,11 +43,6 @@ export async function loadSeasonPalette(
 export async function loadSeasonCraftRecipes(
   seasonNumber: number,
 ): Promise<Record<string, CraftRecipe>> {
-  // TODO(phase-4 step-5): remove warning once season_craft_recipes exists.
-  console.warn(
-    '[stridekeep] loadSeasonCraftRecipes: season_craft_recipes table is not yet migrated; this call will fail until Phase-4 Step 5 lands',
-  );
-
   const { data, error } = await supabase
     .from('season_craft_recipes')
     .select('recipe_id, output_color_id, inputs')

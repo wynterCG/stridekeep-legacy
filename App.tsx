@@ -14,6 +14,9 @@ import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
 import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
 import { supabase } from './src/lib/supabase';
+import { loadActiveSeasonNumber, serverRolloverSeason } from './src/lib/teams';
+import { loadSeasonPalette, loadSeasonCraftRecipes } from './src/data/colors';
+import { loadMyBadges } from './src/lib/badges';
 
 const BOT_TICK_MS = 4_000;
 
@@ -83,7 +86,70 @@ export default function App(): React.JSX.Element | null {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    // Season sync: idempotent rollover heartbeat + palette/recipes load.
+    // Decides reset-vs-refresh by comparing persisted store.seasonNumber
+    // against the server's active season:
+    //   - state.seasonNumber === activeNumber → setSeasonPalette /
+    //     setSeasonCraftRecipes (refresh server data, keep intra-season
+    //     state).
+    //   - state.seasonNumber !== activeNumber (first install OR missed a
+    //     rollover offline) → applySeasonReset (wipes intra-season state
+    //     + swaps in new palette/recipes).
+    //   - activeNumber === null (awaiting-mural state) → clear any stale
+    //     palette so empty states render correctly.
+    const syncSeason = async () => {
+      try {
+        await serverRolloverSeason();
+      } catch (err) {
+        console.warn('[stridekeep] rollover_season failed:', err);
+      }
+      if (cancelled) return;
+
+      let activeNumber: number | null;
+      try {
+        activeNumber = await loadActiveSeasonNumber();
+      } catch (err) {
+        console.warn('[stridekeep] loadActiveSeasonNumber failed:', err);
+        return;
+      }
+      if (cancelled) return;
+
+      const store = useGameStore.getState();
+      if (activeNumber === null) {
+        store.setSeasonPalette(null);
+        store.setSeasonCraftRecipes(null);
+        return;
+      }
+
+      try {
+        const [palette, recipes] = await Promise.all([
+          loadSeasonPalette(activeNumber),
+          loadSeasonCraftRecipes(activeNumber),
+        ]);
+        if (cancelled) return;
+        const fresh = useGameStore.getState();
+        if (fresh.seasonNumber !== activeNumber) {
+          fresh.applySeasonReset(activeNumber, palette, recipes);
+        } else {
+          fresh.setSeasonPalette(palette);
+          fresh.setSeasonCraftRecipes(recipes);
+        }
+      } catch (err) {
+        console.warn('[stridekeep] palette/recipes load failed:', err);
+      }
+    };
+
+    const bootstrapBadges = async () => {
+      try {
+        const badges = await loadMyBadges();
+        if (cancelled) return;
+        useGameStore.getState().setBadges(badges);
+      } catch (err) {
+        console.warn('[stridekeep] loadMyBadges failed:', err);
+      }
+    };
+
+    const runBootstrap = async () => {
       try {
         await ensureSignedIn();
         if (cancelled) return;
@@ -94,12 +160,35 @@ export default function App(): React.JSX.Element | null {
         // responsibility of useTeamsLiveSync (called from HomeScreen) so the
         // WebSocket only stays open while the user is actively watching.
       } catch (err) {
-        console.warn('[stridekeep] backend bootstrap failed:', err);
+        console.warn('[stridekeep] auth bootstrap failed:', err);
+        return;
       }
-    })();
+      // Season + badges run after auth. Season sync re-runs on every
+      // foreground transition (below); badges only on cold start.
+      await Promise.all([syncSeason(), bootstrapBadges()]);
+    };
+
+    // Gate bootstrap on persist hydration so syncSeason reads the correct
+    // persisted seasonNumber rather than the initial-state null.
+    const start = () => {
+      if (!cancelled) void runBootstrap();
+    };
+    const unsubHydrate = useGameStore.persist.hasHydrated()
+      ? (start(), () => {})
+      : useGameStore.persist.onFinishHydration(start);
+
+    // Re-sync on foreground. rollover_season is the heartbeat and the
+    // function is idempotent — safe to call on every transition.
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active' && useGameStore.persist.hasHydrated()) {
+        void syncSeason();
+      }
+    });
 
     return () => {
       cancelled = true;
+      unsubHydrate();
+      sub.remove();
     };
   }, []);
 

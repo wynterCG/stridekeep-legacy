@@ -79,7 +79,10 @@ export interface FeedEvent {
   nickname: string;
   team: Team | null;
   color_id: string | null;
-  qty: number | null;
+  // Non-null per the DB constraint in 0012_feed_events.sql (DEFAULT 1,
+  // CHECK > 0). Every kind has a meaningful qty: tile_placed=1, case_opened=1,
+  // crafted=produced, sold/shop_bought=transaction count.
+  qty: number;
   tier: string | null;
   created_at: string;
 }
@@ -96,14 +99,18 @@ export type PlaceResult =
   | {
       ok: true;
       newFilledCount: number;
+      pixelCount: number;
       teamCompleted: boolean;
       seasonEnded: boolean;
-      badgeAwarded: Badge | null;
+      // True if THIS placement caused a badge to be issued to the caller.
+      // Caller should re-fetch loadMyBadges to get the actual Badge row —
+      // place_tile RPC returns just a boolean to keep the response small.
+      badgeAwarded: boolean;
     }
-  | { ok: false; error: 'pixel_taken'; filledByTeam: Team; filledWithColor: string }
+  | { ok: false; error: 'pixel_taken'; filledByTeam: Team; filledWithColor: string | null }
   | { ok: false; error: 'canvas_complete' }
-  | { ok: false; error: 'wrong_color'; expected: string }
-  | { ok: false; error: 'season_mismatch'; activeSeasonNumber: number }
+  | { ok: false; error: 'wrong_color'; expected: string | null }
+  | { ok: false; error: 'season_mismatch'; activeSeasonNumber: number | null }
   | { ok: false; error: 'not_authenticated' }
   | { ok: false; error: 'not_owned' }
   | { ok: false; error: 'network_error'; message: string };

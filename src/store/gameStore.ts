@@ -15,6 +15,7 @@ import { BALANCE } from '../balance';
 import { todayKey } from '../native/healthConnect';
 import { rollColorFromCase, sellBaseValue } from '../data/colors';
 import { serverPlaceTile } from '../lib/teams';
+import { logFeedEvent } from '../lib/feedEvents';
 
 interface GameState {
   team: Team | null;
@@ -242,7 +243,10 @@ export const useGameStore = create<GameStore>()(
           inventory: newInventory,
         });
 
-        // TODO(step-6): logFeedEvent('case_opened', { tier, color_id: colorId });
+        // Fire-and-forget atmospheric event. Tier is the rolled-color's
+        // actual tier (which may differ from p_tier under pity-clamp);
+        // the RPC validates tier coherence against the color's row.
+        void logFeedEvent('case_opened', { colorId, tier: rolledTier });
         return { colorId, tier: rolledTier };
       },
 
@@ -316,7 +320,7 @@ export const useGameStore = create<GameStore>()(
             counts: { ...history.counts, [colorId]: soldToday + qty },
           },
         });
-        // TODO(step-6): logFeedEvent('sold', { color_id: colorId, qty });
+        void logFeedEvent('sold', { colorId, qty });
       },
 
       craftTile: (recipeId: string, qty: number) => {
@@ -339,7 +343,7 @@ export const useGameStore = create<GameStore>()(
           (newInventory[recipe.outputColorId] ?? 0) + qty;
 
         set({ inventory: newInventory });
-        // TODO(step-6): logFeedEvent('crafted', { color_id: recipe.outputColorId, qty });
+        void logFeedEvent('crafted', { colorId: recipe.outputColorId, qty });
       },
 
       buyShopTile: (colorId: string, qty: number) => {
@@ -357,7 +361,7 @@ export const useGameStore = create<GameStore>()(
             [colorId]: (inventory[colorId] ?? 0) + qty,
           },
         });
-        // TODO(step-6): logFeedEvent('shop_bought', { color_id: colorId, qty });
+        void logFeedEvent('shop_bought', { colorId, qty });
       },
 
       applySeasonReset: (
