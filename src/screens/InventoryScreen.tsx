@@ -182,16 +182,18 @@ export default function InventoryScreen(): React.JSX.Element {
               <Pressable
                 style={styles.sheetAction}
                 onPress={() => {
-                  // Close the sheet first, then defer navigate to the
-                  // next tick so the Modal's slide-down animation has
-                  // started its native unmount before the tab transition
-                  // fires. Without the defer, RN was sometimes swallowing
-                  // the navigate dispatch when both ran inside the same
-                  // event tick (Modal close + tab switch at once).
+                  // Tab change must happen BEFORE the sheet's close
+                  // animation kicks off — Android's Modal native window
+                  // swallows navigation dispatches that fire while it's
+                  // still mid-slide-down, leaving the user stuck on
+                  // Inventory after the sheet vanishes. jumpTo is the
+                  // canonical bottom-tab nav action; preferred over
+                  // navigate() which silently no-op'd from this context.
+                  const nav = navigation as unknown as {
+                    jumpTo: (route: string) => void;
+                  };
+                  nav.jumpTo('Home');
                   closeSheet();
-                  setTimeout(() => {
-                    navigation.navigate('Home' as never);
-                  }, 0);
                 }}
               >
                 <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>
