@@ -210,6 +210,28 @@ begin
     return jsonb_build_object('ok', false, 'error', 'canvas_complete');
   end if;
 
+  -- Re-check pixel-taken AFTER the lock. The earlier check at the top of
+  -- the function is racy: two concurrent calls for the same (team,
+  -- pixel_idx) can both pass that check before either acquires the lock.
+  -- Without this re-check the second caller hits a canvas_pixels_pkey
+  -- violation at INSERT (below) and surfaces to the client as a 500-class
+  -- network_error rather than the discriminated `pixel_taken` branch.
+  select team, color_id
+    into v_existing_team, v_existing_color
+    from public.canvas_pixels
+    where season_number = v_season
+      and team          = v_team
+      and pixel_idx     = p_pixel_idx;
+
+  if v_existing_team is not null then
+    return jsonb_build_object(
+      'ok',                false,
+      'error',             'pixel_taken',
+      'filled_by_team',    v_existing_team,
+      'filled_with_color', v_existing_color
+    );
+  end if;
+
   -- All gates passed. Insert the pixel + bump progress + log feed event.
   insert into public.canvas_pixels
       (season_number, team, pixel_idx, color_id, placed_by)

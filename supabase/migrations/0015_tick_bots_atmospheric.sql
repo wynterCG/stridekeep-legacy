@@ -44,8 +44,20 @@ declare
   v_total_weight     numeric;
   v_pick             numeric;
   v_acc              numeric;
-  v_color            record;
+  -- Cached palette arrays (read once at function entry to avoid 1-2 SELECTs
+  -- per event slot × 2-5 slots per call × every-4s-foreground-tick load).
+  -- Parallel-array layout because PL/pgSQL can't iterate composite arrays
+  -- ergonomically; here the index alignment between v_case_color_ids[i],
+  -- v_case_tiers[i], v_case_weights[i] is the contract.
+  v_case_color_ids   text[];
+  v_case_tiers       text[];
+  v_case_weights     numeric[];
+  v_shop_color_ids   text[];
+  v_craft_color_ids  text[];
+  v_shop_count       int;
+  v_craft_count      int;
   i                  int;
+  k                  int;
   v_bases            text[] := array[
     -- aesthetic compounds
     'moonbeam','softsalt','velvetmoth','blurryhaze','ghostly','moonphase',
@@ -124,6 +136,25 @@ begin
     return 0;
   end if;
 
+  -- Cache the entire active palette into parallel arrays via one SELECT.
+  -- Replaces 1-2 SELECTs per event slot in the original loop. season_colors
+  -- has at most ~16 rows per season so the materialized arrays are tiny.
+  -- COALESCE around array_agg FILTER because FILTER returns NULL (not empty
+  -- array) when no rows match the predicate.
+  select
+    coalesce(array_agg(color_id)        filter (where category = 'case'),  array[]::text[]),
+    coalesce(array_agg(tier)            filter (where category = 'case'),  array[]::text[]),
+    coalesce(array_agg(drop_weight_pct) filter (where category = 'case'),  array[]::numeric[]),
+    coalesce(array_agg(color_id)        filter (where category = 'shop'),  array[]::text[]),
+    coalesce(array_agg(color_id)        filter (where category = 'craft'), array[]::text[])
+    into v_case_color_ids, v_case_tiers, v_case_weights,
+         v_shop_color_ids, v_craft_color_ids
+    from public.season_colors
+    where season_number = v_active_season;
+
+  v_shop_count  := coalesce(array_length(v_shop_color_ids, 1),  0);
+  v_craft_count := coalesce(array_length(v_craft_color_ids, 1), 0);
+
   v_count := 2 + floor(random() * 4)::int;
 
   for i in 1..v_count loop
@@ -161,8 +192,9 @@ begin
     v_tier := null;
 
     if v_kind = 'case_opened' then
-      -- Pick a tier weighted, then pick a color of that tier weighted by
-      -- drop_weight_pct. Mirrors how openCase rolls on the client.
+      -- Pick a tier weighted (60/30/10), then pick a color of that tier
+      -- from the cached arrays via dropWeightPct-weighted selection.
+      -- Mirrors how openCase rolls on the client.
       v_tier_pick := random() * v_tier_total;
       v_tier_acc := 0;
       for j in 1..array_length(v_tiers, 1) loop
@@ -173,30 +205,31 @@ begin
         end if;
       end loop;
 
-      select coalesce(sum(drop_weight_pct), 0) into v_total_weight
-        from public.season_colors
-        where season_number = v_active_season
-          and category = 'case' and tier = v_tier;
+      -- Sum drop_weight_pct for case-colors of the chosen tier (in-memory
+      -- scan over cached parallel arrays).
+      v_total_weight := 0;
+      for k in 1..coalesce(array_length(v_case_color_ids, 1), 0) loop
+        if v_case_tiers[k] = v_tier then
+          v_total_weight := v_total_weight + v_case_weights[k];
+        end if;
+      end loop;
 
       if v_total_weight <= 0 then
-        -- No colors of this tier in palette (e.g. Season 1 onboarding could
-        -- have zero quality or zero fine). Skip this event.
+        -- No colors of this tier in palette (e.g. Season-1 onboarding has
+        -- zero quality / zero fine per plan §669-674). Skip this event.
         continue;
       end if;
 
       v_pick := random() * v_total_weight;
       v_acc := 0;
-      for v_color in
-        select color_id, drop_weight_pct
-          from public.season_colors
-          where season_number = v_active_season
-            and category = 'case' and tier = v_tier
-          order by color_id asc
-      loop
-        v_acc := v_acc + v_color.drop_weight_pct;
-        if v_pick <= v_acc then
-          v_color_id := v_color.color_id;
-          exit;
+      v_color_id := null;
+      for k in 1..coalesce(array_length(v_case_color_ids, 1), 0) loop
+        if v_case_tiers[k] = v_tier then
+          v_acc := v_acc + v_case_weights[k];
+          if v_pick <= v_acc then
+            v_color_id := v_case_color_ids[k];
+            exit;
+          end if;
         end if;
       end loop;
 
@@ -204,30 +237,24 @@ begin
 
     elsif v_kind = 'sold' then
       -- Sold colors come from the case category (players sell what they walk).
-      select color_id into v_color_id
-        from public.season_colors
-        where season_number = v_active_season and category = 'case'
-        order by random()
-        limit 1;
-      if v_color_id is null then continue; end if;
+      if coalesce(array_length(v_case_color_ids, 1), 0) = 0 then
+        continue;
+      end if;
+      v_color_id := v_case_color_ids[1 + floor(random() * array_length(v_case_color_ids, 1))::int];
       v_qty := 1 + floor(random() * 5)::int;  -- 1-5 sold
 
     elsif v_kind = 'crafted' then
-      select color_id into v_color_id
-        from public.season_colors
-        where season_number = v_active_season and category = 'craft'
-        order by random()
-        limit 1;
-      if v_color_id is null then continue; end if;  -- no craft colors this season
+      if v_craft_count = 0 then
+        continue;  -- no craft colors this season
+      end if;
+      v_color_id := v_craft_color_ids[1 + floor(random() * v_craft_count)::int];
       v_qty := 1 + floor(random() * 2)::int;  -- 1-2 crafted
 
     elsif v_kind = 'shop_bought' then
-      select color_id into v_color_id
-        from public.season_colors
-        where season_number = v_active_season and category = 'shop'
-        order by random()
-        limit 1;
-      if v_color_id is null then continue; end if;  -- no shop colors this season
+      if v_shop_count = 0 then
+        continue;  -- no shop colors this season
+      end if;
+      v_color_id := v_shop_color_ids[1 + floor(random() * v_shop_count)::int];
       v_qty := 1 + floor(random() * 3)::int;  -- 1-3 bought
     end if;
 

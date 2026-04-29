@@ -71,7 +71,7 @@ begin
     where season_number = v_active_season and color_id = p_color_id;
 
   if v_color_category is null then
-    raise exception 'color_id "%" not in active season %s palette', p_color_id, v_active_season;
+    raise exception 'color_id "%" not in active season % palette', p_color_id, v_active_season;
   end if;
 
   -- Per-kind structural checks. Closes forgery surface where a client

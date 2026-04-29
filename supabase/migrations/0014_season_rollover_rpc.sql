@@ -205,6 +205,14 @@ $$;
 -- empty AND tie → extend cap by 7 days. Otherwise end + promote.
 -- For (3) — promote oldest queued row if any.
 --
+-- Return-shape `reason` vocabulary (clients read this for analytics/UX):
+--   'still_active'        — active season exists, not completed, not capped
+--   'cap_no_queue'        — capped + tie + empty queue → cap extended 7 days
+--   'ended_and_promoted'  — ended an active AND promoted a queued one
+--   'promoted'            — no active to end, but promoted from queue
+--   'completion_no_queue' — ended an active but no queue → awaiting mural
+--   'no_active'           — no active season AND no queue (initial state)
+--
 -- Plan §411-437.
 create or replace function public.rollover_season()
 returns jsonb
@@ -213,19 +221,19 @@ security definer
 set search_path = public
 as $$
 declare
-  v_active_number  int;
-  v_pixel_count    int;
-  v_soft_cap_at    timestamptz;
-  v_max_filled     int;
-  v_red_filled     int;
-  v_blue_filled    int;
-  v_completed      boolean;
-  v_capped         boolean;
-  v_winner_team    text;
-  v_ended          boolean := false;
-  v_promoted       int;
-  v_queue_empty    boolean;
-  v_award_result   jsonb;
+  v_active_number   int;
+  v_pixel_count     int;
+  v_soft_cap_at     timestamptz;
+  v_red_filled      int;
+  v_blue_filled     int;
+  v_completed       boolean;
+  v_capped          boolean;
+  v_winner_team     text;
+  v_we_ended_active boolean := false;  -- did THIS function call end the active season
+  v_tie_marker      int;                -- captures tie-end UPDATE's RETURNING row count
+  v_promoted        int;
+  v_queue_empty     boolean;
+  v_award_result    jsonb;
 begin
   -- Try to find an active season. The (started_at IS NOT NULL AND ended_at
   -- IS NULL) condition is enforced uniquely by the partial index from 0009
@@ -241,35 +249,24 @@ begin
     limit 1;
 
   if v_active_number is not null then
-    v_max_filled := greatest(v_red_filled, v_blue_filled);
-    v_completed  := (v_max_filled >= v_pixel_count);
-    v_capped     := (v_soft_cap_at is not null and now() >= v_soft_cap_at);
+    v_completed := (greatest(v_red_filled, v_blue_filled) >= v_pixel_count);
+    v_capped    := (v_soft_cap_at is not null and now() >= v_soft_cap_at);
 
     if not v_completed and not v_capped then
       return jsonb_build_object('noop', true, 'reason', 'still_active');
     end if;
 
-    -- Determine winner. Completion: whoever hit pixel_count first. (If
-    -- both teams complete on the same heartbeat the higher count wins;
-    -- exact tie at completion is theoretically possible but vanishingly
-    -- unlikely with realistic input rates.)
-    if v_completed then
-      if v_red_filled > v_blue_filled then
-        v_winner_team := 'red';
-      elsif v_blue_filled > v_red_filled then
-        v_winner_team := 'blue';
-      else
-        v_winner_team := null;  -- both fully filled, tie
-      end if;
+    -- Determine winner. Higher filled_count wins; equal counts → tie → no
+    -- winner. Same logic for completion-driven and cap-driven endings; the
+    -- difference is only that completion is reached "first" while cap is
+    -- "deadline." Tie at completion is theoretically possible (both teams
+    -- hit pixel_count on the same heartbeat) but vanishingly unlikely.
+    if v_red_filled > v_blue_filled then
+      v_winner_team := 'red';
+    elsif v_blue_filled > v_red_filled then
+      v_winner_team := 'blue';
     else
-      -- Cap timeout. Higher filled_count wins; equal counts → tie → no winner.
-      if v_red_filled > v_blue_filled then
-        v_winner_team := 'red';
-      elsif v_blue_filled > v_red_filled then
-        v_winner_team := 'blue';
-      else
-        v_winner_team := null;
-      end if;
+      v_winner_team := null;  -- tie → no badge issuance
     end if;
 
     select not exists (
@@ -277,38 +274,44 @@ begin
         where started_at is null and ended_at is null
     ) into v_queue_empty;
 
-    -- Cap-timeout + queue-empty + would-be-tie: extend cap by 7 days.
-    -- (Plan §422 specifies this for queue_empty regardless of tie status,
-    -- but extending only-on-tie or always-on-empty-queue is a design call
-    -- — going with the spec literal.)
+    -- Cap-timeout + queue-empty + not-completed: extend cap by 7 days.
+    -- Per plan §422, applies regardless of tie status — if there's no
+    -- mural ready to follow, keep painting the current canvas. Completion-
+    -- driven endings always run their helper regardless of queue.
     if v_capped and v_queue_empty and not v_completed then
       update public.seasons
         set soft_cap_at = now() + interval '7 days'
         where number = v_active_number;
       return jsonb_build_object(
-        'ended',         false,
-        'cap_extended',  true,
-        'reason',        'cap_no_queue'
+        'ended',        false,
+        'cap_extended', true,
+        'reason',       'cap_no_queue'
       );
     end if;
 
-    -- End the active season. _end_season_and_award handles the idempotency
-    -- (place_tile may have already ended it on completion). For tie cases
-    -- we stamp ended_at directly without calling the helper (which expects
-    -- a winning team for badge issuance).
+    -- End the active season. Tie path uses a direct conditional UPDATE
+    -- (no badges). Clear-winner path delegates to _end_season_and_award
+    -- which handles the place_tile-already-ended-it idempotency. We
+    -- track the result in v_we_ended_active rather than reusing
+    -- v_active_number, so the post-promotion logic below can rely on
+    -- v_active_number consistently meaning "did we observe an active
+    -- season at function entry."
     if v_winner_team is null then
       update public.seasons
         set ended_at = now(), winner_team = null
         where number = v_active_number and ended_at is null
-        returning number into v_active_number;
-      v_ended := (v_active_number is not null);
+        returning 1 into v_tie_marker;
+      v_we_ended_active := (v_tie_marker is not null);
     else
       v_award_result := public._end_season_and_award(v_active_number, v_winner_team);
-      v_ended := (v_award_result ->> 'ended')::boolean;
+      v_we_ended_active := (v_award_result ->> 'ended')::boolean;
     end if;
   end if;
 
-  -- Promote next queued if any.
+  -- Promote next queued if any. The partial unique index `one_active_season`
+  -- (0009) prevents two concurrent rollover calls from both promoting —
+  -- the second commit fails atomically and falls into the no-promotion
+  -- branch below.
   update public.seasons
     set started_at  = now(),
         soft_cap_at = now() + interval '14 days'
@@ -327,28 +330,38 @@ begin
       on conflict (season_number, team) do nothing;
 
     return jsonb_build_object(
-      'ended',     v_ended,
-      'promoted',  v_promoted,
-      'reason',    case when v_ended then 'ended_and_promoted' else 'promoted' end
+      'ended',    v_we_ended_active,
+      'promoted', v_promoted,
+      'reason',   case when v_we_ended_active then 'ended_and_promoted' else 'promoted' end
     );
   end if;
 
-  -- No active was found AND no queue to promote.
+  -- No promotion happened. Distinguish the three remaining cases via the
+  -- explicit flags: no active was observed, OR active was observed and we
+  -- ended it (awaiting-mural state), OR active was observed and we lost
+  -- the end-race to a concurrent caller (rare; treat as still_active).
   if v_active_number is null then
-    -- (Note: v_active_number was reassigned above by the ended-no-winner
-    -- update; if that path fired, v_ended is true and the queue was empty,
-    -- giving us 'completion_no_queue'.)
     return jsonb_build_object(
-      'ended',    v_ended,
+      'ended',    false,
       'promoted', null,
-      'reason',   case when v_ended then 'completion_no_queue' else 'no_active' end
+      'reason',   'no_active'
     );
   end if;
 
+  if v_we_ended_active then
+    return jsonb_build_object(
+      'ended',    true,
+      'promoted', null,
+      'reason',   'completion_no_queue'
+    );
+  end if;
+
+  -- Active was observed, end UPDATE found ended_at IS NOT NULL (concurrent
+  -- caller won the race). Treat as still_active for caller analytics; the
+  -- winner-and-promotion already happened on the other call.
   return jsonb_build_object(
-    'ended',    v_ended,
-    'promoted', null,
-    'reason',   'completion_no_queue'
+    'noop',   true,
+    'reason', 'still_active'
   );
 end;
 $$;
