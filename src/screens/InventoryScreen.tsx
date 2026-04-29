@@ -55,11 +55,28 @@ export default function InventoryScreen(): React.JSX.Element {
   // commits the modal-close state — outside the Modal's native context.
   useEffect(() => {
     if (!pendingHomeNav) return;
-    if (actionFor !== null) return; // wait for sheet state to close first
+    if (actionFor !== null) return;
     setPendingHomeNav(false);
-    console.warn('[stridekeep] InventoryScreen: jumping to Home tab');
-    const nav = navigation as unknown as { jumpTo: (route: string) => void };
-    nav.jumpTo('Home');
+    const nav = navigation as unknown as {
+      jumpTo?: (route: string) => void;
+      navigate?: (route: string) => void;
+      dispatch?: (action: unknown) => void;
+    };
+    const navKeys = Object.keys(nav as object).join(',');
+    Alert.alert('useEffect fired', `keys: ${navKeys}\nhasJumpTo: ${typeof nav.jumpTo === 'function'}\nhasNavigate: ${typeof nav.navigate === 'function'}`);
+    try {
+      if (typeof nav.jumpTo === 'function') {
+        nav.jumpTo('Home');
+        Alert.alert('jumpTo called');
+      } else if (typeof nav.navigate === 'function') {
+        nav.navigate('Home');
+        Alert.alert('navigate called (no jumpTo)');
+      } else {
+        Alert.alert('no nav method', 'neither jumpTo nor navigate exists');
+      }
+    } catch (e) {
+      Alert.alert('nav threw', String(e));
+    }
   }, [pendingHomeNav, actionFor, navigation]);
 
   // For the SELL preview: floor the next-unit price from the shared
