@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import type { CaseTier, Item } from '../types';
+import type { CaseTier } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { CASES } from '../data/cases';
+import ColorCell from './ColorCell';
 import { colors, fonts, radii, spacing } from '../theme';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 
 type RevealState =
   | { phase: 'idle' }
-  | { phase: 'revealed'; item: Item };
+  | { phase: 'revealed'; colorId: string; rolledTier: CaseTier };
 
 function fmtSteps(n: number): string {
   if (n < 1000) return n.toString();
@@ -19,21 +20,17 @@ function fmtSteps(n: number): string {
   return `${Math.round(n / 1000)}K`;
 }
 
-// v3 layout: compact uniform row in idle state. Tier ladder is expressed
-// through the medallion glow + left accent bar + progress fill — same shape
-// for all three. When OPEN is tapped, the reveal panel expands below the
-// row so the medallion/name stay visible during sell/keep choice.
+// Compact case row. OPEN tap mints the rolled color directly to inventory
+// (the Phase-3 keep/sell choice is gone — sells happen later from the
+// inventory grid). The reveal panel below the row shows the rolled color
+// via ColorCell so the player can see what they got and dismiss.
 export default function CaseCard({ tier }: Props): React.JSX.Element {
   const caseData = CASES[tier];
   const caseState = useGameStore((s) => s.caseState[tier]);
   const openCase = useGameStore((s) => s.openCase);
-  const sellItem = useGameStore((s) => s.sellItem);
-  const keepItem = useGameStore((s) => s.keepItem);
-  const inventory = useGameStore((s) => s.inventory);
-  const maxSlots = useGameStore((s) => s.maxSlots);
+  const seasonPalette = useGameStore((s) => s.seasonPalette);
 
   const [reveal, setReveal] = useState<RevealState>({ phase: 'idle' });
-  const [keepFull, setKeepFull] = useState(false);
 
   const progress = caseState.progress;
   const pending = caseState.pending;
@@ -44,30 +41,19 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
   const tierAccent = TIER_STYLE[tier];
 
   function handleOpen(): void {
-    const item = openCase(tier);
-    if (item) {
-      setReveal({ phase: 'revealed', item });
-      setKeepFull(false);
+    const result = openCase(tier);
+    if (result) {
+      setReveal({ phase: 'revealed', colorId: result.colorId, rolledTier: result.tier });
     }
-  }
-
-  function handleSell(): void {
-    if (reveal.phase !== 'revealed') return;
-    sellItem(reveal.item);
-    setReveal({ phase: 'idle' });
-  }
-
-  function handleKeep(): void {
-    if (reveal.phase !== 'revealed') return;
-    const success = keepItem(reveal.item);
-    if (!success) {
-      setKeepFull(true);
-    } else {
-      setReveal({ phase: 'idle' });
-    }
+    // Null result means either no pending OR palette-null (Step 5 not yet
+    // shipped). In both cases the right behaviour is silent no-op — the
+    // OPEN button stays clickable for the next attempt and pending counts
+    // are preserved.
   }
 
   const compact = reveal.phase === 'idle';
+  const revealedColor =
+    reveal.phase === 'revealed' && seasonPalette ? seasonPalette[reveal.colorId] : null;
 
   return (
     <View style={[styles.card, { borderLeftColor: tierAccent.accent }]}>
@@ -120,30 +106,24 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
       {reveal.phase === 'revealed' && (
         <View style={styles.revealPanel}>
           <View style={styles.revealRow}>
-            <Text style={styles.revealEmoji}>{reveal.item.emoji}</Text>
+            {revealedColor ? (
+              <ColorCell color={revealedColor} size={48} />
+            ) : (
+              <View style={styles.swatchFallback} />
+            )}
             <View style={styles.revealInfo}>
-              <Text style={styles.revealName}>{reveal.item.name}</Text>
-              <Text style={styles.revealRarity}>{reveal.item.rarity.toUpperCase()}</Text>
+              <Text style={styles.revealName}>
+                {revealedColor ? revealedColor.name : reveal.colorId}
+              </Text>
+              <Text style={styles.revealTier}>{reveal.rolledTier.toUpperCase()}</Text>
             </View>
           </View>
-          <View style={styles.revealActions}>
-            <TouchableOpacity style={styles.sellBtn} onPress={handleSell}>
-              <Text style={styles.sellBtnText}>SELL ${reveal.item.value}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.keepBtn,
-                inventory.length >= maxSlots && styles.keepBtnDisabled,
-              ]}
-              onPress={handleKeep}
-              disabled={inventory.length >= maxSlots}
-            >
-              <Text style={styles.keepBtnText}>KEEP</Text>
-            </TouchableOpacity>
-          </View>
-          {keepFull && (
-            <Text style={styles.fullWarning}>Inventory full — sell or make room first.</Text>
-          )}
+          <TouchableOpacity
+            style={styles.continueBtn}
+            onPress={() => setReveal({ phase: 'idle' })}
+          >
+            <Text style={styles.continueBtnText}>CONTINUE</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -160,11 +140,11 @@ const TIER_STYLE: Record<CaseTier, TierAccent> = {
     accent: colors.accent.brass,
     medallionBg: 'rgba(199,156,74,0.18)',
   },
-  premium: {
+  quality: {
     accent: '#7a9fd4',
     medallionBg: 'rgba(122,159,212,0.20)',
   },
-  luxury: {
+  fine: {
     accent: colors.accent.brassLight,
     medallionBg: 'rgba(240,208,145,0.25)',
   },
@@ -281,8 +261,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  revealEmoji: {
-    fontSize: 32,
+  swatchFallback: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.card,
+    backgroundColor: colors.bg.overlay,
+    borderWidth: 1,
+    borderColor: colors.ui.border,
   },
   revealInfo: {
     flex: 1,
@@ -292,53 +277,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text.cream,
   },
-  revealRarity: {
+  revealTier: {
     fontFamily: fonts.bebasNeue,
     fontSize: 12,
     color: colors.accent.brassLight,
     letterSpacing: 1,
     marginTop: 2,
   },
-  revealActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  sellBtn: {
-    flex: 1,
+  continueBtn: {
     backgroundColor: colors.accent.brass,
     borderRadius: radii.button,
     paddingVertical: spacing.sm,
     alignItems: 'center',
   },
-  sellBtnText: {
+  continueBtnText: {
     fontFamily: fonts.bebasNeue,
     fontSize: 14,
     color: colors.bg.primary,
     letterSpacing: 1,
-  },
-  keepBtn: {
-    flex: 1,
-    backgroundColor: colors.bg.overlay,
-    borderRadius: radii.button,
-    borderWidth: 1,
-    borderColor: colors.accent.brass,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  keepBtnDisabled: {
-    borderColor: colors.ui.border,
-  },
-  keepBtnText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 14,
-    color: colors.text.cream,
-    letterSpacing: 1,
-  },
-  fullWarning: {
-    fontFamily: fonts.outfitRegular,
-    fontSize: 11,
-    color: colors.team.red,
-    textAlign: 'center',
-    marginTop: spacing.xs,
   },
 });

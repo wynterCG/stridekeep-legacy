@@ -34,16 +34,7 @@ export interface CaseState {
   fine: { progress: number; pending: number };
 }
 
-export interface Milestone {
-  id: string;
-  name: string;
-  emoji: string;
-  threshold: number;
-}
-
-// Phase-4 additive types — populate the per-season palette + canvas model
-// without disturbing Phase-3 types. C2 will unify CaseTier with ColorTier
-// and delete KeptItem + Milestone.
+// Phase-4 per-season palette + canvas model.
 
 // Per-season color tier (season_colors.tier). Stable across seasons; only
 // the actual colors change.

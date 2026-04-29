@@ -3,15 +3,16 @@ import { ScrollView, View, StyleSheet } from 'react-native';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
 import TopHeader from '../components/TopHeader';
-import TownHero from '../components/TownHero';
 import InfoStrip from '../components/InfoStrip';
 import SectionKicker from '../components/SectionKicker';
 import { useTeamsLiveSync } from '../hooks/useTeamsLiveSync';
 import { colors, spacing } from '../theme';
 
-// v3 composition: persistent identity/purse strip → town hero (illustration
-// + deposit CTA above the fold) → quiet info strip → materials kicker →
-// three uniform case rows. SimulateWalkButton is dev-only.
+// Phase-4 boot-restoration composition: persistent identity/purse strip →
+// info strip → materials kicker → three uniform case rows. The
+// CanvasView hero (plan §263) lands in S4.B — until then the screen is a
+// minimal case-opening surface. TownHero / BuildButton / TownIllustration
+// were Phase-3-only and are deleted in S4.B.
 export default function HomeScreen(): React.JSX.Element {
   useTeamsLiveSync();
 
@@ -23,7 +24,6 @@ export default function HomeScreen(): React.JSX.Element {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <TownHero />
         <InfoStrip />
         <SectionKicker label="materials" />
         <CaseCard tier="fine" />

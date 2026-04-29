@@ -1,96 +1,79 @@
 import React from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
-import { BALANCE } from '../balance';
+import ColorCell from '../components/ColorCell';
 import { colors, fonts, radii, spacing } from '../theme';
 
+// Phase-4 inventory: per-season palette grid + persistent badge gallery.
+// Read-only for now — Phase-3 keep/sell + upgrade rows are gone, and the
+// tap-to-sell / place-on-canvas / craft-with action sheet (plan §272) lands
+// later with the modals (S4.C) and canvas (S4.B). For S4.B / boot-restoration
+// the goal is just "screen renders without breaking the app."
 export default function InventoryScreen(): React.JSX.Element {
   const inventory = useGameStore((s) => s.inventory);
-  const maxSlots = useGameStore((s) => s.maxSlots);
-  const strideLevel = useGameStore((s) => s.strideLevel);
-  const purse = useGameStore((s) => s.purse);
-  const upgradeStridePower = useGameStore((s) => s.upgradeStridePower);
-  const upgradeSlots = useGameStore((s) => s.upgradeSlots);
+  const seasonPalette = useGameStore((s) => s.seasonPalette);
+  const badges = useGameStore((s) => s.badges);
 
-  const passiveIncomeHr = inventory.reduce(
-    (sum, item) => sum + item.value * BALANCE.inventory.passiveIncomeRate,
-    0,
-  );
-
-  const slots = Array.from({ length: maxSlots }, (_, i) => inventory[i] ?? null);
-
-  const strideUpgradeCost = Math.floor(
-    BALANCE.stride.costBase * Math.pow(BALANCE.stride.costMultiplier, strideLevel),
-  );
-  const canAffordStride = purse >= strideUpgradeCost;
-
-  const slotUpgradesUsed = maxSlots - BALANCE.inventory.defaultSlots;
-  const nextSlotCost =
-    slotUpgradesUsed < BALANCE.inventory.slotUpgradeCost.length
-      ? BALANCE.inventory.slotUpgradeCost[slotUpgradesUsed]
-      : null;
-  const canUpgradeSlots = maxSlots < BALANCE.inventory.maxSlots;
+  const paletteEntries = seasonPalette ? Object.values(seasonPalette) : [];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.header}>INVENTORY</Text>
 
-        <View style={styles.grid}>
-          {slots.map((item, index) =>
-            item ? (
-              <View key={item.uid} style={styles.slot}>
-                <Text style={styles.slotEmoji}>{item.emoji}</Text>
-                <Text style={styles.slotName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.slotValue}>${item.value.toLocaleString()}</Text>
-              </View>
-            ) : (
-              <View key={`empty-${index}`} style={[styles.slot, styles.slotEmpty]}>
-                <Text style={styles.slotEmptyText}>+ EMPTY</Text>
-              </View>
-            ),
-          )}
-        </View>
-
-        <View style={styles.incomeSummary}>
-          <Text style={styles.incomeLabel}>PASSIVE INCOME</Text>
-          <Text style={styles.incomeValue}>
-            ${passiveIncomeHr.toFixed(2)}/hr → TEAM
-          </Text>
-        </View>
-
-        <View style={styles.upgradeSection}>
-          <Text style={styles.upgradeHeader}>STRIDE POWER</Text>
-          <Text style={styles.upgradeDesc}>
-            Level {strideLevel} — ${BALANCE.stride.baseValue + strideLevel}/step
-          </Text>
-          <TouchableOpacity
-            style={[styles.upgradeBtn, !canAffordStride && styles.upgradeBtnDisabled]}
-            onPress={upgradeStridePower}
-            disabled={!canAffordStride}
-          >
-            <Text style={styles.upgradeBtnText}>
-              UPGRADE — ${strideUpgradeCost.toLocaleString()} FROM PURSE
+        <Text style={styles.section}>COLORS</Text>
+        {seasonPalette === null ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>
+              Loading this season's palette…
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {canUpgradeSlots && nextSlotCost !== null && (
-          <View style={styles.upgradeSection}>
-            <Text style={styles.upgradeHeader}>INVENTORY SLOTS</Text>
-            <Text style={styles.upgradeDesc}>
-              {maxSlots} of {BALANCE.inventory.maxSlots} slots unlocked
+            <Text style={styles.emptySub}>
+              The mural prep tool seeds colors at season start.
             </Text>
-            <TouchableOpacity
-              style={[styles.upgradeBtn, purse < nextSlotCost && styles.upgradeBtnDisabled]}
-              onPress={upgradeSlots}
-              disabled={purse < nextSlotCost}
-            >
-              <Text style={styles.upgradeBtnText}>
-                ADD SLOT — ${nextSlotCost.toLocaleString()} FROM PURSE
-              </Text>
-            </TouchableOpacity>
+          </View>
+        ) : paletteEntries.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No colors in this season's palette.</Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {paletteEntries.map((color) => {
+              const qty = inventory[color.id] ?? 0;
+              return (
+                <View key={color.id} style={styles.cellWrap}>
+                  <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
+                  <Text style={styles.cellName} numberOfLines={1}>
+                    {color.name}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        <Text style={styles.section}>BADGES</Text>
+        {badges.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>
+              Win a season to earn your first badge.
+            </Text>
+            <Text style={styles.emptySub}>
+              Badges are completed murals — your only cross-season keep.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.badgeGrid}>
+            {badges.map((b) => (
+              <View key={b.seasonNumber} style={styles.badgeCell}>
+                <Text style={styles.badgeSeason}>{`SEASON ${b.seasonNumber}`}</Text>
+                {b.seasonName && (
+                  <Text style={styles.badgeName} numberOfLines={2}>
+                    {b.seasonName}
+                  </Text>
+                )}
+              </View>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -115,101 +98,72 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     textAlign: 'center',
   },
+  section: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 13,
+    color: colors.text.muted,
+    letterSpacing: 2,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
-  slot: {
-    width: '30%',
-    aspectRatio: 1,
-    backgroundColor: colors.bg.card,
-    borderRadius: radii.card,
+  cellWrap: {
+    width: 64,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xs,
   },
-  slotEmpty: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.ui.border,
-    backgroundColor: 'transparent',
-  },
-  slotEmoji: {
-    fontSize: 24,
-    marginBottom: 2,
-  },
-  slotName: {
+  cellName: {
     fontFamily: fonts.outfitRegular,
     fontSize: 10,
     color: colors.text.cream,
+    marginTop: 4,
     textAlign: 'center',
   },
-  slotValue: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 12,
-    color: colors.accent.brass,
-    marginTop: 2,
-  },
-  slotEmptyText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 12,
-    color: colors.text.dim,
-    letterSpacing: 1,
-  },
-  incomeSummary: {
+  emptyCard: {
     backgroundColor: colors.bg.card,
     borderRadius: radii.card,
     padding: spacing.md,
-    marginBottom: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  incomeLabel: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 15,
-    color: colors.text.muted,
-    letterSpacing: 1,
-  },
-  incomeValue: {
+  emptyText: {
     fontFamily: fonts.outfitBold,
     fontSize: 14,
-    color: colors.accent.brassLight,
+    color: colors.text.cream,
+    textAlign: 'center',
   },
-  upgradeSection: {
+  emptySub: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 12,
+    color: colors.text.muted,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  badgeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  badgeCell: {
     backgroundColor: colors.bg.card,
     borderRadius: radii.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  upgradeHeader: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 17,
-    color: colors.text.cream,
-    letterSpacing: 2,
-    marginBottom: spacing.xs,
-  },
-  upgradeDesc: {
-    fontFamily: fonts.outfitRegular,
-    fontSize: 13,
-    color: colors.text.muted,
-    marginBottom: spacing.sm,
-  },
-  upgradeBtn: {
-    backgroundColor: colors.accent.brass,
-    borderRadius: radii.button,
-    paddingVertical: spacing.sm,
+    padding: spacing.sm,
+    width: 96,
     alignItems: 'center',
   },
-  upgradeBtnDisabled: {
-    backgroundColor: colors.ui.buttonDisabled,
-  },
-  upgradeBtnText: {
+  badgeSeason: {
     fontFamily: fonts.bebasNeue,
-    fontSize: 14,
-    color: colors.bg.primary,
-    letterSpacing: 1,
+    fontSize: 11,
+    color: colors.accent.brassLight,
+    letterSpacing: 1.5,
+    marginBottom: spacing.xs,
+  },
+  badgeName: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 11,
+    color: colors.text.cream,
+    textAlign: 'center',
   },
 });

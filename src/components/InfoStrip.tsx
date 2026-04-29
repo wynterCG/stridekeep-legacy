@@ -4,26 +4,19 @@ import { useGameStore } from '../store/gameStore';
 import { BALANCE } from '../balance';
 import { colors, fonts, spacing } from '../theme';
 
-// One quiet line of typography: today's steps, current stride power, money
-// currently buffered for the next deposit. Replaces the old 72pt StepCounter
-// hero — steps aren't an action, they're a passive feed, so they read as
-// caption-weight info here.
+// One quiet line of typography: today's steps + flat $/step. Phase 4
+// removed the Stride Power upgrade and the deposit-batch buffer, so the
+// strip is just the two static facts that frame the case-opening loop.
 export default function InfoStrip(): React.JSX.Element {
   const steps = useGameStore((s) => s.steps);
-  const forTheTown = useGameStore((s) => s.forTheTown);
-  const strideLevel = useGameStore((s) => s.strideLevel);
-  const stridePower = BALANCE.stride.baseValue + strideLevel;
 
   return (
     <View style={styles.strip}>
       <Text style={styles.num}>{steps.toLocaleString()}</Text>
       <Text style={styles.label}>STEPS</Text>
       <Text style={styles.sep}>·</Text>
-      <Text style={styles.num}>{`$${stridePower}`}</Text>
+      <Text style={styles.num}>{`$${BALANCE.stride.baseValue}`}</Text>
       <Text style={styles.label}>/STEP</Text>
-      <Text style={styles.sep}>·</Text>
-      <Text style={styles.num}>{`+$${forTheTown.toLocaleString()}`}</Text>
-      <Text style={styles.label}>EARNED</Text>
     </View>
   );
 }

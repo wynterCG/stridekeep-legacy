@@ -14,7 +14,6 @@ import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
 import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
 import { supabase } from './src/lib/supabase';
-import MilestoneCelebrationWatcher from './src/components/MilestoneCelebrationWatcher';
 
 const BOT_TICK_MS = 4_000;
 
@@ -142,7 +141,6 @@ export default function App(): React.JSX.Element | null {
       <NavigationContainer theme={navTheme}>
         <View style={styles.root}>
           <RootTabs />
-          <MilestoneCelebrationWatcher />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

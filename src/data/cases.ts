@@ -1,4 +1,4 @@
-import type { Case, CaseTier, Item, Milestone } from '../types';
+import type { Case, CaseTier, Item } from '../types';
 
 export const CASES: Record<CaseTier, Case> = {
   starter: {
@@ -57,17 +57,3 @@ export const ITEMS_BY_TIER: Record<CaseTier, Item[]> = {
   ],
 };
 
-// MILESTONES is dead data in Phase 4 (the dollar-milestone progression model
-// is replaced by per-season pixel completion). Kept here as Step-4 ballast —
-// removing it now would tsc-cascade into BuildButton / TownScreen / TownHero /
-// MilestoneCelebrationWatcher, all of which are being rewritten in Step 4
-// anyway. Cleaner to remove this declaration when those four files go away.
-export const MILESTONES: Milestone[] = [
-  { id: 'village_fountain', name: 'Village Fountain', emoji: '⛲', threshold: 5000 },
-  { id: 'stone_houses', name: 'Stone Houses', emoji: '🏘️', threshold: 25000 },
-  { id: 'town_school', name: 'Town School', emoji: '🏫', threshold: 100000 },
-  { id: 'hospital', name: 'Hospital', emoji: '🏥', threshold: 500000 },
-  { id: 'grand_library', name: 'Grand Library', emoji: '📚', threshold: 2000000 },
-  { id: 'cathedral', name: 'Cathedral', emoji: '⛪', threshold: 10000000 },
-  { id: 'central_station', name: 'Central Station', emoji: '🚉', threshold: 50000000 },
-];
