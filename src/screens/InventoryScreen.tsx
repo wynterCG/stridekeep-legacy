@@ -182,8 +182,16 @@ export default function InventoryScreen(): React.JSX.Element {
               <Pressable
                 style={styles.sheetAction}
                 onPress={() => {
+                  // Close the sheet first, then defer navigate to the
+                  // next tick so the Modal's slide-down animation has
+                  // started its native unmount before the tab transition
+                  // fires. Without the defer, RN was sometimes swallowing
+                  // the navigate dispatch when both ran inside the same
+                  // event tick (Modal close + tab switch at once).
                   closeSheet();
-                  navigation.navigate('Home' as never);
+                  setTimeout(() => {
+                    navigation.navigate('Home' as never);
+                  }, 0);
                 }}
               >
                 <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>
