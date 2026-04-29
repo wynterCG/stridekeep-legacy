@@ -45,6 +45,15 @@ interface GameState {
   // Per-season server data — non-persisted (re-fetched on launch / rollover).
   seasonPalette: Record<string, ColorDef> | null;
   seasonCraftRecipes: Record<string, CraftRecipe> | null;
+  // Canvas state for the player's team. Lazily populated by
+  // useCanvasLiveSync on mount; not persisted (server is the source of
+  // truth + realtime keeps it fresh while the screen is open). Maps
+  // pixel_idx → color_id; absence means unfilled.
+  //
+  // canvasTargetPixels is the seed_next_mural target (per-pixel goal
+  // color). canvasFilled[team] is the team's placed pixels.
+  canvasTargetPixels: Record<number, string> | null;
+  canvasFilled: { red: Record<number, string>; blue: Record<number, string> };
   // Pity counter. Increments on any case roll whose color is NOT fine-tier;
   // resets when a fine-tier color drops or at season rollover. When
   // pityCounter.fine >= BALANCE.pity.fine.threshold, the next case roll
@@ -89,6 +98,12 @@ interface GameActions {
   setSeasonPalette: (palette: Record<string, ColorDef> | null) => void;
   setSeasonCraftRecipes: (recipes: Record<string, CraftRecipe> | null) => void;
   setBadges: (badges: Badge[]) => void;
+  // Canvas-state actions — driven by useCanvasLiveSync's load + realtime
+  // callbacks. Bulk loaders replace the whole map; applyPlacedPixel is the
+  // realtime hot path (one INSERT row → one pixel update).
+  setCanvasTargetPixels: (pixels: Record<number, string> | null) => void;
+  setTeamCanvas: (team: Team, pixels: Record<number, string>) => void;
+  applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
 }
 
 type GameStore = GameState & GameActions;
@@ -116,6 +131,8 @@ const initialState: GameState = {
   seasonSoftCapAt: null,
   seasonPalette: null,
   seasonCraftRecipes: null,
+  canvasTargetPixels: null,
+  canvasFilled: { red: {}, blue: {} },
   pityCounter: { fine: 0 },
   sellHistory: { date: todayKey(), counts: {} },
   lastSimulateAt: 0,
@@ -397,6 +414,8 @@ export const useGameStore = create<GameStore>()(
           seasonSoftCapAt: softCapAt,
           seasonPalette: newPalette,
           seasonCraftRecipes: newRecipes,
+          canvasTargetPixels: null,
+          canvasFilled: { red: {}, blue: {} },
         });
       },
 
@@ -418,6 +437,20 @@ export const useGameStore = create<GameStore>()(
         set({ seasonCraftRecipes: recipes }),
 
       setBadges: (badges: Badge[]) => set({ badges }),
+
+      setCanvasTargetPixels: (pixels: Record<number, string> | null) =>
+        set({ canvasTargetPixels: pixels }),
+
+      setTeamCanvas: (team: Team, pixels: Record<number, string>) =>
+        set((s) => ({ canvasFilled: { ...s.canvasFilled, [team]: pixels } })),
+
+      applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) =>
+        set((s) => ({
+          canvasFilled: {
+            ...s.canvasFilled,
+            [team]: { ...s.canvasFilled[team], [pixelIdx]: colorId },
+          },
+        })),
     }),
     {
       name: 'stridekeep-game-state',
@@ -435,10 +468,16 @@ export const useGameStore = create<GameStore>()(
         if (version !== 1) return undefined as unknown as GameStore;
         return _persisted as GameStore;
       },
-      // seasonPalette + seasonCraftRecipes are server data and re-fetched
-      // on every launch / rollover — never persist them.
+      // seasonPalette + seasonCraftRecipes + canvas state are server data,
+      // re-fetched on every launch / rollover / canvas mount — never persist.
       partialize: (state) => {
-        const { seasonPalette: _p, seasonCraftRecipes: _r, ...rest } = state;
+        const {
+          seasonPalette: _p,
+          seasonCraftRecipes: _r,
+          canvasTargetPixels: _t,
+          canvasFilled: _f,
+          ...rest
+        } = state;
         return rest as GameStore;
       },
       // Phase-3 → Phase-4 schema rescue. Detects the old shape post-rehydrate
