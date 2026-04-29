@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, View, StyleSheet, Text } from 'react-native';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
+import DevGrantTilesButton from '../components/DevGrantTilesButton';
 import TopHeader from '../components/TopHeader';
 import InfoStrip from '../components/InfoStrip';
 import SectionKicker from '../components/SectionKicker';
@@ -78,7 +79,9 @@ export default function HomeScreen(): React.JSX.Element {
         <CaseCard tier="fine" />
         <CaseCard tier="quality" />
         <CaseCard tier="starter" />
-        {__DEV__ && <SimulateWalkButton />}
+        {/* Dev surfaces — drop these (or re-add a __DEV__ gate) before public beta. */}
+        <SimulateWalkButton />
+        <DevGrantTilesButton />
       </ScrollView>
 
       {pickerPixel !== null && targetColorId && (

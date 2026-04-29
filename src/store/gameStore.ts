@@ -104,6 +104,11 @@ interface GameActions {
   setCanvasTargetPixels: (pixels: Record<number, string> | null) => void;
   setTeamCanvas: (team: Team, pixels: Record<number, string>) => void;
   applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
+  // Dev-only: grant one of every case-category color in the active
+  // season's palette so testing the placement / sell / craft flows
+  // doesn't require walking thousands of steps to roll the right
+  // colors. Only callable from a __DEV__-gated UI surface.
+  devGrantOneOfEach: () => void;
 }
 
 type GameStore = GameState & GameActions;
@@ -452,6 +457,17 @@ export const useGameStore = create<GameStore>()(
             [team]: { ...s.canvasFilled[team], [pixelIdx]: colorId },
           },
         })),
+
+      devGrantOneOfEach: () =>
+        set((s) => {
+          if (!s.seasonPalette) return {};
+          const next = { ...s.inventory };
+          for (const color of Object.values(s.seasonPalette)) {
+            if (color.category !== 'case') continue;
+            next[color.id] = (next[color.id] ?? 0) + 1;
+          }
+          return { inventory: next };
+        }),
     }),
     {
       name: 'stridekeep-game-state',
