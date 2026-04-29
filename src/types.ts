@@ -84,8 +84,14 @@ export interface FeedEvent {
   created_at: string;
 }
 
-// Discriminated union returned by the place_tile RPC. Drives optimistic
-// rollback + UI feedback for every error branch (per Phase-4 plan §292-307).
+// Discriminated union returned by gameStore.placeTile (and the underlying
+// place_tile RPC). Drives optimistic rollback + UI feedback for every error
+// branch (per Phase-4 plan §292-307). Two branches added on top of the
+// server-defined ones:
+//   - `not_owned`: client-side guard fires before the RPC when inventory has
+//     0 of the requested color. Avoids a wasted round-trip.
+//   - `network_error`: catches RPC exceptions so callers never need a try/catch
+//     in addition to the discriminated switch — the action shape is uniform.
 export type PlaceResult =
   | {
       ok: true;
@@ -98,4 +104,6 @@ export type PlaceResult =
   | { ok: false; error: 'canvas_complete' }
   | { ok: false; error: 'wrong_color'; expected: string }
   | { ok: false; error: 'season_mismatch'; activeSeasonNumber: number }
-  | { ok: false; error: 'not_authenticated' };
+  | { ok: false; error: 'not_authenticated' }
+  | { ok: false; error: 'not_owned' }
+  | { ok: false; error: 'network_error'; message: string };

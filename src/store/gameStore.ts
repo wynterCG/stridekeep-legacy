@@ -8,6 +8,7 @@ import type {
   ColorDef,
   CraftRecipe,
   Badge,
+  PlaceResult,
 } from '../types';
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
@@ -29,6 +30,11 @@ interface GameState {
   inventory: Record<string, number>;
   // Persistent across seasons.
   badges: Badge[];
+  // Active season number — written by applySeasonReset, used at boot to
+  // detect "did I miss a rollover offline?" against the server's active
+  // season. null while no season is active (between rollovers, or fresh
+  // install before applySeasonReset has run).
+  seasonNumber: number | null;
   // Per-season server data — non-persisted (re-fetched on launch / rollover).
   seasonPalette: Record<string, ColorDef> | null;
   seasonCraftRecipes: Record<string, CraftRecipe> | null;
@@ -47,16 +53,17 @@ interface GameActions {
   simulateWalk: () => void;
   applyRealSteps: (total: number) => void;
   openCase: (tier: CaseTier) => { colorId: string; tier: CaseTier } | null;
-  // Server-authoritative tile placement on the team canvas. Optimistic
-  // deduction; rollback on every PlaceResult error branch (Step 4 UIs render
-  // user-visible feedback for the discriminated branches).
-  placeTile: (colorId: string, pixelIdx: number) => Promise<void>;
+  // Server-authoritative tile placement. Optimistic deduction; rollback on
+  // every PlaceResult error branch. Returns the result so UI consumers
+  // (TilePicker in S4.B-canvas) can switch on the discriminated union and
+  // surface user-visible feedback for `pixel_taken` / `wrong_color` etc.
+  placeTile: (colorId: string, pixelIdx: number) => Promise<PlaceResult>;
   sellTile: (colorId: string, qty: number) => void;
   craftTile: (recipeId: string, qty: number) => void;
   buyShopTile: (colorId: string, qty: number) => void;
   // Called by SeasonEndCeremony (Step 4) after the user dismisses the
-  // ceremony. Wipes intra-season state, swaps in the new palette + recipes.
-  // Badges and team persist.
+  // ceremony. Wipes intra-season state, swaps in the new palette + recipes
+  // and writes the new season number. Badges and team persist.
   applySeasonReset: (
     newSeasonNumber: number,
     newPalette: Record<string, ColorDef>,
@@ -78,6 +85,26 @@ const defaultCaseState: CaseState = {
   fine: { progress: 0, pending: 0 },
 };
 
+// Extracted so onRehydrateStorage can reset the store cleanly when it
+// detects a stale Phase-3 persisted blob (see persist config below).
+const initialState: GameState = {
+  team: null,
+  steps: 0,
+  lastSyncedTotal: null,
+  lastSyncedDate: null,
+  caseState: defaultCaseState,
+  purse: 0,
+  teamTotals: { red: 0, blue: 0 },
+  inventory: {},
+  badges: [],
+  seasonNumber: null,
+  seasonPalette: null,
+  seasonCraftRecipes: null,
+  pityCounter: { fine: 0 },
+  sellHistory: { date: todayKey(), counts: {} },
+  lastSimulateAt: 0,
+};
+
 function addStepsToCase(
   state: CaseState,
   tier: CaseTier,
@@ -95,23 +122,24 @@ function addStepsToCase(
   return { progress, pending };
 }
 
+// Detect persisted state from before Phase 4 (which had no persist `version`,
+// so Zustand's migrate callback never fires for it — see comment on the
+// persist config below for the full Zustand-internals reasoning).
+function looksLikePhase3State(s: Record<string, unknown>): boolean {
+  return (
+    Array.isArray(s.inventory) ||
+    'forTheTown' in s ||
+    'pendingBatch' in s ||
+    'pendingBatchEndsAt' in s ||
+    'strideLevel' in s ||
+    'maxSlots' in s
+  );
+}
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
-      team: null,
-      steps: 0,
-      lastSyncedTotal: null,
-      lastSyncedDate: null,
-      caseState: defaultCaseState,
-      purse: 0,
-      teamTotals: { red: 0, blue: 0 },
-      inventory: {},
-      badges: [],
-      seasonPalette: null,
-      seasonCraftRecipes: null,
-      pityCounter: { fine: 0 },
-      sellHistory: { date: todayKey(), counts: {} },
-      lastSimulateAt: 0,
+      ...initialState,
 
       applyRealSteps: (total: number) => {
         // Defensive gate: App.tsx already waits for onFinishHydration before
@@ -214,31 +242,34 @@ export const useGameStore = create<GameStore>()(
           inventory: newInventory,
         });
 
+        // TODO(step-6): logFeedEvent('case_opened', { tier, color_id: colorId });
         return { colorId, tier: rolledTier };
       },
 
-      placeTile: async (colorId: string, pixelIdx: number) => {
+      placeTile: async (colorId: string, pixelIdx: number): Promise<PlaceResult> => {
         const { inventory } = get();
         const have = inventory[colorId] ?? 0;
-        if (have <= 0) return;
+        if (have <= 0) {
+          return { ok: false, error: 'not_owned' };
+        }
         // Optimistic deduction. The discriminated PlaceResult branches are
-        // Step-4's job to render user feedback for; here we only manage state.
+        // returned to the caller so TilePicker can route per-error UI feedback
+        // (per plan §302-307); this action just owns inventory state.
         set({ inventory: { ...inventory, [colorId]: have - 1 } });
         try {
           const result = await serverPlaceTile(colorId, pixelIdx);
           if (!result.ok) {
-            // Restore on every failure branch.
             set((s) => ({
               inventory: {
                 ...s.inventory,
                 [colorId]: (s.inventory[colorId] ?? 0) + 1,
               },
             }));
-            return;
           }
           // Server may signal season completion via `seasonEnded` /
-          // `badgeAwarded`; SeasonEndWatcher (Step 4) listens to
+          // `badgeAwarded`; SeasonEndWatcher (S4.D) listens to
           // subscribeSeasonRollover and drives applySeasonReset.
+          return result;
         } catch (err) {
           set((s) => ({
             inventory: {
@@ -246,7 +277,9 @@ export const useGameStore = create<GameStore>()(
               [colorId]: (s.inventory[colorId] ?? 0) + 1,
             },
           }));
+          const message = err instanceof Error ? err.message : String(err);
           console.warn('[stridekeep] placeTile failed:', err);
+          return { ok: false, error: 'network_error', message };
         }
       },
 
@@ -328,7 +361,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       applySeasonReset: (
-        _newSeasonNumber: number,
+        newSeasonNumber: number,
         newPalette: Record<string, ColorDef>,
         newRecipes: Record<string, CraftRecipe>,
       ) => {
@@ -338,6 +371,7 @@ export const useGameStore = create<GameStore>()(
           pityCounter: { fine: 0 },
           sellHistory: { date: todayKey(), counts: {} },
           caseState: defaultCaseState,
+          seasonNumber: newSeasonNumber,
           seasonPalette: newPalette,
           seasonCraftRecipes: newRecipes,
         });
@@ -363,10 +397,14 @@ export const useGameStore = create<GameStore>()(
       name: 'stridekeep-game-state',
       storage: createJSONStorage(() => AsyncStorage),
       version: 1,
-      // Phase 3 → Phase 4 schema is incompatible (inventory shape inverted,
-      // forTheTown / strideLevel / maxSlots removed). Discard any persisted
-      // blob whose version isn't exactly 1; Zustand falls back to the
-      // initial state passed to create().
+      // Zustand only invokes `migrate` when the persisted blob has a numeric
+      // `version` field. Phase-3's persist config didn't set one, so a
+      // Phase-3 → Phase-4 upgrade DOES NOT trigger this migrate at all — the
+      // unversioned blob shallow-merges over the Phase-4 initial state and
+      // corrupts it (Phase-3 inventory: KeptItem[] shadows Phase-4 inventory:
+      // Record<string, number>, every reducer breaks). The shape detection in
+      // onRehydrateStorage below is the actual safety net; this migrate exists
+      // only to handle FUTURE versioned migrations (Phase-4 → Phase-5+).
       migrate: (_persisted, version) => {
         if (version !== 1) return undefined as unknown as GameStore;
         return _persisted as GameStore;
@@ -376,6 +414,31 @@ export const useGameStore = create<GameStore>()(
       partialize: (state) => {
         const { seasonPalette: _p, seasonCraftRecipes: _r, ...rest } = state;
         return rest as GameStore;
+      },
+      // Phase-3 → Phase-4 schema rescue. Detects the old shape post-rehydrate
+      // and resets every Phase-4 field to clean defaults. See
+      // looksLikePhase3State and the migrate-comment above for why this
+      // can't live in `migrate`.
+      //
+      // Implementation note: this uses default merge-mode setState, NOT
+      // replace mode. With replace=true Zustand would wipe the action
+      // functions too (they're stored alongside state) and the verbose
+      // pick-and-restore-every-action would invite drift. Merge mode means
+      // every key in initialState overrides the contaminated current value
+      // (inventory: KeptItem[] → Record<string, number>, etc.). Phase-3-
+      // only fields like forTheTown / strideLevel that aren't in
+      // initialState linger in memory as dead weight for this session
+      // only — they aren't read by any Phase-4 code path, and the next
+      // launch reads cleared storage and starts fresh.
+      onRehydrateStorage: () => (state, error) => {
+        if (error || !state) return;
+        if (looksLikePhase3State(state as unknown as Record<string, unknown>)) {
+          void useGameStore.persist.clearStorage();
+          useGameStore.setState(initialState);
+          console.warn(
+            '[stridekeep] detected Phase-3 persisted state; cleared storage and reset Phase-4 fields',
+          );
+        }
       },
     },
   ),
