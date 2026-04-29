@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Pressable,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -199,7 +200,7 @@ export default function InventoryScreen(): React.JSX.Element {
               <Pressable
                 style={styles.sheetAction}
                 onPress={() => {
-                  console.warn('[stridekeep] PLACE ON CANVAS pressed');
+                  Alert.alert('PLACE pressed', 'About to jump to Home');
                   setPendingHomeNav(true);
                   closeSheet();
                 }}
