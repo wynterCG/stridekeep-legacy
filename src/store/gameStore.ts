@@ -36,6 +36,12 @@ interface GameState {
   // season. null while no season is active (between rollovers, or fresh
   // install before applySeasonReset has run).
   seasonNumber: number | null;
+  // ISO timestamps mirrored from the server's seasons row. seasonStartedAt
+  // drives "DAY N" computation; seasonSoftCapAt drives the round countdown.
+  // Both null in awaiting-mural state. Persisted so cold-start renders the
+  // header correctly before the first foreground syncSeason completes.
+  seasonStartedAt: string | null;
+  seasonSoftCapAt: string | null;
   // Per-season server data — non-persisted (re-fetched on launch / rollover).
   seasonPalette: Record<string, ColorDef> | null;
   seasonCraftRecipes: Record<string, CraftRecipe> | null;
@@ -64,12 +70,19 @@ interface GameActions {
   buyShopTile: (colorId: string, qty: number) => void;
   // Called by SeasonEndCeremony (Step 4) after the user dismisses the
   // ceremony. Wipes intra-season state, swaps in the new palette + recipes
-  // and writes the new season number. Badges and team persist.
+  // and writes the new season number + server-side timestamps. Badges
+  // and team persist.
   applySeasonReset: (
     newSeasonNumber: number,
     newPalette: Record<string, ColorDef>,
     newRecipes: Record<string, CraftRecipe>,
+    startedAt: string | null,
+    softCapAt: string | null,
   ) => void;
+  // Refresh path — same season, server timestamps may have moved (cap
+  // extension on completion-no-queue, etc.). Called from App.tsx's
+  // syncSeason whenever the active season number matches what's persisted.
+  setSeasonTimes: (startedAt: string | null, softCapAt: string | null) => void;
   setTeam: (team: Team) => void;
   setTeamTotals: (totals: { red: number; blue: number }) => void;
   setTeamTotal: (color: 'red' | 'blue', total: number) => void;
@@ -99,6 +112,8 @@ const initialState: GameState = {
   inventory: {},
   badges: [],
   seasonNumber: null,
+  seasonStartedAt: null,
+  seasonSoftCapAt: null,
   seasonPalette: null,
   seasonCraftRecipes: null,
   pityCounter: { fine: 0 },
@@ -368,6 +383,8 @@ export const useGameStore = create<GameStore>()(
         newSeasonNumber: number,
         newPalette: Record<string, ColorDef>,
         newRecipes: Record<string, CraftRecipe>,
+        startedAt: string | null,
+        softCapAt: string | null,
       ) => {
         set({
           inventory: {},
@@ -376,10 +393,15 @@ export const useGameStore = create<GameStore>()(
           sellHistory: { date: todayKey(), counts: {} },
           caseState: defaultCaseState,
           seasonNumber: newSeasonNumber,
+          seasonStartedAt: startedAt,
+          seasonSoftCapAt: softCapAt,
           seasonPalette: newPalette,
           seasonCraftRecipes: newRecipes,
         });
       },
+
+      setSeasonTimes: (startedAt: string | null, softCapAt: string | null) =>
+        set({ seasonStartedAt: startedAt, seasonSoftCapAt: softCapAt }),
 
       setTeam: (team: Team) => set({ team }),
 

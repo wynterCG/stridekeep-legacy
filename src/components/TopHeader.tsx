@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, RadialGradient, Stop, Defs, Circle } from 'react-native-svg';
 import { useGameStore } from '../store/gameStore';
-import { CURRENT_SEASON, fmtCountdown, msLeftInSeason } from '../data/season';
+import { fmtCountdown, msLeftInSeason } from '../data/season';
 import { colors, fonts, spacing } from '../theme';
 
 // Persistent state strip. Shows team identity (crest + name) on the left,
@@ -12,6 +12,9 @@ import { colors, fonts, spacing } from '../theme';
 export default function TopHeader(): React.JSX.Element {
   const team = useGameStore((s) => s.team);
   const purse = useGameStore((s) => s.purse);
+  const seasonNumber = useGameStore((s) => s.seasonNumber);
+  const seasonStartedAt = useGameStore((s) => s.seasonStartedAt);
+  const seasonSoftCapAt = useGameStore((s) => s.seasonSoftCapAt);
 
   const teamColor = team === 'red' ? colors.team.red : colors.team.blue;
   const teamColorSoft = team === 'red' ? colors.team.redSoft : colors.team.blueSoft;
@@ -21,14 +24,20 @@ export default function TopHeader(): React.JSX.Element {
 
   // Round countdown ticker. Coarse cadence (60s) when there's still hours
   // left so we don't burn battery; switches to 1s when under an hour so
-  // the closing-minutes urgency reads in real time.
-  const [msLeft, setMsLeft] = useState(() => msLeftInSeason());
+  // the closing-minutes urgency reads in real time. msLeft is null while
+  // the store hasn't hydrated a seasonStartedAt yet — render '—' until then.
+  const [msLeft, setMsLeft] = useState(() =>
+    msLeftInSeason(seasonStartedAt, seasonSoftCapAt),
+  );
   useEffect(() => {
-    const tick = () => setMsLeft(msLeftInSeason());
-    const interval = msLeft < 60 * 60 * 1000 ? 1000 : 60 * 1000;
+    const tick = () =>
+      setMsLeft(msLeftInSeason(seasonStartedAt, seasonSoftCapAt));
+    tick();
+    const subHour = msLeft != null && msLeft < 60 * 60 * 1000;
+    const interval = subHour ? 1000 : 60 * 1000;
     const id = setInterval(tick, interval);
     return () => clearInterval(id);
-  }, [msLeft < 60 * 60 * 1000]);
+  }, [seasonStartedAt, seasonSoftCapAt, msLeft != null && msLeft < 60 * 60 * 1000]);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -59,8 +68,10 @@ export default function TopHeader(): React.JSX.Element {
           <View>
             <Text style={styles.teamName}>{teamName}</Text>
             <Text style={styles.meta}>
-              {`S${CURRENT_SEASON.number} · `}
-              <Text style={styles.metaCountdown}>{fmtCountdown(msLeft)}</Text>
+              {seasonNumber == null ? `S— · ` : `S${seasonNumber} · `}
+              <Text style={styles.metaCountdown}>
+                {msLeft == null ? '—' : fmtCountdown(msLeft)}
+              </Text>
             </Text>
           </View>
         </View>

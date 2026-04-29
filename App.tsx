@@ -14,7 +14,7 @@ import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
 import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
 import { supabase } from './src/lib/supabase';
-import { loadActiveSeasonNumber, serverRolloverSeason } from './src/lib/teams';
+import { loadActiveSeason, serverRolloverSeason } from './src/lib/teams';
 import { loadSeasonPalette, loadSeasonCraftRecipes } from './src/data/colors';
 import { loadMyBadges } from './src/lib/badges';
 
@@ -123,34 +123,36 @@ export default function App(): React.JSX.Element | null {
       }
       if (cancelled) return;
 
-      let activeNumber: number | null;
+      let active: Awaited<ReturnType<typeof loadActiveSeason>>;
       try {
-        activeNumber = await loadActiveSeasonNumber();
+        active = await loadActiveSeason();
       } catch (err) {
-        console.warn('[stridekeep] loadActiveSeasonNumber failed:', err);
+        console.warn('[stridekeep] loadActiveSeason failed:', err);
         return;
       }
       if (cancelled) return;
 
       const store = useGameStore.getState();
-      if (activeNumber === null) {
+      if (active === null) {
         store.setSeasonPalette(null);
         store.setSeasonCraftRecipes(null);
+        store.setSeasonTimes(null, null);
         return;
       }
 
       try {
         const [palette, recipes] = await Promise.all([
-          loadSeasonPalette(activeNumber),
-          loadSeasonCraftRecipes(activeNumber),
+          loadSeasonPalette(active.number),
+          loadSeasonCraftRecipes(active.number),
         ]);
         if (cancelled) return;
         const fresh = useGameStore.getState();
-        if (fresh.seasonNumber !== activeNumber) {
-          fresh.applySeasonReset(activeNumber, palette, recipes);
+        if (fresh.seasonNumber !== active.number) {
+          fresh.applySeasonReset(active.number, palette, recipes, active.startedAt, active.softCapAt);
         } else {
           fresh.setSeasonPalette(palette);
           fresh.setSeasonCraftRecipes(recipes);
+          fresh.setSeasonTimes(active.startedAt, active.softCapAt);
         }
       } catch (err) {
         console.warn('[stridekeep] palette/recipes load failed:', err);

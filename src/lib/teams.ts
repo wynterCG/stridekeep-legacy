@@ -36,19 +36,33 @@ export function subscribeTeams(
   return channel;
 }
 
-// Returns the active season's number, or null if the database is in
-// "awaiting mural" / "no active" state. Read-direct from the seasons
-// table — RLS allows authenticated SELECT (0009).
-export async function loadActiveSeasonNumber(): Promise<number | null> {
+export interface ActiveSeason {
+  number: number;
+  startedAt: string;
+  softCapAt: string | null;
+}
+
+// Returns the active season row (number + ISO timestamps), or null if
+// the database is in "awaiting mural" / "no active" state. The client
+// uses startedAt/softCapAt to drive day-of-season + countdown rendering;
+// before this loader existed, those values were a hardcoded constant in
+// src/data/season.ts that drifted by N days every time a real season
+// rolled over (see Phase-4 follow-up).
+export async function loadActiveSeason(): Promise<ActiveSeason | null> {
   const { data, error } = await supabase
     .from('seasons')
-    .select('number')
+    .select('number,started_at,soft_cap_at')
     .not('started_at', 'is', null)
     .is('ended_at', null)
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return data ? Number(data.number) : null;
+  if (!data || typeof data.started_at !== 'string') return null;
+  return {
+    number: Number(data.number),
+    startedAt: data.started_at,
+    softCapAt: typeof data.soft_cap_at === 'string' ? data.soft_cap_at : null,
+  };
 }
 
 // rollover_season RPC return shape (subset of fields per branch — see
