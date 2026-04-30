@@ -185,6 +185,12 @@ function mapPlaceResult(d: Record<string, unknown>): PlaceResult {
         activeSeasonNumber:
           d.active_season_number == null ? null : Number(d.active_season_number),
       };
+    case 'not_authenticated':
+      // Server returns this when auth.uid() is null (e.g. anon session
+      // expired between rehydrate and the RPC). The discriminator already
+      // exists on PlaceResult; mapping it here lets the UI route to a
+      // sign-in prompt instead of falling through to "unknown".
+      return { ok: false, error: 'not_authenticated' };
     default: {
       // The RPC ran (no network error) but returned an error discriminator
       // this client doesn't know. Indicates schema drift between client and

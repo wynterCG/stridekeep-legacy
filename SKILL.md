@@ -77,7 +77,7 @@ Two-level navigation:
 - 🎒 **Inventory** — grid of the current season's colors (dynamic cell count, ~10-16 per season) with qty badges; tap cell → SELL / PLACE ON CANVAS / USE IN RECIPE action sheet; badge gallery at bottom (FlatList windowed)
 - 🏛️ **Town** — season banner; side-by-side Red vs Blue canvas preview (read-only, shows both teams' progress %); TugOfWar (pixels-placed metric); 14-day countdown until cap; LiveFeed (multi-kind events)
 
-**Strict isolation (Clash Royale pattern):** each tab is its own screen. CanvasView (for placing tiles), Purse indicator, CaseCards appear ONLY on Home. Players navigate back to Home to place tiles. This is deliberate — it keeps per-tab identity clear.
+**Strict isolation (Clash Royale pattern):** each tab is its own screen. CanvasView (for placing tiles), Purse indicator, CaseCards appear ONLY on Home. Players navigate back to Home to interact with the canvas. The Inventory action sheet's PLACE ON CANVAS button is a shortcut that auto-places one tile on the first unfilled pixel of matching target color, then jumps to Home so the realtime fill is visible. The deliberate isolation keeps per-tab identity clear; the shortcut just lets a player avoid hunting for a matching pixel when they already chose the color.
 
 **No sub-tabs.** Craft modal opens from Inventory tap-on-material; Shop modal opens from Home Purse tap. Both are modals over the current tab, not separate nav entries.
 
@@ -151,7 +151,7 @@ Winning team = first to complete canvas OR higher % completion at cap. Tie at ca
 
 ### Inventory
 
-Dynamic grid sized to current season's palette (~10-16 cells). Qty per color. No slot limit, no slot upgrades (removed in Phase 4). Tap cell → action sheet: SELL (case colors only, shows decayed price) / PLACE / USE IN RECIPE.
+Dynamic grid sized to current season's palette (~10-16 cells). Qty per color. No slot limit, no slot upgrades (removed in Phase 4). Tap cell → action sheet: SELL (case colors only, shows decayed price) / PLACE ON CANVAS (auto-places one tile on the first unfilled matching pixel + navigates to Home; alerts if no matching pixel exists) / USE IN RECIPE.
 
 ### Sell decay
 
@@ -595,15 +595,21 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 
 ✅ Step 6 — Wire client to server — shipped (`eecad51` + `a0142ea` review). Real `serverPlaceTile` (jsonb → `PlaceResult` mapping with discriminated `unknown` branch for schema drift), `loadFeedEvents` + `logFeedEvent` (replacing `lib/deposits.ts`), `loadMyBadges` + `badgeImageUrl`, App.tsx `syncSeason` flow (rollover heartbeat + reset-vs-refresh decision against persisted `seasonNumber`) gated on persist hydration with single-flight guard.
 
-⏳ **Apply migrations to live `fdygeoihelpgjyhbvxgu`** (operator step). Order: 0009 → 0010 → 0011 → 0011a → 0012 → 0013 → 0014 → 0015 → 0015a. Plus `alter publication supabase_realtime add table public.canvas_pixels, public.seasons, public.user_badges`. Phase-3 master-built phone install will start console-erroring once 0012 applies (drops `deposits` table) — install the `phase-4/mural-prep-godot` branch onto the phone first, OR accept the spam window through this transition.
+✅ **Apply migrations to live `fdygeoihelpgjyhbvxgu`** — done 2026-04-30. Order applied: 0009 → 0010 → 0011 → 0011a → 0012 → 0013 → 0014 → 0015 → 0015a. Realtime publication now includes `public.canvas_pixels, public.seasons, public.user_badges`.
 
-⏳ Step 5 / S5.C — Seed Season 1 mural via the Godot tool. ComfyUI generate → curate → tool emits `seed_next_mural(...)` SQL → paste + run.
+✅ Step 5 / S5.C — Season 1 mural seeded via the Godot tool 2026-04-30. ComfyUI generate → curate → tool emits `seed_next_mural(...)` SQL → run; palette + target_pixels live.
 
-⏳ S4.B-canvas — `CanvasView` + `TilePicker` (the actual visible pixel-painting hero on Home).
+✅ S4.B-canvas — `CanvasView` + `TilePicker` shipped end-to-end on the Samsung A52 release APK 2026-04-30. Tap unfilled pixel → TilePicker → PLACE → optimistic deduct + RPC + realtime fill, all working. **Plus**: Inventory action-sheet PLACE ON CANVAS now auto-places on first unfilled matching pixel (this session's shortcut fix at [InventoryScreen.tsx](e:/Vibe%20Coding/Stridekeep/src/screens/InventoryScreen.tsx)).
+
+✅ **Code review pass (15 findings fixed) 2026-04-30.** Critical: `__DEV__`-gated `SimulateWalkButton`/`DevGrantTilesButton` so testers can't grant themselves a free inventory; pity counter only ticks on fine-tier opens (was incrementing globally and could clamp a starter case into a tier-3 legendary — loot-box anti-pattern); TugOfWar refactor lifted out of S4.D early — now reads `teams_canvas_progress.filled_count` per active season via new `loadTeamsCanvasProgress` + `teamsCanvasProgress` store field, polled by `useTownFeed`. Important: Inventory PLACE awaits the result and only navigates on success; `useCanvasLiveSync` mounts on Inventory too so cold-start-into-Inventory loads canvas data; new [src/lib/placeErrors.ts](e:/Vibe%20Coding/Stridekeep/src/lib/placeErrors.ts) helper consolidates error copy across TilePicker + Inventory; `pendingHomeNav` resets on sheet-reopen; TopHeader interval-cadence dep stabilized. Minor: deleted Phase-3 dead types (`Item`/`Rarity`/`RarityWeights`/`ITEMS_BY_TIER`), `StepCounter.tsx`, `src/data/seasons/`; `migrate` throws on unknown version; `EMPTY_FILLED` frozen-module constant for null-team selectors; `not_authenticated` mapped in `mapPlaceResult`.
+
+✅ **Account auth (optional upgrade) v1 shipped 2026-04-30.** Anon stays the cold-start default; new AccountModal (👤 icon on TopHeader) lets the player optionally **link** email+password to their anon UUID (preserves data via `supabase.auth.updateUser`), **sign in** on a new device (replaces fresh-anon session with the linked one), or **sign out** (returns to fresh anon next launch). New helpers in [src/lib/account.ts](e:/Vibe%20Coding/Stridekeep/src/lib/account.ts) discriminate Supabase errors by HTTP `error.status` first (stable contract) with message-substring fallback for sub-discrimination. Bootstrap chain extracted to [src/lib/bootstrap.ts](e:/Vibe%20Coding/Stridekeep/src/lib/bootstrap.ts) with `bootstrapInFlight` guard so AppState foreground transitions don't race AccountModal sign-in/out. AppState 'active' now calls `bootstrapAuthAndSeason` (not just `syncSeasonOnce`) so a stranded post-signOut session re-mints anon on the next foreground tick. New `resetSessionState` action on gameStore wipes the in-memory store before re-bootstrap; `useGameStore.persist.clearStorage()` is awaited before reset so AsyncStorage on disk doesn't keep the previous account's blob. **Operator step**: in Supabase dashboard, Authentication → Email provider → toggle "Confirm email" OFF for dev (matches the Witclash-documented gotcha; otherwise `updateUser({email})` hangs waiting for an inbox click). **Deferred to follow-up**: forgot-password flow (deep-link redirect needed), OAuth (Google/Apple), email confirmation re-enable, account deletion.
+
+✅ **Code review pass on account auth (10 findings fixed) 2026-04-30.** Critical: bootstrap fns moved to `src/lib/bootstrap.ts` to kill the AccountModal → App.tsx circular import; `clearStorage()` awaited before `resetSessionState` so a force-kill mid-bootstrap can't leave the previous account's persisted blob on disk under a new anon UUID. Important: Supabase error mapping switched to HTTP `error.status` discriminants (replaces brittle message-substring matching); new `rate_limited` and `email_not_confirmed` branches; `getAccountStatus` uses `is_anonymous === true` as the sole anon discriminant (email-field absence no longer misroutes the view); AppState 'active' calls `bootstrapAuthAndSeason` for stranded-session recovery; `bootstrapInFlight` guard prevents racing sync/bootstrap chains; `onRequestClose` no-ops while busy so Android back-gesture can't dismiss the modal mid-network. Minor: dropped over-strict `email.length < 4` validation; clear email/password on form-cancel; removed dead `color` style on the emoji icon.
 
 ⏳ S4.C — `ShopModal` + `CraftModal` + InventoryScreen action sheet wiring.
 
-⏳ S4.D — `SeasonEndWatcher` + `SeasonEndCeremony` (full-screen modal) + `subscribeSeasonRollover` realtime channel. Plus TugOfWar refactor to read `teams_canvas_progress.filled_count` instead of `teams.total`.
+⏳ S4.D — `SeasonEndWatcher` + `SeasonEndCeremony` (full-screen modal) + `subscribeSeasonRollover` realtime channel. (TugOfWar refactor to `teams_canvas_progress.filled_count` already shipped via the 2026-04-30 code review pass — see ✅ above.)
 
 ⏳ Step 7 — `scripts/bots.js` rewrite to emit `log_feed_event` only (atmospheric, never `place_tile`).
 

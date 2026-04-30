@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { useGameStore } from '../store/gameStore';
+import { placeErrorMessage } from '../lib/placeErrors';
 import ColorCell from './ColorCell';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -47,44 +48,7 @@ export default function TilePicker({
       setTimeout(onClose, 600);
       return;
     }
-    // Map every failure branch to a single user-facing line. We
-    // intentionally don't try to recover or branch here — the modal's
-    // job is to surface what happened and let the player retry by
-    // tapping the canvas again.
-    let message: string;
-    switch (result.error) {
-      case 'pixel_taken':
-        message = 'Beat you to it!';
-        break;
-      case 'wrong_color': {
-        const expectedName = result.expected && palette
-          ? palette[result.expected]?.name
-          : null;
-        message = expectedName
-          ? `That pixel needs ${expectedName}.`
-          : 'That pixel needs a different color.';
-        break;
-      }
-      case 'canvas_complete':
-        message = 'Canvas complete — season just ended.';
-        break;
-      case 'season_mismatch':
-        message = 'Season changed — refreshing.';
-        break;
-      case 'not_owned':
-        message = "You don't have this color.";
-        break;
-      case 'not_authenticated':
-        message = 'Not signed in.';
-        break;
-      case 'network_error':
-        message = 'Network error — try again.';
-        break;
-      case 'unknown':
-        message = 'Server returned an unknown response. Update the app.';
-        break;
-    }
-    setStatus({ kind: 'done', message });
+    setStatus({ kind: 'done', message: placeErrorMessage(result, palette) });
   };
 
   return (

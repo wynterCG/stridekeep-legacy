@@ -6,6 +6,7 @@ import { useGameStore } from '../store/gameStore';
 import { fmtCountdown, msLeftInSeason } from '../data/season';
 import { colors, fonts, spacing } from '../theme';
 import ShopModal from './ShopModal';
+import AccountModal from './AccountModal';
 
 // Persistent state strip. Shows team identity (crest + name) on the left,
 // the player's purse on the right. Sized for glance-readability in motion —
@@ -30,17 +31,23 @@ export default function TopHeader(): React.JSX.Element {
   const [msLeft, setMsLeft] = useState(() =>
     msLeftInSeason(seasonStartedAt, seasonSoftCapAt),
   );
+  // Track the cadence as discrete state so the effect's deps are stable
+  // identifiers — a boolean expression in the deps array gets recomputed
+  // every render and `react-hooks/exhaustive-deps` would auto-fix it to
+  // include msLeft, which would re-create the interval every tick under
+  // 1hr (battery drain).
+  const subHour = msLeft != null && msLeft < 60 * 60 * 1000;
   useEffect(() => {
     const tick = () =>
       setMsLeft(msLeftInSeason(seasonStartedAt, seasonSoftCapAt));
     tick();
-    const subHour = msLeft != null && msLeft < 60 * 60 * 1000;
     const interval = subHour ? 1000 : 60 * 1000;
     const id = setInterval(tick, interval);
     return () => clearInterval(id);
-  }, [seasonStartedAt, seasonSoftCapAt, msLeft != null && msLeft < 60 * 60 * 1000]);
+  }, [seasonStartedAt, seasonSoftCapAt, subHour]);
 
   const [shopOpen, setShopOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -79,18 +86,29 @@ export default function TopHeader(): React.JSX.Element {
           </View>
         </View>
 
-        <Pressable
-          style={styles.purseBlock}
-          onPress={() => setShopOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Open shop"
-        >
-          <Text style={styles.purseLabel}>PURSE</Text>
-          <Text style={styles.purseDiamond}>◆</Text>
-          <Text style={styles.purseValue}>{`$${purse.toLocaleString()}`}</Text>
-        </Pressable>
+        <View style={styles.rightCluster}>
+          <Pressable
+            onPress={() => setAccountOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open account"
+            hitSlop={6}
+          >
+            <Text style={styles.accountIcon}>👤</Text>
+          </Pressable>
+          <Pressable
+            style={styles.purseBlock}
+            onPress={() => setShopOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open shop"
+          >
+            <Text style={styles.purseLabel}>PURSE</Text>
+            <Text style={styles.purseDiamond}>◆</Text>
+            <Text style={styles.purseValue}>{`$${purse.toLocaleString()}`}</Text>
+          </Pressable>
+        </View>
       </View>
       <ShopModal visible={shopOpen} onClose={() => setShopOpen(false)} />
+      <AccountModal visible={accountOpen} onClose={() => setAccountOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -137,6 +155,15 @@ const styles = StyleSheet.create({
   },
   metaCountdown: {
     color: colors.accent.brass,
+  },
+  rightCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  accountIcon: {
+    // Color is ignored on Android color-emoji glyphs; size only.
+    fontSize: 18,
   },
   purseBlock: {
     flexDirection: 'row',

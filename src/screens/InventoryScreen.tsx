@@ -11,12 +11,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
+import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import ColorCell from '../components/ColorCell';
 import CraftModal from '../components/CraftModal';
 import { rawNextSellPrice } from '../data/colors';
+import { placeErrorMessage } from '../lib/placeErrors';
 import { todayKey } from '../native/healthConnect';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { ColorDef } from '../types';
+
+// Module-frozen empty map; see HomeScreen for the rationale (avoid fresh
+// `{}` literals from the canvasFilled selector causing spurious re-renders).
+const EMPTY_FILLED: Readonly<Record<number, string>> = Object.freeze({});
 
 // Phase-4 inventory: per-season palette grid + persistent badge gallery +
 // tap-to-act action sheet (S4.C). Tapping a kept color (qty > 0) opens
@@ -24,8 +30,10 @@ import type { ColorDef } from '../types';
 //   - SELL (case category only): single tile sale at the next decayed
 //     price tier. Live-previews the actual amount the player will earn
 //     before they confirm.
-//   - PLACE ON CANVAS: navigates to the Home tab so the player can tap
-//     a target pixel matching this color.
+//   - PLACE ON CANVAS: places one tile on the first unfilled pixel of
+//     the team canvas that needs this color, then navigates to Home so
+//     the player sees the realtime fill animate in. Inventory deducts
+//     optimistically inside placeTile().
 //   - CRAFT WITH: only shown if this color appears in any of this
 //     season's recipes. Opens CraftModal pre-filtered to those recipes.
 //
@@ -37,8 +45,18 @@ export default function InventoryScreen(): React.JSX.Element {
   const seasonCraftRecipes = useGameStore((s) => s.seasonCraftRecipes);
   const sellHistory = useGameStore((s) => s.sellHistory);
   const sellTile = useGameStore((s) => s.sellTile);
+  const placeTile = useGameStore((s) => s.placeTile);
+  const team = useGameStore((s) => s.team);
+  const seasonNumber = useGameStore((s) => s.seasonNumber);
+  const canvasTargetPixels = useGameStore((s) => s.canvasTargetPixels);
+  const teamFilled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
   const badges = useGameStore((s) => s.badges);
   const navigation = useNavigation();
+  // Subscribe + bulk-load canvas state while Inventory is focused. Without
+  // this, a cold-start-into-Inventory user has canvasTargetPixels=null and
+  // the PLACE-on-canvas action falls through to "Canvas not ready" until
+  // they visit Home. With Inventory also subscribing, either tab covers it.
+  useCanvasLiveSync(team, seasonNumber);
 
   const paletteEntries = seasonPalette ? Object.values(seasonPalette) : [];
 
@@ -60,22 +78,11 @@ export default function InventoryScreen(): React.JSX.Element {
     const nav = navigation as unknown as {
       jumpTo?: (route: string) => void;
       navigate?: (route: string) => void;
-      dispatch?: (action: unknown) => void;
     };
-    const navKeys = Object.keys(nav as object).join(',');
-    Alert.alert('useEffect fired', `keys: ${navKeys}\nhasJumpTo: ${typeof nav.jumpTo === 'function'}\nhasNavigate: ${typeof nav.navigate === 'function'}`);
-    try {
-      if (typeof nav.jumpTo === 'function') {
-        nav.jumpTo('Home');
-        Alert.alert('jumpTo called');
-      } else if (typeof nav.navigate === 'function') {
-        nav.navigate('Home');
-        Alert.alert('navigate called (no jumpTo)');
-      } else {
-        Alert.alert('no nav method', 'neither jumpTo nor navigate exists');
-      }
-    } catch (e) {
-      Alert.alert('nav threw', String(e));
+    if (typeof nav.jumpTo === 'function') {
+      nav.jumpTo('Home');
+    } else if (typeof nav.navigate === 'function') {
+      nav.navigate('Home');
     }
   }, [pendingHomeNav, actionFor, navigation]);
 
@@ -106,6 +113,14 @@ export default function InventoryScreen(): React.JSX.Element {
   }, [seasonCraftRecipes]);
 
   const closeSheet = () => setActionFor(null);
+  // Opening any new sheet invalidates a still-queued PLACE-from-Inventory
+  // navigation. Without this reset, this sequence yanks the user to Home
+  // unexpectedly: tap PLACE → tap a different color cell before the
+  // useEffect navigates → cancel that new sheet → effect fires nav.
+  const openSheet = (color: ColorDef) => {
+    setPendingHomeNav(false);
+    setActionFor(color);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -140,7 +155,7 @@ export default function InventoryScreen(): React.JSX.Element {
               return interactive ? (
                 <Pressable
                   key={color.id}
-                  onPress={() => setActionFor(color)}
+                  onPress={() => openSheet(color)}
                   style={styles.cellWrap}
                 >
                   {inner}
@@ -216,10 +231,49 @@ export default function InventoryScreen(): React.JSX.Element {
 
               <Pressable
                 style={styles.sheetAction}
-                onPress={() => {
-                  Alert.alert('PLACE pressed', 'About to jump to Home');
-                  setPendingHomeNav(true);
+                onPress={async () => {
+                  const colorId = actionFor.id;
+                  if (!canvasTargetPixels) {
+                    Alert.alert('Canvas not ready', 'Try again in a moment.');
+                    return;
+                  }
+                  // Find the first unfilled pixel that needs this color.
+                  // V8 iterates integer-indexable string keys in ascending
+                  // numeric order, so this picks the top-left-most matching
+                  // pixel deterministically. We collect-and-sort defensively
+                  // so behavior doesn't depend on engine quirks.
+                  const candidates: number[] = [];
+                  for (const [k, needs] of Object.entries(canvasTargetPixels)) {
+                    if (needs !== colorId) continue;
+                    const idx = Number(k);
+                    if (!Number.isInteger(idx)) continue;
+                    if (teamFilled[idx]) continue;
+                    candidates.push(idx);
+                  }
+                  candidates.sort((a, b) => a - b);
+                  const targetIdx = candidates.length > 0 ? candidates[0] : null;
+                  if (targetIdx === null) {
+                    Alert.alert(
+                      'No matching pixel',
+                      "Your team's canvas has no unfilled pixels of this color.",
+                    );
+                    return;
+                  }
+                  // Close the sheet immediately for tap responsiveness, then
+                  // await the RPC. Only navigate on success — a `pixel_taken`
+                  // race or network error rolls back the optimistic deduct
+                  // and we keep the player on Inventory so they can retry
+                  // (rather than yanking them to Home with nothing visible).
                   closeSheet();
+                  const result = await placeTile(colorId, targetIdx);
+                  if (!result.ok) {
+                    Alert.alert(
+                      'Place failed',
+                      placeErrorMessage(result, seasonPalette),
+                    );
+                    return;
+                  }
+                  setPendingHomeNav(true);
                 }}
               >
                 <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>

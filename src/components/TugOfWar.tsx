@@ -3,25 +3,25 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { colors, fonts, radii, spacing } from '../theme';
 
-function fmtMoney(n: number): string {
-  if (n < 1000) return `$${n}`;
-  if (n < 10000) return `$${(n / 1000).toFixed(1)}K`;
-  if (n < 1000000) return `$${Math.round(n / 1000)}K`;
-  return `$${(n / 1000000).toFixed(2)}M`;
+function fmtPx(n: number): string {
+  if (n < 1000) return `${n}`;
+  if (n < 10000) return `${(n / 1000).toFixed(1)}K`;
+  return `${Math.round(n / 1000)}K`;
 }
 
-// Round scoreboard. Reads team totals directly from the store (the same
-// numbers that gate milestones on Home) so the amounts are meaningful and
-// persistent — not arbitrary 1-hour windows.
+// Phase-4 round scoreboard. Reads teams_canvas_progress.filled_count for
+// the active season — pixels placed on each team's canvas — refreshed by
+// useTownFeed's poll. Replaces the Phase-3 dollar tug-of-war.
 //
 // Visual: each team's bar extends FROM CENTER outward, length proportional
-// to that team's total relative to max(red, blue). Brass marker sits at
+// to that team's count relative to max(red, blue). Brass marker sits at
 // (blue / total) * 100% — moves toward the leader's side, clamped to
 // [8, 92] so it never disappears off-edge.
 export default function TugOfWar(): React.JSX.Element {
-  const teamTotals = useGameStore((s) => s.teamTotals);
-  const red = teamTotals.red;
-  const blue = teamTotals.blue;
+  const progress = useGameStore((s) => s.teamsCanvasProgress);
+  const seasonNumber = useGameStore((s) => s.seasonNumber);
+  const red = progress.red;
+  const blue = progress.blue;
   const total = red + blue;
   const empty = total === 0;
   const max = Math.max(red, blue, 1);
@@ -38,7 +38,7 @@ export default function TugOfWar(): React.JSX.Element {
       <View style={styles.row}>
         <View style={styles.side}>
           <Text style={[styles.team, { color: colors.team.red }]}>RED</Text>
-          <Text style={styles.amount}>{fmtMoney(red)}</Text>
+          <Text style={styles.amount}>{fmtPx(red)}</Text>
         </View>
 
         <View style={styles.track}>
@@ -56,13 +56,15 @@ export default function TugOfWar(): React.JSX.Element {
 
         <View style={styles.side}>
           <Text style={[styles.team, { color: colors.team.blue }]}>BLUE</Text>
-          <Text style={styles.amount}>{fmtMoney(blue)}</Text>
+          <Text style={styles.amount}>{fmtPx(blue)}</Text>
         </View>
       </View>
 
       <View style={styles.leadBar}>
-        {empty ? (
-          <Text style={styles.leadEmpty}>NO TEAM HAS BUILT YET</Text>
+        {seasonNumber === null ? (
+          <Text style={styles.leadEmpty}>NO ACTIVE SEASON</Text>
+        ) : empty ? (
+          <Text style={styles.leadEmpty}>AWAITING FIRST PIXEL</Text>
         ) : leader === 'tie' ? (
           <Text style={styles.leadTied}>PERFECTLY TIED</Text>
         ) : (
@@ -75,7 +77,7 @@ export default function TugOfWar(): React.JSX.Element {
             >
               {leader === 'red' ? '🟥 RED AHEAD BY' : '🟦 BLUE AHEAD BY'}
             </Text>
-            <Text style={styles.leadAmt}>{fmtMoney(lead)}</Text>
+            <Text style={styles.leadAmt}>{`${fmtPx(lead)} px`}</Text>
           </>
         )}
       </View>

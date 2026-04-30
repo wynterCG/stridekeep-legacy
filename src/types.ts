@@ -1,5 +1,3 @@
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-
 export type Team = 'red' | 'blue';
 
 // Case tiers and color tiers are the same union in Phase 4 — a case of tier T
@@ -8,24 +6,11 @@ export type Team = 'red' | 'blue';
 // opening" stay readable.
 export type CaseTier = ColorTier;
 
-export type RarityWeights = Partial<Record<Rarity, number>>;
-
 export interface Case {
   tier: CaseTier;
   name: string;
   emoji: string;
   stepsRequired: number;
-  valueBand: { min: number; max: number };
-  rarityWeights: RarityWeights;
-}
-
-export interface Item {
-  id: string;
-  name: string;
-  emoji: string;
-  rarity: Rarity;
-  tier: CaseTier;
-  value: number;
 }
 
 export interface CaseState {

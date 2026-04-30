@@ -54,10 +54,18 @@ interface GameState {
   // color). canvasFilled[team] is the team's placed pixels.
   canvasTargetPixels: Record<number, string> | null;
   canvasFilled: { red: Record<number, string>; blue: Record<number, string> };
-  // Pity counter. Increments on any case roll whose color is NOT fine-tier;
-  // resets when a fine-tier color drops or at season rollover. When
-  // pityCounter.fine >= BALANCE.pity.fine.threshold, the next case roll
-  // forces a fine-tier color regardless of which case the player opened.
+  // Server-maintained filled_count from teams_canvas_progress, refreshed by
+  // useTownFeed's poll. Drives TugOfWar's "RED 247 · BLUE 198" display.
+  // Independent from canvasFilled (which only mirrors the player's team for
+  // the canvas hero render); this tracks BOTH teams for Town.
+  teamsCanvasProgress: { red: number; blue: number };
+  // Pity counter. Increments on each FINE-tier case open whose roll did NOT
+  // produce a fine-tier color; resets when a fine-tier color drops or at
+  // season rollover. When pityCounter.fine >= BALANCE.pity.fine.threshold,
+  // the next FINE-tier open forces a fine-tier color. Lower-tier opens
+  // (starter/quality) never touch this counter — gating it would let a
+  // string of starter cases yank a tier-3 legendary out of a 200-step case
+  // (the loot-box jackpot anti-pattern in SKILL.md §8).
   pityCounter: { fine: number };
   // Intra-day sell-decay history. Resets at midnight (when date changes)
   // and at season rollover.
@@ -104,11 +112,18 @@ interface GameActions {
   setCanvasTargetPixels: (pixels: Record<number, string> | null) => void;
   setTeamCanvas: (team: Team, pixels: Record<number, string>) => void;
   applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
+  setTeamsCanvasProgress: (progress: { red: number; blue: number }) => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
   // colors. Only callable from a __DEV__-gated UI surface.
   devGrantOneOfEach: () => void;
+  // Wipe every account-scoped field back to initialState. Called by
+  // AccountModal before re-bootstrapping a different auth session
+  // (sign-in on new device / sign-out → fresh anon). The next bootstrap
+  // pass repopulates team / inventory / badges / canvas state from the
+  // server for whichever UUID is now active.
+  resetSessionState: () => void;
 }
 
 type GameStore = GameState & GameActions;
@@ -138,6 +153,7 @@ const initialState: GameState = {
   seasonCraftRecipes: null,
   canvasTargetPixels: null,
   canvasFilled: { red: {}, blue: {} },
+  teamsCanvasProgress: { red: 0, blue: 0 },
   pityCounter: { fine: 0 },
   sellHistory: { date: todayKey(), counts: {} },
   lastSimulateAt: 0,
@@ -256,16 +272,25 @@ export const useGameStore = create<GameStore>()(
         // into caseState.progress by applyRealSteps; nothing is lost.
         if (seasonPalette === null) return null;
 
-        const pityHit = pityCounter.fine >= BALANCE.pity.fine.threshold;
+        // Pity only fires on fine-tier opens. Cheaper tiers can't roll fine
+        // colors anyway, and gating pity globally would convert a streak of
+        // starters into a tier-3 jackpot (see pityCounter doc-comment).
+        const pityHit =
+          tier === 'fine' && pityCounter.fine >= BALANCE.pity.fine.threshold;
         const colorId = rollColorFromCase(seasonPalette, tier, pityHit);
         if (colorId === null) return null;
 
         const rolledTier = (seasonPalette[colorId]?.tier ?? tier) as CaseTier;
         const newPending = caseState[tier].pending - 1;
+        // Only fine-tier opens move the counter. Reset on a fine drop;
+        // increment when a fine-tier open misses; lower-tier opens leave
+        // it alone.
         const newPity =
-          rolledTier === 'fine'
-            ? { fine: 0 }
-            : { fine: pityCounter.fine + 1 };
+          tier === 'fine'
+            ? rolledTier === 'fine'
+              ? { fine: 0 }
+              : { fine: pityCounter.fine + 1 }
+            : pityCounter;
         const newInventory: Record<string, number> = {
           ...inventory,
           [colorId]: (inventory[colorId] ?? 0) + 1,
@@ -422,6 +447,7 @@ export const useGameStore = create<GameStore>()(
           seasonCraftRecipes: newRecipes,
           canvasTargetPixels: null,
           canvasFilled: { red: {}, blue: {} },
+          teamsCanvasProgress: { red: 0, blue: 0 },
         });
       },
 
@@ -458,6 +484,9 @@ export const useGameStore = create<GameStore>()(
           },
         })),
 
+      setTeamsCanvasProgress: (progress: { red: number; blue: number }) =>
+        set({ teamsCanvasProgress: progress }),
+
       devGrantOneOfEach: () =>
         set((s) => {
           if (!s.seasonPalette) return {};
@@ -468,6 +497,8 @@ export const useGameStore = create<GameStore>()(
           }
           return { inventory: next };
         }),
+
+      resetSessionState: () => set(initialState),
     }),
     {
       name: 'stridekeep-game-state',
@@ -482,7 +513,14 @@ export const useGameStore = create<GameStore>()(
       // onRehydrateStorage below is the actual safety net; this migrate exists
       // only to handle FUTURE versioned migrations (Phase-4 → Phase-5+).
       migrate: (_persisted, version) => {
-        if (version !== 1) return undefined as unknown as GameStore;
+        if (version !== 1) {
+          // Future-you bumped the version without writing a migration step.
+          // Returning undefined would crash hydration silently; throwing
+          // surfaces the missing migration during the next dev launch.
+          throw new Error(
+            `[stridekeep] no migration registered for persist version ${version}`,
+          );
+        }
         return _persisted as GameStore;
       },
       // seasonPalette + seasonCraftRecipes + canvas state are server data,
@@ -493,6 +531,7 @@ export const useGameStore = create<GameStore>()(
           seasonCraftRecipes: _r,
           canvasTargetPixels: _t,
           canvasFilled: _f,
+          teamsCanvasProgress: _tp,
           ...rest
         } = state;
         return rest as GameStore;

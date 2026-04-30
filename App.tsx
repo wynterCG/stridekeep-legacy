@@ -12,11 +12,11 @@ import RootTabs from './src/navigation/RootTabs';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
-import { ensureSignedIn, fetchMyTeam } from './src/lib/auth';
 import { supabase } from './src/lib/supabase';
-import { loadActiveSeason, serverRolloverSeason } from './src/lib/teams';
-import { loadSeasonPalette, loadSeasonCraftRecipes } from './src/data/colors';
-import { loadMyBadges } from './src/lib/badges';
+import {
+  bootstrapAuthAndSeason,
+  isBootstrapInFlight,
+} from './src/lib/bootstrap';
 
 const BOT_TICK_MS = 4_000;
 
@@ -84,134 +84,32 @@ export default function App(): React.JSX.Element | null {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    // Single-flight guard. AppState foreground transitions can arrive
-    // mid-syncSeason (slow network, user task-switching), and without
-    // this guard two concurrent syncs can complete out of order — the
-    // later setSeasonPalette / setSeasonCraftRecipes write overwrites
-    // the fresher first one. Drop foreground triggers while a sync
-    // is in flight; the in-flight one will finish + the next foreground
-    // transition will re-sync naturally.
-    let syncInFlight = false;
-
-    // Season sync: idempotent rollover heartbeat + palette/recipes load.
-    // Decides reset-vs-refresh by comparing persisted store.seasonNumber
-    // against the server's active season:
-    //   - state.seasonNumber === activeNumber → setSeasonPalette /
-    //     setSeasonCraftRecipes (refresh server data, keep intra-season
-    //     state).
-    //   - state.seasonNumber !== activeNumber (first install OR missed a
-    //     rollover offline) → applySeasonReset (wipes intra-season state
-    //     + swaps in new palette/recipes).
-    //   - activeNumber === null (awaiting-mural state) → clear any stale
-    //     palette so empty states render correctly.
-    const syncSeason = async () => {
-      if (syncInFlight) return;
-      syncInFlight = true;
-      try {
-        await syncSeasonInner();
-      } finally {
-        syncInFlight = false;
-      }
-    };
-
-    const syncSeasonInner = async () => {
-      try {
-        await serverRolloverSeason();
-      } catch (err) {
-        console.warn('[stridekeep] rollover_season failed:', err);
-      }
-      if (cancelled) return;
-
-      let active: Awaited<ReturnType<typeof loadActiveSeason>>;
-      try {
-        active = await loadActiveSeason();
-      } catch (err) {
-        console.warn('[stridekeep] loadActiveSeason failed:', err);
-        return;
-      }
-      if (cancelled) return;
-
-      const store = useGameStore.getState();
-      if (active === null) {
-        store.setSeasonPalette(null);
-        store.setSeasonCraftRecipes(null);
-        store.setSeasonTimes(null, null);
-        return;
-      }
-
-      try {
-        const [palette, recipes] = await Promise.all([
-          loadSeasonPalette(active.number),
-          loadSeasonCraftRecipes(active.number),
-        ]);
-        if (cancelled) return;
-        const fresh = useGameStore.getState();
-        if (fresh.seasonNumber !== active.number) {
-          fresh.applySeasonReset(active.number, palette, recipes, active.startedAt, active.softCapAt);
-        } else {
-          fresh.setSeasonPalette(palette);
-          fresh.setSeasonCraftRecipes(recipes);
-          fresh.setSeasonTimes(active.startedAt, active.softCapAt);
-        }
-      } catch (err) {
-        console.warn('[stridekeep] palette/recipes load failed:', err);
-      }
-    };
-
-    const bootstrapBadges = async () => {
-      try {
-        const badges = await loadMyBadges();
-        if (cancelled) return;
-        useGameStore.getState().setBadges(badges);
-      } catch (err) {
-        console.warn('[stridekeep] loadMyBadges failed:', err);
-      }
-    };
-
-    const runBootstrap = async () => {
-      try {
-        await ensureSignedIn();
-        if (cancelled) return;
-        const team = await fetchMyTeam();
-        if (cancelled) return;
-        useGameStore.getState().setTeam(team);
-        // Initial teamTotals load + ongoing realtime subscription is the
-        // responsibility of useTeamsLiveSync (called from HomeScreen) so the
-        // WebSocket only stays open while the user is actively watching.
-      } catch (err) {
-        console.warn('[stridekeep] auth bootstrap failed:', err);
-        return;
-      }
-      // Season + badges run after auth. Season sync re-runs on every
-      // foreground transition (below); badges only on cold start.
-      await Promise.all([syncSeason(), bootstrapBadges()]);
-    };
-
-    // Gate bootstrap on persist hydration so syncSeason reads the correct
-    // persisted seasonNumber rather than the initial-state null.
+    // Cold-start: run the full bootstrap once persist has hydrated so
+    // syncSeason reads the persisted seasonNumber (not the initial null).
+    // bootstrapAuthAndSeason is module-level so AccountModal can re-run
+    // it after sign-in / sign-out without going through this effect.
     const start = () => {
-      if (!cancelled) void runBootstrap();
+      void bootstrapAuthAndSeason();
     };
     const unsubHydrate = useGameStore.persist.hasHydrated()
       ? (start(), () => {})
       : useGameStore.persist.onFinishHydration(start);
 
-    // Re-sync on foreground. rollover_season is the heartbeat and the
-    // function is idempotent — safe to call on every transition.
-    //
-    // Note: AppState.addEventListener('change') only fires on actual
-    // transitions, NOT for the initial 'active' state at mount time.
-    // The cold-start sync is covered by runBootstrap above (via the
-    // persist-hydration gate). Don't break this chain in future edits.
+    // Re-sync on foreground. We call the FULL bootstrap (not just
+    // syncSeasonOnce) so a stranded post-signOut session — where
+    // signOutAccount succeeded but the immediate ensureSignedIn failed
+    // for network reasons — gets a chance to re-mint an anon session
+    // on the next foreground transition. The internal guards short-
+    // circuit if a bootstrap is already in flight (e.g. AccountModal
+    // sign-in mid-call), so this is a no-op in the common case.
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active' && useGameStore.persist.hasHydrated()) {
-        void syncSeason();
-      }
+      if (s !== 'active') return;
+      if (!useGameStore.persist.hasHydrated()) return;
+      if (isBootstrapInFlight()) return;
+      void bootstrapAuthAndSeason();
     });
 
     return () => {
-      cancelled = true;
       unsubHydrate();
       sub.remove();
     };

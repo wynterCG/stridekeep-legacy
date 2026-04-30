@@ -15,6 +15,11 @@ import { colors, fonts, spacing } from '../theme';
 
 const CANVAS_W = 32;
 const CANVAS_H = 32;
+// Module-frozen empty map. Returned from the canvasFilled selector when
+// `team` is still null (briefly during boot) so Zustand's reference-equality
+// check doesn't see a fresh `{}` literal each render and force a re-render
+// on every unrelated store change.
+const EMPTY_FILLED: Readonly<Record<number, string>> = Object.freeze({});
 
 // Phase-4 hero: the player's team canvas paints in real time as teammates
 // place tiles. Tap an unfilled pixel → TilePicker modal. Below the canvas
@@ -26,7 +31,7 @@ export default function HomeScreen(): React.JSX.Element {
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const targetPixels = useGameStore((s) => s.canvasTargetPixels);
   const palette = useGameStore((s) => s.seasonPalette);
-  const filled = useGameStore((s) => (team ? s.canvasFilled[team] : {}));
+  const filled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
   useCanvasLiveSync(team, seasonNumber);
 
   const [pickerPixel, setPickerPixel] = useState<number | null>(null);
@@ -79,9 +84,12 @@ export default function HomeScreen(): React.JSX.Element {
         <CaseCard tier="fine" />
         <CaseCard tier="quality" />
         <CaseCard tier="starter" />
-        {/* Dev surfaces — drop these (or re-add a __DEV__ gate) before public beta. */}
-        <SimulateWalkButton />
-        <DevGrantTilesButton />
+        {__DEV__ && (
+          <>
+            <SimulateWalkButton />
+            <DevGrantTilesButton />
+          </>
+        )}
       </ScrollView>
 
       {pickerPixel !== null && targetColorId && (

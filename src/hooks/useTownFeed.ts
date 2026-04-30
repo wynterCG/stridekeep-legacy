@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadFeedEvents } from '../lib/feedEvents';
 import { loadInitialTeams } from '../lib/teams';
+import { loadTeamsCanvasProgress } from '../lib/canvas';
 import type { FeedEvent } from '../types';
 import { useGameStore } from '../store/gameStore';
 
@@ -40,14 +41,31 @@ export function useTownFeed(): { events: FeedEvent[]; loading: boolean } {
       lastSeenIdRef.current = null;
       inFlightRef.current = false;
 
-      const fullSnapshot = async () => {
-        const [rows, totals] = await Promise.all([
-          loadFeedEvents({ limit: FEED_CAP }),
+      // Refreshes both team scoreboards in one shot. teams.total is the
+      // lifetime canvases-won counter (kept current for future use); the
+      // Phase-4 TugOfWar metric is teams_canvas_progress.filled_count for
+      // the active season, which we fetch only when a season is active.
+      const refreshScoreboards = async () => {
+        const seasonNumber = useGameStore.getState().seasonNumber;
+        const [totals, progress] = await Promise.all([
           loadInitialTeams(),
+          seasonNumber === null
+            ? Promise.resolve(null)
+            : loadTeamsCanvasProgress(seasonNumber),
+        ]);
+        if (!activeRef) return;
+        const store = useGameStore.getState();
+        store.setTeamTotals(totals);
+        if (progress) store.setTeamsCanvasProgress(progress);
+      };
+
+      const fullSnapshot = async () => {
+        const [rows] = await Promise.all([
+          loadFeedEvents({ limit: FEED_CAP }),
+          refreshScoreboards(),
         ]);
         if (!activeRef) return;
         setEvents(rows);
-        useGameStore.getState().setTeamTotals(totals);
         if (rows.length > 0) lastSeenIdRef.current = rows[0].id;
       };
 
@@ -57,15 +75,13 @@ export function useTownFeed(): { events: FeedEvent[]; loading: boolean } {
           await fullSnapshot();
           return;
         }
-        const [newRows, totals] = await Promise.all([
+        const [newRows] = await Promise.all([
           loadFeedEvents({ sinceId, limit: FEED_CAP }),
-          loadInitialTeams(),
+          // Scoreboards are small (4 rows total) and TugOfWar needs them
+          // fresh — refresh on every poll regardless of whether feed changed.
+          refreshScoreboards(),
         ]);
         if (!activeRef) return;
-        // teamTotals is small (2 rows × ~64 bytes) and TugOfWar needs it
-        // fresh — refresh on every poll regardless of whether feed
-        // changed.
-        useGameStore.getState().setTeamTotals(totals);
         if (newRows.length === 0) return;
         lastSeenIdRef.current = newRows[0].id;
         setEvents((prev) => [...newRows, ...prev].slice(0, FEED_CAP));

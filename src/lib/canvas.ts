@@ -56,6 +56,28 @@ export async function loadTeamCanvas(
   return out;
 }
 
+// Bulk-loads both teams' filled_count for the active season. Returned by
+// teams_canvas_progress (a server-maintained materialized counter, not a
+// client-side aggregation over canvas_pixels). Used by TugOfWar so the
+// per-team pixel count stays cheap regardless of how many pixels have
+// been placed.
+export async function loadTeamsCanvasProgress(
+  seasonNumber: number,
+): Promise<{ red: number; blue: number }> {
+  const { data, error } = await supabase
+    .from('teams_canvas_progress')
+    .select('team,filled_count')
+    .eq('season_number', seasonNumber);
+  if (error) throw error;
+  const out = { red: 0, blue: 0 };
+  for (const row of data ?? []) {
+    const n = Number(row.filled_count) || 0;
+    if (row.team === 'red') out.red = n;
+    else if (row.team === 'blue') out.blue = n;
+  }
+  return out;
+}
+
 // Realtime subscription on canvas_pixels filtered to the current season +
 // team. We subscribe per-team (not "all canvas changes") because the Home
 // hero only renders the player's team — opponent updates don't need to
