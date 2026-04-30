@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import InventoryScreen from '../screens/InventoryScreen';
-import TownScreen from '../screens/TownScreen';
+import MuralScreen from '../screens/MuralScreen';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -50,11 +50,11 @@ export default function RootTabs(): React.JSX.Element {
         }}
       />
       <Tab.Screen
-        name="Town"
-        component={TownScreen}
+        name="Mural"
+        component={MuralScreen}
         options={{
-          tabBarLabel: 'TOWN',
-          tabBarIcon: tabIcon('🏛️'),
+          tabBarLabel: 'MURAL',
+          tabBarIcon: tabIcon('🎨'),
         }}
       />
     </Tab.Navigator>

@@ -23,6 +23,7 @@ import {
   type SignInResult,
 } from '../lib/account';
 import { bootstrapAuthAndSeason } from '../lib/bootstrap';
+import { success } from '../lib/haptics';
 import { colors, fonts, radii, spacing } from '../theme';
 
 interface Props {
@@ -105,6 +106,8 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
       return;
     }
     // Same UUID — no store reset needed. Just refresh the status view.
+    useGameStore.getState().setAccountLinked(true);
+    success();
     setStatus({ kind: 'linked', email: email.trim() });
     setView({ kind: 'status' });
     setPassword('');
@@ -125,9 +128,12 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
       return;
     }
     // Different UUID now active — clear persisted blob, reset in-memory
-    // store, then re-bootstrap so the new account's data loads.
+    // store, then re-bootstrap so the new account's data loads. The
+    // bootstrap re-hydrates `accountLinked` via getAccountStatus, so we
+    // don't need to setAccountLinked here.
     await swapSession();
     setBusy(false);
+    success();
     setStatus({ kind: 'linked', email: email.trim() });
     setView({ kind: 'status' });
     setPassword('');
@@ -147,6 +153,7 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
             try {
               await signOutAccount();
               await swapSession();
+              success();
               setStatus({ kind: 'anon' });
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Sign out failed.');

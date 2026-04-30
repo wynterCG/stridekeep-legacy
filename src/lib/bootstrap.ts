@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/gameStore';
 import { ensureSignedIn, fetchMyTeam } from './auth';
+import { getAccountStatus } from './account';
 import { loadActiveSeason, serverRolloverSeason } from './teams';
 import { loadSeasonPalette, loadSeasonCraftRecipes } from '../data/colors';
 import { loadMyBadges } from './badges';
@@ -91,6 +92,15 @@ export async function bootstrapAuthAndSeason(): Promise<void> {
     } catch (err) {
       console.warn('[stridekeep] auth bootstrap failed:', err);
       return;
+    }
+    // Hydrate the cached link-state for TopHeader's AccountChip. Cheap
+    // one local-session read; non-fatal if it fails (chip stays in its
+    // last-known state, which defaults to anon).
+    try {
+      const status = await getAccountStatus();
+      useGameStore.getState().setAccountLinked(status.kind === 'linked');
+    } catch (err) {
+      console.warn('[stridekeep] getAccountStatus failed:', err);
     }
     await Promise.all([syncSeasonOnce(), bootstrapBadges()]);
   } finally {

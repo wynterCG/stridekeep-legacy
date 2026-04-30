@@ -36,7 +36,7 @@ export function useTownFeed(): { events: FeedEvent[]; loading: boolean } {
   useFocusEffect(
     useCallback(() => {
       let activeRef = true;
-      // Reset on every focus so re-entering Town does a clean snapshot
+      // Reset on every focus so re-entering the Mural tab does a clean snapshot
       // (catches up on whatever happened while we were away).
       lastSeenIdRef.current = null;
       inFlightRef.current = false;

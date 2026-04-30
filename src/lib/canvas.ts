@@ -81,7 +81,7 @@ export async function loadTeamsCanvasProgress(
 // Realtime subscription on canvas_pixels filtered to the current season +
 // team. We subscribe per-team (not "all canvas changes") because the Home
 // hero only renders the player's team — opponent updates don't need to
-// drive re-renders here. (Town's side-by-side previews are S4.D scope and
+// drive re-renders here. (The Mural tab's side-by-side previews are S4.D scope and
 // will subscribe separately.) INSERT-only is sufficient: place_tile only
 // inserts; pixels are never updated or deleted.
 export function subscribeCanvasPixels(

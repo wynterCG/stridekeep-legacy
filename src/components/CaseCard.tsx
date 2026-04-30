@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  findNodeHandle,
+} from 'react-native';
 import type { CaseTier } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { CASES } from '../data/cases';
+import { tapLight, tapMedium, success } from '../lib/haptics';
 import ColorCell from './ColorCell';
 import { colors, fonts, radii, spacing } from '../theme';
 
 interface Props {
   tier: CaseTier;
+  // Optional auto-scroll callback. CaseCard fires this with its top-y in
+  // scroll-view coordinates when the reveal panel mounts, so the parent
+  // ScrollView can bring the panel into view (otherwise the bottom case
+  // can have its reveal panel cut off by the bottom nav).
+  onReveal?: (y: number) => void;
+  scrollRef?: React.RefObject<ScrollView | null>;
 }
 
 type RevealState =
   | { phase: 'idle' }
   | { phase: 'revealed'; colorId: string; rolledTier: CaseTier };
+
+const RARE_FLASH_DROP_WEIGHT = 15;
 
 function fmtSteps(n: number): string {
   if (n < 1000) return n.toString();
@@ -20,17 +38,48 @@ function fmtSteps(n: number): string {
   return `${Math.round(n / 1000)}K`;
 }
 
-// Compact case row. OPEN tap mints the rolled color directly to inventory
-// (the Phase-3 keep/sell choice is gone — sells happen later from the
-// inventory grid). The reveal panel below the row shows the rolled color
-// via ColorCell so the player can see what they got and dismiss.
-export default function CaseCard({ tier }: Props): React.JSX.Element {
+// Compact case row. OPEN tap mints the rolled color directly to inventory.
+// The reveal panel below the row shows the rolled color via ColorCell.
+//
+// Reveal animation (built-in Animated API):
+//   1. OPEN press → light haptic + medallion squash-and-stretch
+//   2. Reveal panel slides + fades in (320ms)
+//   3. ColorCell scales from 0.4 → 1.0 with bounce
+//   4. Tier-3 + dropWeightPct < 15 (rarest fine-tier colors) get a radial
+//      flash overlay in the rolled hex per SKILL.md §7
+//   5. Tier-aware impact at swatch landing (success/medium/light)
+//
+// Uses React Native's built-in Animated API rather than Reanimated —
+// Reanimated v4 needs new-arch (incompatible with health-connect) and v3
+// is unreliable on Expo SDK 54 / old-arch. Built-in Animated handles
+// these simple scale/opacity/translate sequences fine.
+export default function CaseCard({ tier, onReveal, scrollRef }: Props): React.JSX.Element {
   const caseData = CASES[tier];
   const caseState = useGameStore((s) => s.caseState[tier]);
   const openCase = useGameStore((s) => s.openCase);
   const seasonPalette = useGameStore((s) => s.seasonPalette);
 
   const [reveal, setReveal] = useState<RevealState>({ phase: 'idle' });
+  const cardRef = useRef<View>(null);
+
+  // When the reveal panel mounts, ask the parent to scroll the card into
+  // view. We delay one frame so the panel's mounted height is reflected
+  // in measureLayout — without the delay the card's measured height is
+  // its compact pre-expansion size and the scroll target lands too high.
+  useEffect(() => {
+    if (reveal.phase !== 'revealed') return;
+    if (!onReveal || !scrollRef?.current) return;
+    const handle = findNodeHandle(scrollRef.current);
+    if (handle == null) return;
+    const t = setTimeout(() => {
+      cardRef.current?.measureLayout(
+        handle,
+        (_x, y) => onReveal(y),
+        () => {},
+      );
+    }, 60);
+    return () => clearTimeout(t);
+  }, [reveal.phase, onReveal, scrollRef]);
 
   const progress = caseState.progress;
   const pending = caseState.pending;
@@ -40,15 +89,100 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
 
   const tierAccent = TIER_STYLE[tier];
 
+  // Animated values for the reveal sequence. Created once per CaseCard
+  // mount via useRef so they survive across re-renders without being
+  // re-instantiated.
+  const medallionScale = useRef(new Animated.Value(1)).current;
+  const panelOpacity = useRef(new Animated.Value(0)).current;
+  const panelTranslateY = useRef(new Animated.Value(-8)).current;
+  const swatchScale = useRef(new Animated.Value(0.4)).current;
+  const flashScale = useRef(new Animated.Value(0)).current;
+  const flashOpacity = useRef(new Animated.Value(0)).current;
+
+  // Drive the reveal animations when the panel mounts.
+  useEffect(() => {
+    if (reveal.phase !== 'revealed') {
+      panelOpacity.setValue(0);
+      panelTranslateY.setValue(-8);
+      swatchScale.setValue(0.4);
+      flashScale.setValue(0);
+      flashOpacity.setValue(0);
+      return;
+    }
+    Animated.parallel([
+      Animated.timing(panelOpacity, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(panelTranslateY, {
+        toValue: 0,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(swatchScale, {
+        toValue: 1,
+        damping: 11,
+        stiffness: 160,
+        mass: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const def = seasonPalette?.[reveal.colorId];
+    const isRareFine =
+      reveal.rolledTier === 'fine' &&
+      typeof def?.dropWeightPct === 'number' &&
+      def.dropWeightPct < RARE_FLASH_DROP_WEIGHT;
+    if (isRareFine) {
+      flashScale.setValue(0);
+      flashOpacity.setValue(0.85);
+      Animated.parallel([
+        Animated.timing(flashScale, {
+          toValue: 4,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(flashOpacity, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+
+    if (reveal.rolledTier === 'fine') success();
+    else if (reveal.rolledTier === 'quality') tapMedium();
+    else tapLight();
+    // Animated values are stable refs; safe to omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reveal, seasonPalette]);
+
   function handleOpen(): void {
+    tapLight();
+    Animated.sequence([
+      Animated.timing(medallionScale, {
+        toValue: 1.18,
+        duration: 110,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(medallionScale, {
+        toValue: 1.0,
+        damping: 8,
+        stiffness: 220,
+        mass: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
     const result = openCase(tier);
     if (result) {
       setReveal({ phase: 'revealed', colorId: result.colorId, rolledTier: result.tier });
     }
-    // Null result means either no pending OR palette-null (Step 5 not yet
-    // shipped). In both cases the right behaviour is silent no-op — the
-    // OPEN button stays clickable for the next attempt and pending counts
-    // are preserved.
   }
 
   const compact = reveal.phase === 'idle';
@@ -56,16 +190,17 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
     reveal.phase === 'revealed' && seasonPalette ? seasonPalette[reveal.colorId] : null;
 
   return (
-    <View style={[styles.card, { borderLeftColor: tierAccent.accent }]}>
+    <View ref={cardRef} style={[styles.card, { borderLeftColor: tierAccent.accent }]}>
       <View style={styles.row}>
-        <View
+        <Animated.View
           style={[
             styles.medallion,
             { backgroundColor: tierAccent.medallionBg, borderColor: tierAccent.accent },
+            { transform: [{ scale: medallionScale }] },
           ]}
         >
           <Text style={styles.medallionEmoji}>{caseData.emoji}</Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.meta}>
           <Text style={styles.name} numberOfLines={1}>
@@ -104,13 +239,31 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
       </View>
 
       {reveal.phase === 'revealed' && (
-        <View style={styles.revealPanel}>
+        <Animated.View
+          style={[
+            styles.revealPanel,
+            { opacity: panelOpacity, transform: [{ translateY: panelTranslateY }] },
+          ]}
+        >
           <View style={styles.revealRow}>
-            {revealedColor ? (
-              <ColorCell color={revealedColor} size={48} />
-            ) : (
-              <View style={styles.swatchFallback} />
-            )}
+            <View style={styles.swatchSlot}>
+              {revealedColor && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.flash,
+                    { backgroundColor: revealedColor.hex, opacity: flashOpacity, transform: [{ scale: flashScale }] },
+                  ]}
+                />
+              )}
+              <Animated.View style={{ transform: [{ scale: swatchScale }] }}>
+                {revealedColor ? (
+                  <ColorCell color={revealedColor} size={48} />
+                ) : (
+                  <View style={styles.swatchFallback} />
+                )}
+              </Animated.View>
+            </View>
             <View style={styles.revealInfo}>
               <Text style={styles.revealName}>
                 {revealedColor ? revealedColor.name : reveal.colorId}
@@ -124,7 +277,7 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
           >
             <Text style={styles.continueBtnText}>CONTINUE</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
     </View>
   );
@@ -261,6 +414,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
+  swatchSlot: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   swatchFallback: {
     width: 48,
     height: 48,
@@ -268,6 +427,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.overlay,
     borderWidth: 1,
     borderColor: colors.ui.border,
+  },
+  flash: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   revealInfo: {
     flex: 1,

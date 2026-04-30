@@ -14,8 +14,10 @@ import { useGameStore } from '../store/gameStore';
 import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import ColorCell from '../components/ColorCell';
 import CraftModal from '../components/CraftModal';
+import EmptyStateIcon from '../components/EmptyStateIcon';
 import { rawNextSellPrice } from '../data/colors';
 import { placeErrorMessage } from '../lib/placeErrors';
+import { tapLight } from '../lib/haptics';
 import { todayKey } from '../native/healthConnect';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { ColorDef } from '../types';
@@ -130,6 +132,7 @@ export default function InventoryScreen(): React.JSX.Element {
         <Text style={styles.section}>COLORS</Text>
         {seasonPalette === null ? (
           <View style={styles.emptyCard}>
+            <EmptyStateIcon kind="palette" size={56} />
             <Text style={styles.emptyText}>Loading this season's palette…</Text>
             <Text style={styles.emptySub}>
               The mural prep tool seeds colors at season start.
@@ -137,6 +140,7 @@ export default function InventoryScreen(): React.JSX.Element {
           </View>
         ) : paletteEntries.length === 0 ? (
           <View style={styles.emptyCard}>
+            <EmptyStateIcon kind="palette" size={56} />
             <Text style={styles.emptyText}>No colors in this season's palette.</Text>
           </View>
         ) : (
@@ -172,6 +176,7 @@ export default function InventoryScreen(): React.JSX.Element {
         <Text style={styles.section}>BADGES</Text>
         {badges.length === 0 ? (
           <View style={styles.emptyCard}>
+            <EmptyStateIcon kind="badge" size={56} />
             <Text style={styles.emptyText}>Win a season to earn your first badge.</Text>
             <Text style={styles.emptySub}>
               Badges are completed murals — your only cross-season keep.
@@ -273,6 +278,7 @@ export default function InventoryScreen(): React.JSX.Element {
                     );
                     return;
                   }
+                  tapLight();
                   setPendingHomeNav(true);
                 }}
               >
@@ -354,6 +360,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     padding: spacing.md,
     alignItems: 'center',
+    gap: spacing.xs,
   },
   emptyText: {
     fontFamily: fonts.outfitBold,

@@ -56,7 +56,7 @@ export interface Badge {
   seasonName: string | null;
 }
 
-// One row of the Town live feed (replaces Phase-3 deposits).
+// One row of the Mural-tab live feed (replaces Phase-3 deposits).
 export type FeedEventKind = 'tile_placed' | 'case_opened' | 'crafted' | 'sold' | 'shop_bought';
 export interface FeedEvent {
   id: number;

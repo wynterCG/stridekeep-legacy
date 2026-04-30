@@ -57,7 +57,7 @@ interface GameState {
   // Server-maintained filled_count from teams_canvas_progress, refreshed by
   // useTownFeed's poll. Drives TugOfWar's "RED 247 · BLUE 198" display.
   // Independent from canvasFilled (which only mirrors the player's team for
-  // the canvas hero render); this tracks BOTH teams for Town.
+  // the canvas hero render); this tracks BOTH teams for the Mural tab.
   teamsCanvasProgress: { red: number; blue: number };
   // Pity counter. Increments on each FINE-tier case open whose roll did NOT
   // produce a fine-tier color; resets when a fine-tier color drops or at
@@ -71,6 +71,12 @@ interface GameState {
   // and at season rollover.
   sellHistory: { date: string; counts: Record<string, number> };
   lastSimulateAt: number;
+  // Cached account state. True when the current Supabase session is a
+  // linked email-password account, false for anonymous. Hydrated at boot
+  // by bootstrapAuthAndSeason (via getAccountStatus); kept fresh by
+  // AccountModal callbacks. Drives the TopHeader AccountChip's brass-fill
+  // vs dim-outline state without needing a render-time getSession().
+  accountLinked: boolean;
 }
 
 interface GameActions {
@@ -113,6 +119,7 @@ interface GameActions {
   setTeamCanvas: (team: Team, pixels: Record<number, string>) => void;
   applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
   setTeamsCanvasProgress: (progress: { red: number; blue: number }) => void;
+  setAccountLinked: (linked: boolean) => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
@@ -157,6 +164,7 @@ const initialState: GameState = {
   pityCounter: { fine: 0 },
   sellHistory: { date: todayKey(), counts: {} },
   lastSimulateAt: 0,
+  accountLinked: false,
 };
 
 function addStepsToCase(
@@ -486,6 +494,8 @@ export const useGameStore = create<GameStore>()(
 
       setTeamsCanvasProgress: (progress: { red: number; blue: number }) =>
         set({ teamsCanvasProgress: progress }),
+
+      setAccountLinked: (linked: boolean) => set({ accountLinked: linked }),
 
       devGrantOneOfEach: () =>
         set((s) => {

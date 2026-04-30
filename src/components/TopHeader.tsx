@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, RadialGradient, Stop, Defs, Circle } from 'react-native-svg';
+import Svg, { Path, RadialGradient, Stop, Defs, Circle, Polygon } from 'react-native-svg';
 import { useGameStore } from '../store/gameStore';
 import { fmtCountdown, msLeftInSeason } from '../data/season';
 import { colors, fonts, spacing } from '../theme';
 import ShopModal from './ShopModal';
 import AccountModal from './AccountModal';
+import AccountChip from './AccountChip';
 
 // Persistent state strip. Shows team identity (crest + name) on the left,
 // the player's purse on the right. Sized for glance-readability in motion —
@@ -17,6 +18,7 @@ export default function TopHeader(): React.JSX.Element {
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const seasonStartedAt = useGameStore((s) => s.seasonStartedAt);
   const seasonSoftCapAt = useGameStore((s) => s.seasonSoftCapAt);
+  const accountLinked = useGameStore((s) => s.accountLinked);
 
   const teamColor = team === 'red' ? colors.team.red : colors.team.blue;
   const teamColorSoft = team === 'red' ? colors.team.redSoft : colors.team.blueSoft;
@@ -93,7 +95,7 @@ export default function TopHeader(): React.JSX.Element {
             accessibilityLabel="Open account"
             hitSlop={6}
           >
-            <Text style={styles.accountIcon}>👤</Text>
+            <AccountChip linked={accountLinked} size={20} />
           </Pressable>
           <Pressable
             style={styles.purseBlock}
@@ -102,7 +104,9 @@ export default function TopHeader(): React.JSX.Element {
             accessibilityLabel="Open shop"
           >
             <Text style={styles.purseLabel}>PURSE</Text>
-            <Text style={styles.purseDiamond}>◆</Text>
+            <Svg width={11} height={14} viewBox="0 0 10 14">
+              <Polygon points="5,0 10,7 5,14 0,7" fill={colors.accent.brass} />
+            </Svg>
             <Text style={styles.purseValue}>{`$${purse.toLocaleString()}`}</Text>
           </Pressable>
         </View>
@@ -161,10 +165,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  accountIcon: {
-    // Color is ignored on Android color-emoji glyphs; size only.
-    fontSize: 18,
-  },
   purseBlock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -175,10 +175,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.text.muted,
     letterSpacing: 1.5,
-  },
-  purseDiamond: {
-    fontSize: 13,
-    color: colors.accent.brass,
   },
   purseValue: {
     fontFamily: fonts.bebasNeue,

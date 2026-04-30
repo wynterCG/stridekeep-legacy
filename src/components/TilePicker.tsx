@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { placeErrorMessage } from '../lib/placeErrors';
+import { tapLight } from '../lib/haptics';
 import ColorCell from './ColorCell';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -41,6 +42,7 @@ export default function TilePicker({
     setStatus({ kind: 'pending' });
     const result = await placeTile(targetColorId, pixelIdx);
     if (result.ok) {
+      tapLight();
       setStatus({ kind: 'done', message: 'Placed.' });
       // Close shortly after a successful placement so realtime can
       // animate the new pixel in. 600ms is long enough to register the

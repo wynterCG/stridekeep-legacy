@@ -1,5 +1,12 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  View,
+  StyleSheet,
+  Pressable,
+  useWindowDimensions,
+} from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
 import { colors, radii } from '../theme';
@@ -11,23 +18,26 @@ interface Props {
   targetPixels: Record<number, string> | null;
   filled: Record<number, string>;
   palette: Record<string, ColorDef>;
-  // Optional tap handler. CanvasView renders one Pressable layer on top
-  // of the SVG so we don't pay per-rect onPress cost (32x32 = 1024 nodes).
-  // The Pressable computes idx from tap coordinates.
   onPixelTap?: (idx: number) => void;
 }
 
+const PULSE_DURATION_MS = 600;
+const MAX_CONCURRENT_PULSES = 5;
+
 // Hero canvas. Renders unfilled pixels as dimmed target colors (paint-by-
 // numbers preview) and filled pixels at full opacity in the placed color.
-// Sized to fill its container width — caller controls outer width via
-// containerStyle if a fixed size is needed (e.g. Town side-by-side
-// previews in S4.D).
 //
-// Tap handling: a single overlay Pressable computes (col, row) from tap
-// coordinates and dispatches `onPixelTap(idx)`. This is dramatically
-// cheaper than 1024 per-rect onPress handlers (each of which would also
-// require a Pressable wrapper since react-native-svg's onPress is iOS-
-// only).
+// New-pixel pulse: when `filled[idx]` gains an entry that wasn't present
+// in the previous render, we mount an Animated overlay that scales + fades
+// over 600ms. The first-render's "everything's new" snapshot is suppressed
+// via `prevFilledRef = null` initial — bulk loads (cold-start, focus-
+// regain) don't trigger a wave of pulses.
+//
+// Implementation note: uses React Native's built-in Animated API rather
+// than Reanimated. Reanimated v4 requires the new architecture (which
+// react-native-health-connect@3.5.0 doesn't yet support); v3 misbehaves
+// silently on Expo SDK 54 / old-arch. Built-in Animated is less
+// performant but fully reliable across architectures.
 export default function CanvasView({
   team,
   width,
@@ -37,19 +47,10 @@ export default function CanvasView({
   palette,
   onPixelTap,
 }: Props): React.JSX.Element {
-  // Default canvas size: fill the screen width minus side padding.
-  // useWindowDimensions re-renders on orientation change so the canvas
-  // resizes correctly. Caller may override the width via wrapping in a
-  // fixed-size View if a different size is required (e.g. Town side-by-
-  // side previews in S4.D).
   const { width: screenWidth } = useWindowDimensions();
   const canvasPx = Math.min(screenWidth - 32, 360);
   const cellPx = canvasPx / width;
 
-  // Render rects in pixel-index order. We avoid memoizing per-pixel since
-  // React's reconciler diff against keyed children is already O(N) and the
-  // rect element creation is cheap GDI-side. The full re-render fires on
-  // any filled[] mutation; for INSERT-only realtime updates that's fine.
   const rects = useMemo(() => {
     const total = width * height;
     const out: React.ReactNode[] = new Array(total);
@@ -68,14 +69,9 @@ export default function CanvasView({
         fill = palette[placedColorId].hex;
         opacity = 1;
       } else if (targetColorId && palette[targetColorId]) {
-        // Dimmed target preview. Same hue, low alpha so the canvas
-        // reads as a guide — not a finished image.
         fill = palette[targetColorId].hex;
         opacity = 0.18;
       } else {
-        // No target loaded yet (canvasTargetPixels === null) or palette
-        // missing the color. Fall through to the canvas-bg color so
-        // the rect doesn't stand out.
         fill = colors.bg.primary;
         opacity = 1;
       }
@@ -95,6 +91,43 @@ export default function CanvasView({
     return out;
   }, [width, height, cellPx, targetPixels, filled, palette]);
 
+  const prevFilledRef = useRef<Set<number> | null>(null);
+  const pulseKeyRef = useRef(0);
+  const [pulses, setPulses] = useState<Array<{ idx: number; key: number; hex: string }>>([]);
+
+  const removePulse = useCallback((key: number) => {
+    setPulses((p) => p.filter((x) => x.key !== key));
+  }, []);
+
+  useEffect(() => {
+    const currentSet = new Set<number>();
+    for (const k of Object.keys(filled)) {
+      const idx = Number(k);
+      if (Number.isInteger(idx)) currentSet.add(idx);
+    }
+    const prev = prevFilledRef.current;
+    prevFilledRef.current = currentSet;
+
+    if (prev === null) return;
+
+    const fresh: Array<{ idx: number; key: number; hex: string }> = [];
+    for (const idx of currentSet) {
+      if (prev.has(idx)) continue;
+      const colorId = filled[idx];
+      const def = colorId ? palette[colorId] : undefined;
+      if (!def) continue;
+      fresh.push({ idx, key: ++pulseKeyRef.current, hex: def.hex });
+    }
+    if (fresh.length === 0) return;
+
+    setPulses((p) => {
+      const merged = [...p, ...fresh];
+      return merged.length > MAX_CONCURRENT_PULSES
+        ? merged.slice(merged.length - MAX_CONCURRENT_PULSES)
+        : merged;
+    });
+  }, [filled, palette]);
+
   const handleTap = (locationX: number, locationY: number) => {
     if (!onPixelTap) return;
     const col = Math.floor(locationX / cellPx);
@@ -113,6 +146,17 @@ export default function CanvasView({
       ]}
     >
       <Svg width={canvasPx} height={canvasPx}>{rects}</Svg>
+      {pulses.map((p) => (
+        <Pulse
+          key={p.key}
+          pulseKey={p.key}
+          idx={p.idx}
+          width={width}
+          cellPx={cellPx}
+          hex={p.hex}
+          onDone={removePulse}
+        />
+      ))}
       {onPixelTap && (
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -123,6 +167,78 @@ export default function CanvasView({
   );
 }
 
+interface PulseProps {
+  pulseKey: number;
+  idx: number;
+  width: number;
+  cellPx: number;
+  hex: string;
+  onDone: (key: number) => void;
+}
+
+function Pulse({ pulseKey, idx, width, cellPx, hex, onDone }: PulseProps): React.JSX.Element {
+  const scale = useRef(new Animated.Value(0.6)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.25,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1.0,
+          duration: 380,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.7,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: PULSE_DURATION_MS - 180,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => onDone(pulseKey));
+    // Run once per Pulse mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const col = idx % width;
+  const row = Math.floor(idx / width);
+  const left = col * cellPx;
+  const top = row * cellPx;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.pulse,
+        {
+          left,
+          top,
+          width: cellPx,
+          height: cellPx,
+          backgroundColor: hex,
+          opacity,
+          transform: [{ scale }],
+        },
+      ]}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   frame: {
     alignSelf: 'center',
@@ -130,5 +246,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.card,
     overflow: 'hidden',
     backgroundColor: colors.bg.primary,
+  },
+  pulse: {
+    position: 'absolute',
+    borderRadius: 2,
   },
 });
