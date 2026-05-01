@@ -9,6 +9,7 @@ import {
 import { Outfit_400Regular, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import * as SplashScreen from 'expo-splash-screen';
 import RootTabs from './src/navigation/RootTabs';
+import SeasonEndCeremony from './src/components/SeasonEndCeremony';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
@@ -17,6 +18,7 @@ import {
   bootstrapAuthAndSeason,
   isBootstrapInFlight,
 } from './src/lib/bootstrap';
+import { useSeasonEndWatcher } from './src/hooks/useSeasonEndWatcher';
 
 const BOT_TICK_MS = 4_000;
 
@@ -42,6 +44,12 @@ export default function App(): React.JSX.Element | null {
     Outfit_400Regular,
     Outfit_700Bold,
   });
+
+  // Realtime trigger for SeasonEndCeremony — listens to seasons
+  // table updates and re-runs bootstrapAuthAndSeason when a rollover
+  // lands while the app is foregrounded. The boot path covers cold
+  // starts; this hook covers mid-session.
+  useSeasonEndWatcher();
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -153,6 +161,11 @@ export default function App(): React.JSX.Element | null {
       <NavigationContainer theme={navTheme}>
         <View style={styles.root}>
           <RootTabs />
+          {/* SeasonEndCeremony renders itself as a Modal when
+              gameStore.pendingSeasonEnd is non-null (set by
+              bootstrap.ts on rollover detection). Sits outside RootTabs
+              so it overlays the bottom-tab bar. */}
+          <SeasonEndCeremony />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

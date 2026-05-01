@@ -3,6 +3,7 @@ import { ScrollView, View, StyleSheet, Text } from 'react-native';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
 import DevGrantTilesButton from '../components/DevGrantTilesButton';
+import DevTriggerCeremonyButton from '../components/DevTriggerCeremonyButton';
 import TopHeader from '../components/TopHeader';
 import InfoStrip from '../components/InfoStrip';
 import SectionKicker from '../components/SectionKicker';
@@ -98,12 +99,14 @@ export default function HomeScreen(): React.JSX.Element {
         <CaseCard tier="fine" onReveal={handleCaseReveal} scrollRef={scrollRef} />
         <CaseCard tier="quality" onReveal={handleCaseReveal} scrollRef={scrollRef} />
         <CaseCard tier="starter" onReveal={handleCaseReveal} scrollRef={scrollRef} />
-        {__DEV__ && (
-          <>
-            <SimulateWalkButton />
-            <DevGrantTilesButton />
-          </>
-        )}
+        {/* TEMP: __DEV__ gate dropped on every dev button so they appear in
+            release APKs during pre-internal-testing smoke runs. RE-GATE
+            inside a {__DEV__ && (...)} block before shipping to internal
+            testers — these would otherwise let players reset themselves and
+            trigger ceremonies in production. */}
+        <SimulateWalkButton />
+        <DevGrantTilesButton />
+        <DevTriggerCeremonyButton />
       </ScrollView>
 
       {pickerPixel !== null && targetColorId && (

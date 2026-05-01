@@ -3,7 +3,9 @@ import { ensureSignedIn, fetchMyTeam } from './auth';
 import { getAccountStatus } from './account';
 import { loadActiveSeason, serverRolloverSeason } from './teams';
 import { loadSeasonPalette, loadSeasonCraftRecipes } from '../data/colors';
+import { loadSeasonTargetPixels } from './canvas';
 import { loadMyBadges } from './badges';
+import { loadSeasonEndSnapshot } from './seasonEnd';
 
 // Module-level guards. The single-flight `syncInFlight` keeps two
 // concurrent season syncs from racing. The `bootstrapInFlight` flag is
@@ -34,37 +36,122 @@ export async function syncSeasonOnce(): Promise<void> {
       console.warn('[stridekeep] loadActiveSeason failed:', err);
       return;
     }
-    const store = useGameStore.getState();
-    if (active === null) {
-      store.setSeasonPalette(null);
-      store.setSeasonCraftRecipes(null);
-      store.setSeasonTimes(null, null);
+    const fresh = useGameStore.getState();
+    const prevNumber = fresh.seasonNumber;
+    const newNumber = active === null ? null : active.number;
+
+    // Same-season refresh path. Server timestamps may have moved (cap
+    // extension on completion-no-queue, etc.), and the palette/recipes
+    // load is idempotent. No rollover, no ceremony.
+    if (active !== null && prevNumber === newNumber) {
+      try {
+        const [palette, recipes] = await Promise.all([
+          loadSeasonPalette(active.number),
+          loadSeasonCraftRecipes(active.number),
+        ]);
+        fresh.setSeasonPalette(palette);
+        fresh.setSeasonCraftRecipes(recipes);
+        fresh.setSeasonTimes(active.startedAt, active.softCapAt);
+      } catch (err) {
+        console.warn('[stridekeep] palette/recipes load failed:', err);
+      }
       return;
     }
-    try {
-      const [palette, recipes] = await Promise.all([
-        loadSeasonPalette(active.number),
-        loadSeasonCraftRecipes(active.number),
-      ]);
-      const fresh = useGameStore.getState();
-      if (fresh.seasonNumber !== active.number) {
+
+    // First-ever launch (no prev season persisted) — no ceremony to
+    // show. Initialize directly.
+    if (prevNumber === null) {
+      if (active === null) {
+        fresh.setSeasonPalette(null);
+        fresh.setSeasonCraftRecipes(null);
+        fresh.setSeasonTimes(null, null);
+        return;
+      }
+      try {
+        const [palette, recipes, targetPixels] = await Promise.all([
+          loadSeasonPalette(active.number),
+          loadSeasonCraftRecipes(active.number),
+          loadSeasonTargetPixels(active.number),
+        ]);
         fresh.applySeasonReset(
           active.number,
           palette,
           recipes,
+          targetPixels,
           active.startedAt,
           active.softCapAt,
         );
-      } else {
-        fresh.setSeasonPalette(palette);
-        fresh.setSeasonCraftRecipes(recipes);
-        fresh.setSeasonTimes(active.startedAt, active.softCapAt);
+      } catch (err) {
+        console.warn('[stridekeep] palette/recipes load failed:', err);
       }
+      return;
+    }
+
+    // Rollover detected (prevNumber != null, prevNumber != newNumber).
+    // If the user already pressed CONTINUE on this prev-season's ceremony
+    // (lastShownCeremonySeason >= prevNumber), don't re-show — silent reset.
+    const ackUpTo = fresh.lastShownCeremonySeason ?? -Infinity;
+    if (ackUpTo >= prevNumber) {
+      await silentReset(active);
+      return;
+    }
+
+    // Mid-ceremony guard. Once the snapshot is captured for prevNumber,
+    // any subsequent realtime event (a `mural_name` edit, a follow-up
+    // rollover, or a duplicate `seasons` UPDATE delivery) that drives a
+    // re-bootstrap MUST NOT overwrite pendingSeasonEnd — doing so
+    // re-fires SeasonEndCeremony's snap-keyed effect and restarts the
+    // animation timeline from beat 0 mid-watch. The user pressing
+    // CONTINUE clears pendingSeasonEnd → next sync proceeds normally.
+    if (
+      fresh.pendingSeasonEnd !== null &&
+      fresh.pendingSeasonEnd.prevSeasonNumber === prevNumber
+    ) {
+      return;
+    }
+
+    // Show ceremony: capture snapshot, defer applySeasonReset to CONTINUE.
+    try {
+      const snap = await loadSeasonEndSnapshot(prevNumber, newNumber);
+      fresh.setPendingSeasonEnd(snap);
     } catch (err) {
-      console.warn('[stridekeep] palette/recipes load failed:', err);
+      console.warn(
+        '[stridekeep] loadSeasonEndSnapshot failed; falling back to silent reset:',
+        err,
+      );
+      await silentReset(active);
     }
   } finally {
     syncInFlight = false;
+  }
+}
+
+// Used in the "ceremony already acknowledged" and "snapshot load failed"
+// branches: jump straight to applySeasonReset without showing the modal.
+async function silentReset(
+  active: Awaited<ReturnType<typeof loadActiveSeason>>,
+): Promise<void> {
+  const fresh = useGameStore.getState();
+  if (active === null) {
+    fresh.applySeasonReset(null, null, null, null, null, null);
+    return;
+  }
+  try {
+    const [palette, recipes, targetPixels] = await Promise.all([
+      loadSeasonPalette(active.number),
+      loadSeasonCraftRecipes(active.number),
+      loadSeasonTargetPixels(active.number),
+    ]);
+    fresh.applySeasonReset(
+      active.number,
+      palette,
+      recipes,
+      targetPixels,
+      active.startedAt,
+      active.softCapAt,
+    );
+  } catch (err) {
+    console.warn('[stridekeep] silentReset palette/recipes load failed:', err);
   }
 }
 

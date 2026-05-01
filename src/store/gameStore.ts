@@ -9,6 +9,7 @@ import type {
   CraftRecipe,
   Badge,
   PlaceResult,
+  SeasonEndSnapshot,
 } from '../types';
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
@@ -77,6 +78,17 @@ interface GameState {
   // AccountModal callbacks. Drives the TopHeader AccountChip's brass-fill
   // vs dim-outline state without needing a render-time getSession().
   accountLinked: boolean;
+  // Transient. Set by bootstrap.ts when a rollover is detected (boot or
+  // realtime); read by App.tsx to render <SeasonEndCeremony />. Not
+  // persisted — recomputed on every detection so a CONTINUE-less quit
+  // re-fires the ceremony on next boot.
+  pendingSeasonEnd: SeasonEndSnapshot | null;
+  // Persisted. Highest prev-season-number whose ceremony the user has
+  // pressed CONTINUE on. Bootstrap skips snapshot capture if this is
+  // already >= the just-ended season number, so a rapid re-launch after
+  // CONTINUE doesn't re-fire the ceremony. Survives season resets — it
+  // tracks user-facing acknowledgement, not intra-season state.
+  lastShownCeremonySeason: number | null;
 }
 
 interface GameActions {
@@ -91,14 +103,26 @@ interface GameActions {
   sellTile: (colorId: string, qty: number) => void;
   craftTile: (recipeId: string, qty: number) => void;
   buyShopTile: (colorId: string, qty: number) => void;
-  // Called by SeasonEndCeremony (Step 4) after the user dismisses the
-  // ceremony. Wipes intra-season state, swaps in the new palette + recipes
-  // and writes the new season number + server-side timestamps. Badges
-  // and team persist.
+  // Called by SeasonEndCeremony's CONTINUE button. Wipes intra-season
+  // state, swaps in the new palette + recipes + target pixels and
+  // writes the new season number + server-side timestamps. Badges and
+  // team persist.
+  //
+  // `newTargetPixels` is pre-loaded by SeasonEndCeremony (via
+  // loadSeasonEndSnapshot) so the post-CONTINUE state has the new
+  // mural's target ready before useCanvasLiveSync re-mounts —
+  // otherwise the user sees a flash of empty canvas while the hook
+  // re-fetches.
+  //
+  // All five "new*" params accept null to support the no-queue rollover
+  // path (cap_no_queue / completion_no_queue rollover reasons). In that
+  // case seasonNumber goes to null and the player sits in "between
+  // seasons" state until the next mural is queued + promoted.
   applySeasonReset: (
-    newSeasonNumber: number,
-    newPalette: Record<string, ColorDef>,
-    newRecipes: Record<string, CraftRecipe>,
+    newSeasonNumber: number | null,
+    newPalette: Record<string, ColorDef> | null,
+    newRecipes: Record<string, CraftRecipe> | null,
+    newTargetPixels: Record<number, string> | null,
     startedAt: string | null,
     softCapAt: string | null,
   ) => void;
@@ -120,6 +144,15 @@ interface GameActions {
   applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
   setTeamsCanvasProgress: (progress: { red: number; blue: number }) => void;
   setAccountLinked: (linked: boolean) => void;
+  // Set by bootstrap.ts after loadSeasonEndSnapshot resolves on rollover
+  // detection. Pass null to clear (called by SeasonEndCeremony on
+  // CONTINUE before applySeasonReset runs).
+  setPendingSeasonEnd: (snap: SeasonEndSnapshot | null) => void;
+  // Mark a prev-season ceremony as user-acknowledged. Bootstrap reads
+  // this to skip snapshot capture for already-shown ceremonies. Stored
+  // as a number (the highest prev-season-number acknowledged) so a user
+  // who skipped multiple offline rollovers only sees the most recent.
+  markCeremonyShown: (seasonNumber: number) => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
@@ -165,6 +198,8 @@ const initialState: GameState = {
   sellHistory: { date: todayKey(), counts: {} },
   lastSimulateAt: 0,
   accountLinked: false,
+  pendingSeasonEnd: null,
+  lastShownCeremonySeason: null,
 };
 
 function addStepsToCase(
@@ -436,9 +471,10 @@ export const useGameStore = create<GameStore>()(
       },
 
       applySeasonReset: (
-        newSeasonNumber: number,
-        newPalette: Record<string, ColorDef>,
-        newRecipes: Record<string, CraftRecipe>,
+        newSeasonNumber: number | null,
+        newPalette: Record<string, ColorDef> | null,
+        newRecipes: Record<string, CraftRecipe> | null,
+        newTargetPixels: Record<number, string> | null,
         startedAt: string | null,
         softCapAt: string | null,
       ) => {
@@ -453,7 +489,7 @@ export const useGameStore = create<GameStore>()(
           seasonSoftCapAt: softCapAt,
           seasonPalette: newPalette,
           seasonCraftRecipes: newRecipes,
-          canvasTargetPixels: null,
+          canvasTargetPixels: newTargetPixels,
           canvasFilled: { red: {}, blue: {} },
           teamsCanvasProgress: { red: 0, blue: 0 },
         });
@@ -497,6 +533,16 @@ export const useGameStore = create<GameStore>()(
 
       setAccountLinked: (linked: boolean) => set({ accountLinked: linked }),
 
+      setPendingSeasonEnd: (snap: SeasonEndSnapshot | null) =>
+        set({ pendingSeasonEnd: snap }),
+
+      markCeremonyShown: (seasonNumber: number) =>
+        set((s) => {
+          const prev = s.lastShownCeremonySeason ?? -Infinity;
+          if (seasonNumber <= prev) return {};
+          return { lastShownCeremonySeason: seasonNumber };
+        }),
+
       devGrantOneOfEach: () =>
         set((s) => {
           if (!s.seasonPalette) return {};
@@ -535,6 +581,9 @@ export const useGameStore = create<GameStore>()(
       },
       // seasonPalette + seasonCraftRecipes + canvas state are server data,
       // re-fetched on every launch / rollover / canvas mount — never persist.
+      // pendingSeasonEnd is transient: a CONTINUE-less force-quit must
+      // re-fire the ceremony on next boot, so we recompute from server
+      // state rather than restoring a possibly-stale snapshot blob.
       partialize: (state) => {
         const {
           seasonPalette: _p,
@@ -542,6 +591,7 @@ export const useGameStore = create<GameStore>()(
           canvasTargetPixels: _t,
           canvasFilled: _f,
           teamsCanvasProgress: _tp,
+          pendingSeasonEnd: _pse,
           ...rest
         } = state;
         return rest as GameStore;

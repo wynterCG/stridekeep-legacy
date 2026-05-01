@@ -56,6 +56,35 @@ export interface Badge {
   seasonName: string | null;
 }
 
+// Snapshot captured at season rollover, owned by SeasonEndWatcher and
+// consumed by SeasonEndCeremony. Holds everything the ceremony needs to
+// render without re-fetching: previous season's outcome, the user's
+// contribution, and the queued season's preload (palette/recipes/target)
+// so applySeasonReset on CONTINUE swaps in fully-hydrated state.
+//
+// `winnerTeam` is null on a tie. `newSeasonNumber` (and the four "new*"
+// fields) are null when the rollover reason was cap_no_queue or
+// completion_no_queue — i.e. no mural is queued. The ceremony's "Next
+// up →" preview branches on this.
+export interface SeasonEndSnapshot {
+  prevSeasonNumber: number;
+  winnerTeam: Team | null;
+  myTeam: Team | null;
+  iWon: boolean;
+  myContribution: number;
+  prevPalette: Record<string, ColorDef> | null;
+  prevTargetPixels: Record<number, string> | null;
+  prevFilled: { red: Record<number, string>; blue: Record<number, string> };
+  prevCompletion: { red: number; blue: number };
+  newSeasonNumber: number | null;
+  newSeasonName: string | null;
+  newPalette: Record<string, ColorDef> | null;
+  newRecipes: Record<string, CraftRecipe> | null;
+  newTargetPixels: Record<number, string> | null;
+  newStartedAt: string | null;
+  newSoftCapAt: string | null;
+}
+
 // One row of the Mural-tab live feed (replaces Phase-3 deposits).
 export type FeedEventKind = 'tile_placed' | 'case_opened' | 'crafted' | 'sold' | 'shop_bought';
 export interface FeedEvent {
