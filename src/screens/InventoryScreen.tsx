@@ -14,6 +14,7 @@ import { useGameStore } from '../store/gameStore';
 import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import ColorCell from '../components/ColorCell';
 import CraftModal from '../components/CraftModal';
+import JournalModal from '../components/JournalModal';
 import EmptyStateIcon from '../components/EmptyStateIcon';
 import { rawNextSellPrice } from '../data/colors';
 import { placeErrorMessage } from '../lib/placeErrors';
@@ -65,6 +66,7 @@ export default function InventoryScreen(): React.JSX.Element {
   const [actionFor, setActionFor] = useState<ColorDef | null>(null);
   const [craftFilterColorId, setCraftFilterColorId] = useState<string | null>(null);
   const [pendingHomeNav, setPendingHomeNav] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
 
   // Tab nav fires from a useEffect AFTER the action sheet's Modal has
   // been state-closed. Doing this inside the sheet's onPress causes the
@@ -172,6 +174,16 @@ export default function InventoryScreen(): React.JSX.Element {
             })}
           </View>
         )}
+
+        <Pressable
+          style={styles.journalPill}
+          onPress={() => {
+            tapLight();
+            setJournalOpen(true);
+          }}
+        >
+          <Text style={styles.journalPillText}>JOURNAL →</Text>
+        </Pressable>
 
         <Text style={styles.section}>BADGES</Text>
         {badges.length === 0 ? (
@@ -310,6 +322,8 @@ export default function InventoryScreen(): React.JSX.Element {
         onClose={() => setCraftFilterColorId(null)}
         filterByInputColorId={craftFilterColorId ?? undefined}
       />
+
+      <JournalModal visible={journalOpen} onClose={() => setJournalOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -458,6 +472,22 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bebasNeue,
     fontSize: 13,
     color: colors.text.muted,
+    letterSpacing: 2,
+  },
+  journalPill: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    borderColor: colors.accent.brassDeep,
+    backgroundColor: colors.bg.card,
+  },
+  journalPillText: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 13,
+    color: colors.accent.brassLight,
     letterSpacing: 2,
   },
 });

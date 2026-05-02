@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { ScrollView, View, StyleSheet, Text } from 'react-native';
 import CaseCard from '../components/CaseCard';
 import SimulateWalkButton from '../components/SimulateWalkButton';
@@ -37,17 +37,6 @@ export default function HomeScreen(): React.JSX.Element {
   useCanvasLiveSync(team, seasonNumber);
 
   const [pickerPixel, setPickerPixel] = useState<number | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
-
-  // CaseCard fires this when its reveal panel mounts — `y` is the card's
-  // top in scroll-view coordinates. We scroll so the card top sits ~16px
-  // below the screen edge, which leaves the full reveal panel (case row
-  // + ~120px panel) inside the viewport on the Samsung A52. Otherwise
-  // tapping OPEN on the bottom case (starter) shows the panel half-cut
-  // by the bottom nav.
-  const handleCaseReveal = useCallback((y: number) => {
-    scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
-  }, []);
 
   const handlePixelTap = (idx: number) => {
     // Only opens the picker on UNFILLED pixels. Tapping a placed pixel
@@ -65,7 +54,6 @@ export default function HomeScreen(): React.JSX.Element {
     <View style={styles.root}>
       <TopHeader />
       <ScrollView
-        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -96,9 +84,9 @@ export default function HomeScreen(): React.JSX.Element {
         )}
 
         <SectionKicker label="materials" />
-        <CaseCard tier="fine" onReveal={handleCaseReveal} scrollRef={scrollRef} />
-        <CaseCard tier="quality" onReveal={handleCaseReveal} scrollRef={scrollRef} />
-        <CaseCard tier="starter" onReveal={handleCaseReveal} scrollRef={scrollRef} />
+        <CaseCard tier="fine" />
+        <CaseCard tier="quality" />
+        <CaseCard tier="starter" />
         {/* TEMP: __DEV__ gate dropped on every dev button so they appear in
             release APKs during pre-internal-testing smoke runs. RE-GATE
             inside a {__DEV__ && (...)} block before shipping to internal

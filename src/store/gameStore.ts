@@ -10,6 +10,7 @@ import type {
   Badge,
   PlaceResult,
   SeasonEndSnapshot,
+  LifetimeStats,
 } from '../types';
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
@@ -89,6 +90,29 @@ interface GameState {
   // CONTINUE doesn't re-fire the ceremony. Survives season resets — it
   // tracks user-facing acknowledgement, not intra-season state.
   lastShownCeremonySeason: number | null;
+  // Transient. Set by CaseCard's handleOpen on a successful openCase()
+  // roll; read by App.tsx to render <CaseRevealModal />. Not persisted
+  // — a force-quit mid-reveal silently drops the ceremony (the rolled
+  // color is already in inventory regardless), which is fine for a
+  // single-tap interaction. The struct stores both `tier` (the case
+  // tier the user opened) and `rolledTier` (which may differ under a
+  // pity-clamp upgrade) so the modal can render the right tier label.
+  pendingCaseReveal: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null;
+  // Transient. Map of pixel_idx → epoch ms when the local player
+  // initiated a placement. Set by `placeTile` before the optimistic
+  // deduction; cleared either by the realtime echo (applyPlacedPixel)
+  // or a 10s TTL timer in `placeTile`'s setTimeout, whichever comes
+  // first. CanvasView's Pulse spawn loop reads this to render
+  // self-placements with a heavier variant (B2 polish pass). Not
+  // persisted — a force-quit before the realtime echo is a transient
+  // miss that doesn't affect correctness (the pixel is on the server).
+  selfPlacementMarks: Record<number, number>;
+  // Persisted. Lifetime / cross-season counters surfaced on the
+  // JournalModal (A1 polish). See LifetimeStats type for field
+  // semantics. Bumped from applyRealSteps / openCase / placeTile;
+  // best_season_* updated by recordSeasonBest before
+  // applySeasonReset.
+  lifetimeStats: LifetimeStats;
 }
 
 interface GameActions {
@@ -153,6 +177,25 @@ interface GameActions {
   // as a number (the highest prev-season-number acknowledged) so a user
   // who skipped multiple offline rollovers only sees the most recent.
   markCeremonyShown: (seasonNumber: number) => void;
+  // Set by CaseCard's handleOpen on a successful openCase() roll. Pass
+  // null from CaseRevealModal's CONTINUE handler to dismiss the modal.
+  setPendingCaseReveal: (
+    payload: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null,
+  ) => void;
+  // Mark / clear a self-placement (B2 polish). markSelfPlacementWithTtl
+  // schedules an automatic clear after 10s as a safety net for
+  // realtime-never-arrived; the action returns nothing because
+  // CanvasView spawn-loop reads selfPlacementMarks directly via
+  // useGameStore selector.
+  markSelfPlacement: (pixelIdx: number) => void;
+  clearSelfPlacement: (pixelIdx: number) => void;
+  // Called by SeasonEndCeremony's CONTINUE handler BEFORE
+  // applySeasonReset wipes intra-season state — at that moment the
+  // captured snapshot still has snap.myContribution available. Updates
+  // lifetimeStats.best_season_* iff the new contribution beats the
+  // stored best (ties prefer the older record so a re-fire of the
+  // ceremony for the same season doesn't bump number unnecessarily).
+  recordSeasonBest: (seasonNumber: number, contribution: number) => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
@@ -200,6 +243,15 @@ const initialState: GameState = {
   accountLinked: false,
   pendingSeasonEnd: null,
   lastShownCeremonySeason: null,
+  pendingCaseReveal: null,
+  selfPlacementMarks: {},
+  lifetimeStats: {
+    steps_lifetime: 0,
+    cases_opened: { starter: 0, quality: 0, fine: 0 },
+    tiles_placed_lifetime: 0,
+    best_season_contribution: 0,
+    best_season_number: null,
+  },
 };
 
 function addStepsToCase(
@@ -271,13 +323,17 @@ export const useGameStore = create<GameStore>()(
         // game-internal counter) so the InfoStrip "X STEPS" display matches
         // what Samsung Health / Health Connect report. simulateWalk can
         // temporarily push past HC; the next sync overwrites back.
-        set({
+        set((s) => ({
           steps: total,
           lastSyncedTotal: total,
           lastSyncedDate: today,
           caseState: newCaseState,
           purse: purse + earnedPurse,
-        });
+          lifetimeStats: {
+            ...s.lifetimeStats,
+            steps_lifetime: s.lifetimeStats.steps_lifetime + delta,
+          },
+        }));
       },
 
       simulateWalk: () => {
@@ -339,14 +395,24 @@ export const useGameStore = create<GameStore>()(
           [colorId]: (inventory[colorId] ?? 0) + 1,
         };
 
-        set({
+        set((s) => ({
           caseState: {
             ...caseState,
             [tier]: { ...caseState[tier], pending: newPending },
           },
           pityCounter: newPity,
           inventory: newInventory,
-        });
+          // Bump the by-tier counter on the OPENED tier (not the
+          // rolled tier — a starter open that pity-clamps a fine
+          // color is still a "starter case opened" for stats).
+          lifetimeStats: {
+            ...s.lifetimeStats,
+            cases_opened: {
+              ...s.lifetimeStats.cases_opened,
+              [tier]: s.lifetimeStats.cases_opened[tier] + 1,
+            },
+          },
+        }));
 
         // Fire-and-forget atmospheric event. Tier is the rolled-color's
         // actual tier (which may differ from p_tier under pity-clamp);
@@ -361,6 +427,15 @@ export const useGameStore = create<GameStore>()(
         if (have <= 0) {
           return { ok: false, error: 'not_owned' };
         }
+        // Mark BEFORE optimistic deduction so the eventual realtime echo
+        // (applyPlacedPixel) finds the self-mark and renders the heavy
+        // self-placement pulse (B2 polish). 10s TTL is the safety net
+        // for "realtime never came back" — if the echo arrived first the
+        // clear is a no-op against the now-empty mark.
+        get().markSelfPlacement(pixelIdx);
+        const ttlTimer = setTimeout(() => {
+          get().clearSelfPlacement(pixelIdx);
+        }, 10_000);
         // Optimistic deduction. The discriminated PlaceResult branches are
         // returned to the caller so TilePicker can route per-error UI feedback
         // (per plan §302-307); this action just owns inventory state.
@@ -372,6 +447,21 @@ export const useGameStore = create<GameStore>()(
               inventory: {
                 ...s.inventory,
                 [colorId]: (s.inventory[colorId] ?? 0) + 1,
+              },
+            }));
+            // Roll back the self-mark too: the pulse is meaningless
+            // when the placement didn't take. Cancel the TTL timer.
+            clearTimeout(ttlTimer);
+            get().clearSelfPlacement(pixelIdx);
+          } else {
+            // A1 polish: bump the journal's lifetime counter ONLY on
+            // server-confirmed success. Optimistic-then-rollback paths
+            // (above) leave it untouched, so the counter is a true
+            // record of "tiles I actually placed on the canvas".
+            set((s) => ({
+              lifetimeStats: {
+                ...s.lifetimeStats,
+                tiles_placed_lifetime: s.lifetimeStats.tiles_placed_lifetime + 1,
               },
             }));
           }
@@ -386,6 +476,8 @@ export const useGameStore = create<GameStore>()(
               [colorId]: (s.inventory[colorId] ?? 0) + 1,
             },
           }));
+          clearTimeout(ttlTimer);
+          get().clearSelfPlacement(pixelIdx);
           const message = err instanceof Error ? err.message : String(err);
           console.warn('[stridekeep] placeTile failed:', err);
           return { ok: false, error: 'network_error', message };
@@ -527,6 +619,16 @@ export const useGameStore = create<GameStore>()(
             [team]: { ...s.canvasFilled[team], [pixelIdx]: colorId },
           },
         })),
+      // NOTE: applyPlacedPixel intentionally does NOT clear the
+      // self-mark even when the realtime echo is for a self-placement.
+      // CanvasView's spawn loop runs in the SAME tick as this set()
+      // (the `filled` selector change retriggers it) and snapshots
+      // selfPlacementMarks via getState() — if we cleared here, the
+      // snapshot would already be empty and the heavy self-pulse
+      // would never render. The 10s TTL on placeTile is the actual
+      // cleanup path. Stale marks past 10s are benign (no pixel can
+      // be placed twice in a season, so the next placement at the
+      // same idx is impossible).
 
       setTeamsCanvasProgress: (progress: { red: number; blue: number }) =>
         set({ teamsCanvasProgress: progress }),
@@ -541,6 +643,36 @@ export const useGameStore = create<GameStore>()(
           const prev = s.lastShownCeremonySeason ?? -Infinity;
           if (seasonNumber <= prev) return {};
           return { lastShownCeremonySeason: seasonNumber };
+        }),
+
+      setPendingCaseReveal: (payload) => set({ pendingCaseReveal: payload }),
+
+      markSelfPlacement: (pixelIdx: number) =>
+        set((s) => ({
+          selfPlacementMarks: { ...s.selfPlacementMarks, [pixelIdx]: Date.now() },
+        })),
+
+      clearSelfPlacement: (pixelIdx: number) =>
+        set((s) => {
+          if (s.selfPlacementMarks[pixelIdx] === undefined) return {};
+          // Object spread + delete keeps the rest immutable so the Zustand
+          // selector consumers (CanvasView spawn loop) only re-render when
+          // the map identity actually changes.
+          const next = { ...s.selfPlacementMarks };
+          delete next[pixelIdx];
+          return { selfPlacementMarks: next };
+        }),
+
+      recordSeasonBest: (seasonNumber: number, contribution: number) =>
+        set((s) => {
+          if (contribution <= s.lifetimeStats.best_season_contribution) return {};
+          return {
+            lifetimeStats: {
+              ...s.lifetimeStats,
+              best_season_contribution: contribution,
+              best_season_number: seasonNumber,
+            },
+          };
         }),
 
       devGrantOneOfEach: () =>
@@ -581,9 +713,13 @@ export const useGameStore = create<GameStore>()(
       },
       // seasonPalette + seasonCraftRecipes + canvas state are server data,
       // re-fetched on every launch / rollover / canvas mount — never persist.
-      // pendingSeasonEnd is transient: a CONTINUE-less force-quit must
-      // re-fire the ceremony on next boot, so we recompute from server
-      // state rather than restoring a possibly-stale snapshot blob.
+      // pendingSeasonEnd / pendingCaseReveal are transient: force-quit
+      // mid-ceremony / mid-reveal must NOT re-fire the modal on next
+      // boot (the inventory effect of the case open is already
+      // committed; the season ceremony recomputes from server state).
+      // selfPlacementMarks are session-scoped — a placement initiated
+      // before quit shouldn't render a heavy pulse two days later when
+      // the realtime echo finally lands.
       partialize: (state) => {
         const {
           seasonPalette: _p,
@@ -592,6 +728,8 @@ export const useGameStore = create<GameStore>()(
           canvasFilled: _f,
           teamsCanvasProgress: _tp,
           pendingSeasonEnd: _pse,
+          pendingCaseReveal: _pcr,
+          selfPlacementMarks: _spm,
           ...rest
         } = state;
         return rest as GameStore;

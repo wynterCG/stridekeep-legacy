@@ -46,6 +46,14 @@ interface FeedRowProps {
 }
 
 function FeedRow({ event, palette }: FeedRowProps): React.JSX.Element {
+  // Milestone branch: full-width brass banner instead of the swatch +
+  // nickname row. Server-emitted by the canvas_milestone_trigger
+  // (migration 0019) at 25/50/75% crossings; `qty` carries the % and
+  // `team` carries which team crossed.
+  if (event.kind === 'milestone') {
+    return <MilestoneBanner event={event} />;
+  }
+
   const swatchHex = event.color_id ? colorHex(palette, event.color_id) : '#666';
   const name = event.color_id ? colorName(palette, event.color_id) : '—';
   const isTilePlaced = event.kind === 'tile_placed';
@@ -114,7 +122,36 @@ function copyForEvent(e: FeedEvent, name: string): string {
       return e.qty > 1 ? `sold ${e.qty}× ${name}` : `sold ${name}`;
     case 'shop_bought':
       return e.qty > 1 ? `bought ${e.qty}× ${name}` : `bought ${name}`;
+    case 'milestone':
+      // Milestone branch never calls this — MilestoneBanner formats its
+      // own copy. Returning an empty string keeps the type exhaustive.
+      return '';
   }
+}
+
+interface MilestoneBannerProps {
+  event: FeedEvent;
+}
+
+function MilestoneBanner({ event }: MilestoneBannerProps): React.JSX.Element {
+  const teamLabel = event.team === 'red' ? 'RED' : event.team === 'blue' ? 'BLUE' : 'TEAM';
+  const teamHex =
+    event.team === 'red'
+      ? colors.team.red
+      : event.team === 'blue'
+        ? colors.team.blue
+        : colors.text.cream;
+  return (
+    <View style={styles.milestoneRow}>
+      <View style={[styles.milestoneBanner, { borderColor: teamHex }]}>
+        <Text style={styles.milestoneText}>
+          <Text style={[styles.milestoneTeam, { color: teamHex }]}>{teamLabel}</Text>
+          <Text style={styles.milestoneBody}>{` MURAL HIT ${event.qty}%`}</Text>
+        </Text>
+      </View>
+      <Text style={styles.time}>{relativeTime(event.created_at)}</Text>
+    </View>
+  );
 }
 
 function capitalize(s: string): string {
@@ -206,5 +243,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.text.dim,
     marginLeft: spacing.sm,
+  },
+  milestoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  milestoneBanner: {
+    flex: 1,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  milestoneText: {
+    fontFamily: fonts.bebasNeue,
+    fontSize: 14,
+    letterSpacing: 2,
+  },
+  milestoneTeam: {
+    fontFamily: fonts.bebasNeue,
+  },
+  milestoneBody: {
+    color: colors.accent.brassLight,
   },
 });

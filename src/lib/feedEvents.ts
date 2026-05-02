@@ -52,7 +52,8 @@ function isFeedEventKind(s: string): s is FeedEventKind {
     s === 'case_opened' ||
     s === 'crafted' ||
     s === 'sold' ||
-    s === 'shop_bought'
+    s === 'shop_bought' ||
+    s === 'milestone'
   );
 }
 
@@ -68,8 +69,11 @@ interface LogOpts {
 // `tile_placed` is excluded at the type level via Exclude<>: callers can't
 // pass it. Server-side log_feed_event RPC also rejects it independently
 // (defense-in-depth) since place_tile is the only authoritative source.
+// `milestone` is similarly excluded — only the canvas_milestone_trigger
+// (migration 0019) emits those rows; a client-side log would emit
+// duplicate banners.
 export async function logFeedEvent(
-  kind: Exclude<FeedEventKind, 'tile_placed'>,
+  kind: Exclude<FeedEventKind, 'tile_placed' | 'milestone'>,
   opts: LogOpts,
 ): Promise<void> {
   try {

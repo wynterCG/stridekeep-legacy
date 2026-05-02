@@ -48,6 +48,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
   const applySeasonReset = useGameStore((s) => s.applySeasonReset);
   const setPendingSeasonEnd = useGameStore((s) => s.setPendingSeasonEnd);
   const markCeremonyShown = useGameStore((s) => s.markCeremonyShown);
+  const recordSeasonBest = useGameStore((s) => s.recordSeasonBest);
 
   // Hooks must run unconditionally — keep them ABOVE the early-return.
   // The values we pass to the renderers are noop-safe when snap is null.
@@ -338,6 +339,11 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
   function handleContinue(): void {
     if (snap === null) return;
     tapMedium();
+    // A1 polish: persist the player's best-season contribution BEFORE
+    // applySeasonReset wipes intra-season state. The reducer is a
+    // no-op when contribution doesn't beat the existing record, so
+    // a re-fired ceremony for the same season won't cause drift.
+    recordSeasonBest(snap.prevSeasonNumber, snap.myContribution);
     applySeasonReset(
       snap.newSeasonNumber,
       snap.newPalette,

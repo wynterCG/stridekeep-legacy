@@ -56,6 +56,32 @@ export interface Badge {
   seasonName: string | null;
 }
 
+// Phase-4 polish · A1: client-side lifetime counters surfaced on the
+// JournalModal. All values are bumped from gameStore actions
+// (applyRealSteps, openCase, placeTile) and from SeasonEndCeremony's
+// recordSeasonBest. Persisted across season resets and across
+// account-link migrations — these are about the player's history,
+// not the active season's intra-season state.
+//
+// Server-side aggregation (e.g. group canvas_pixels by placed_by
+// across all seasons) is a v2 upgrade; for the polish window we use
+// fast client counters so JournalModal opens instantly. Counters
+// start at zero from the migration moment — historical activity is
+// NOT backfilled. The polish-pass commit message documents the
+// "starts fresh" expectation.
+export interface LifetimeStats {
+  steps_lifetime: number;
+  cases_opened: { starter: number; quality: number; fine: number };
+  tiles_placed_lifetime: number;
+  // Highest contribution count seen on any past season's
+  // SeasonEndCeremony (taken from snap.myContribution). Updated by
+  // recordSeasonBest BEFORE applySeasonReset wipes intra-season
+  // state, so the journal can show "your best season was Season N
+  // with M pixels" across rollovers.
+  best_season_contribution: number;
+  best_season_number: number | null;
+}
+
 // Snapshot captured at season rollover, owned by SeasonEndWatcher and
 // consumed by SeasonEndCeremony. Holds everything the ceremony needs to
 // render without re-fetching: previous season's outcome, the user's
@@ -86,7 +112,18 @@ export interface SeasonEndSnapshot {
 }
 
 // One row of the Mural-tab live feed (replaces Phase-3 deposits).
-export type FeedEventKind = 'tile_placed' | 'case_opened' | 'crafted' | 'sold' | 'shop_bought';
+// 'milestone' rows are server-emitted by the canvas_milestone_trigger
+// (migration 0019) when a team's filled_count crosses 25/50/75% of
+// pixel_count. Their `qty` carries the percentage (25/50/75) and
+// `team` carries which team crossed; nickname is the literal 'system'
+// (LiveFeed's milestone branch ignores it).
+export type FeedEventKind =
+  | 'tile_placed'
+  | 'case_opened'
+  | 'crafted'
+  | 'sold'
+  | 'shop_bought'
+  | 'milestone';
 export interface FeedEvent {
   id: number;
   kind: FeedEventKind;

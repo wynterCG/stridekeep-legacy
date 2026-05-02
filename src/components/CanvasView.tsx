@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
+import { useGameStore } from '../store/gameStore';
+import { tapHeavy } from '../lib/haptics';
 import { colors, radii } from '../theme';
 
 interface Props {
@@ -22,6 +24,7 @@ interface Props {
 }
 
 const PULSE_DURATION_MS = 600;
+const SELF_PULSE_DURATION_MS = 800;
 const MAX_CONCURRENT_PULSES = 5;
 
 // Hero canvas. Renders unfilled pixels as dimmed target colors (paint-by-
@@ -93,7 +96,7 @@ export default function CanvasView({
 
   const prevFilledRef = useRef<Set<number> | null>(null);
   const pulseKeyRef = useRef(0);
-  const [pulses, setPulses] = useState<Array<{ idx: number; key: number; hex: string }>>([]);
+  const [pulses, setPulses] = useState<Array<{ idx: number; key: number; hex: string; isSelf: boolean }>>([]);
 
   const removePulse = useCallback((key: number) => {
     setPulses((p) => p.filter((x) => x.key !== key));
@@ -110,13 +113,29 @@ export default function CanvasView({
 
     if (prev === null) return;
 
-    const fresh: Array<{ idx: number; key: number; hex: string }> = [];
+    // Snapshot self-marks at spawn time. Reading via getState() (instead
+    // of subscribing) keeps this effect from re-running on every mark
+    // mutation — it only fires on `filled` deltas, which is the actual
+    // trigger we care about. The mark is set by placeTile BEFORE the
+    // optimistic deduction; applyPlacedPixel writes the canvas update
+    // but deliberately does NOT clear the mark (see gameStore.ts) so
+    // this snapshot still sees it on the realtime-echo render. Cleanup
+    // is owned by placeTile's 10s setTimeout — stale marks past the
+    // TTL are benign (the same idx can't be placed twice).
+    const marks = useGameStore.getState().selfPlacementMarks;
+
+    const fresh: Array<{ idx: number; key: number; hex: string; isSelf: boolean }> = [];
     for (const idx of currentSet) {
       if (prev.has(idx)) continue;
       const colorId = filled[idx];
       const def = colorId ? palette[colorId] : undefined;
       if (!def) continue;
-      fresh.push({ idx, key: ++pulseKeyRef.current, hex: def.hex });
+      fresh.push({
+        idx,
+        key: ++pulseKeyRef.current,
+        hex: def.hex,
+        isSelf: marks[idx] !== undefined,
+      });
     }
     if (fresh.length === 0) return;
 
@@ -154,6 +173,7 @@ export default function CanvasView({
           width={width}
           cellPx={cellPx}
           hex={p.hex}
+          isSelf={p.isSelf}
           onDone={removePulse}
         />
       ))}
@@ -173,14 +193,55 @@ interface PulseProps {
   width: number;
   cellPx: number;
   hex: string;
+  // True when this pulse comes from a placement the local player
+  // initiated (read off selfPlacementMarks at spawn time). Drives a
+  // larger scale envelope (0.4→1.4→1.0 over 800ms) + heavier opacity
+  // peak + a one-shot Heavy haptic. Teammate placements (isSelf=false)
+  // keep the original 600ms 0.6→1.25→1.0 pulse with no haptic so the
+  // realtime stream of teammate fills doesn't buzz the player's hand.
+  isSelf: boolean;
   onDone: (key: number) => void;
 }
 
-function Pulse({ pulseKey, idx, width, cellPx, hex, onDone }: PulseProps): React.JSX.Element {
-  const scale = useRef(new Animated.Value(0.6)).current;
+function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps): React.JSX.Element {
+  const scale = useRef(new Animated.Value(isSelf ? 0.4 : 0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (isSelf) {
+      tapHeavy();
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1.4,
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 1.0,
+            duration: SELF_PULSE_DURATION_MS - 280,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(opacity, {
+            toValue: 0.85,
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: SELF_PULSE_DURATION_MS - 220,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => onDone(pulseKey));
+      return;
+    }
     Animated.parallel([
       Animated.sequence([
         Animated.timing(scale, {

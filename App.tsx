@@ -10,6 +10,7 @@ import { Outfit_400Regular, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import * as SplashScreen from 'expo-splash-screen';
 import RootTabs from './src/navigation/RootTabs';
 import SeasonEndCeremony from './src/components/SeasonEndCeremony';
+import CaseRevealModal from './src/components/CaseRevealModal';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
@@ -166,6 +167,12 @@ export default function App(): React.JSX.Element | null {
               bootstrap.ts on rollover detection). Sits outside RootTabs
               so it overlays the bottom-tab bar. */}
           <SeasonEndCeremony />
+          {/* CaseRevealModal renders itself as a Modal when
+              gameStore.pendingCaseReveal is non-null (set by
+              CaseCard.handleOpen on a successful openCase roll).
+              Mounted at root so the dimmed backdrop covers the entire
+              UI including bottom nav, not just the case card row. */}
+          <CaseRevealModal />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>
