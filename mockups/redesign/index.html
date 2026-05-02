@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stridekeep · Redesign Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1a1d22; --card:#2b3138; --cardHi:#353c46; --overlay:#1f242a;
+    --cream:#f1ede4; --muted:#8d959e; --dim:#5b6068;
+    --brass:#c79c4a; --brassLight:#f0d091; --brassDeep:#8e6a2c;
+    --red:#c44b3a; --blue:#6589b8; --teal:#5fc9a3; --purple:#a16fc9;
+    --border:#4d5560; --pixel:'Press Start 2P',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--cream);font-family:var(--pixel);font-size:10px;line-height:1.6;-webkit-font-smoothing:none;font-smoothing:none;padding:32px 16px}
+  body{max-width:920px;margin:0 auto}
+  h1{font-size:20px;color:var(--brassLight);letter-spacing:3px;margin-bottom:8px}
+  .subtitle{font-family:system-ui;font-size:14px;color:var(--muted);margin-bottom:28px;letter-spacing:0.5px;line-height:1.5}
+  .sectionHead{font-size:11px;color:var(--brass);letter-spacing:2px;margin:32px 0 12px;border-bottom:2px solid var(--border);padding-bottom:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:repeating-linear-gradient(0deg,var(--card) 0 1px,#30363e 1px 2px);border:2px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+  .card:hover{border-color:var(--brass);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--brassDeep)}
+  .cardLetter{font-size:24px;color:var(--brassLight);letter-spacing:2px}
+  .cardTitle{font-size:11px;color:var(--cream);letter-spacing:1.5px;line-height:1.4}
+  .cardDesc{font-family:system-ui;font-size:13px;color:var(--muted);line-height:1.5;flex:1}
+  .cardOpen{font-size:8px;color:var(--brass);letter-spacing:2px;border-top:1px solid var(--border);padding-top:8px}
+  .chosenBadge{display:inline-block;font-size:7px;background:var(--brassLight);color:var(--bg);padding:3px 6px;letter-spacing:1.5px;margin-left:8px;border-bottom:2px solid var(--brassDeep)}
+  .deprBadge{display:inline-block;font-size:7px;background:var(--overlay);color:var(--muted);padding:3px 6px;letter-spacing:1.5px;margin-left:8px;border:1px solid var(--border)}
+  .card.chosen{border-color:var(--brassLight);box-shadow:4px 4px 0 var(--brassDeep)}
+  .card.depr{opacity:0.55}
+  .themesBox{background:var(--overlay);border:2px solid var(--border);padding:16px;font-family:system-ui;font-size:13px;color:var(--cream);line-height:1.7}
+  .themesBox b{font-family:var(--pixel);font-size:9px;color:var(--brassLight);letter-spacing:1px;display:inline-block;min-width:20px}
+  .themesBox ul{list-style:none;padding:0}
+  .themesBox li{padding:4px 0;border-bottom:1px dashed var(--border)}
+  .themesBox li:last-child{border-bottom:none}
+  .themesBox em{color:var(--teal);font-style:normal}
+  .footer{margin-top:48px;padding-top:16px;border-top:2px solid var(--border);font-family:system-ui;font-size:12px;color:var(--dim);line-height:1.6}
+  .footer code{background:var(--overlay);padding:2px 6px;border:1px solid var(--border);font-family:ui-monospace,monospace;color:var(--brass);font-size:11px}
+  .swatchRow{display:flex;gap:4px;margin-top:4px}
+  .swatch{width:16px;height:16px;border:1px solid #000}
+</style>
+</head>
+<body>
+  <h1>STRIDEKEEP · REDESIGN</h1>
+  <p class="subtitle">
+    Three IA shapes, all wearing the same new pixel-art aesthetic. Pick one to lock the navigation,
+    or call out what to iterate on. Open each mockup in its own tab — they're sized for a 390px
+    phone viewport, so a desktop browser shows them at 1:1.
+  </p>
+
+  <div class="sectionHead">SHARED ACROSS ALL THREE</div>
+  <div class="themesBox">
+    <ul>
+      <li><b>A.</b> Canvas dominates the active surface — it's not buried below header/InfoStrip anymore.</li>
+      <li><b>B.</b> No "INVENTORY" / "MURAL" tab-name self-headers (the bottom/top nav already labels the tab).</li>
+      <li><b>E.</b> Badges live in <em>Profile</em> only (Inventory's old BADGES block is gone).</li>
+      <li><b>G.</b> Third nav tab DROPPED entirely. Banner moves into Home's TopHeader; scoreboard + LiveFeed become Home chrome above the sub-tabs. Future MARKET could slide back in as a 3rd slot.</li>
+      <li><b>H.</b> AccountChip person icon → <em>gear/settings</em> icon (matches what AccountModal actually does).</li>
+      <li><b>I.</b> Profile is a first-class surface: badges grid + lifetime stats + future hooks.</li>
+      <li><b>J.</b> Pixel-art aesthetic across the whole UI — Press Start 2P labels, hard square corners, dithered card surfaces, expanded chromatic palette.</li>
+    </ul>
+    <div style="margin-top:12px;font-family:var(--pixel);font-size:8px;color:var(--muted);letter-spacing:1px">PALETTE</div>
+    <div class="swatchRow">
+      <div class="swatch" style="background:#2b3138" title="bg"></div>
+      <div class="swatch" style="background:#353c46" title="card"></div>
+      <div class="swatch" style="background:#c79c4a" title="brass"></div>
+      <div class="swatch" style="background:#f0d091" title="brassLight"></div>
+      <div class="swatch" style="background:#c44b3a" title="red team"></div>
+      <div class="swatch" style="background:#6589b8" title="blue team"></div>
+      <div class="swatch" style="background:#5fc9a3" title="teal accent (new)"></div>
+      <div class="swatch" style="background:#a16fc9" title="purple accent (new)"></div>
+    </div>
+  </div>
+
+  <div class="sectionHead">LOCKED LAYOUT — COMPOUND-CARDS</div>
+  <div class="grid">
+    <a class="card chosen" href="option-a-cards.html" target="_blank">
+      <div class="cardLetter">HOME <span class="chosenBadge">LOCKED</span></div>
+      <div class="cardTitle">SEASON CARD · CANVAS / CASES / PROFILE SUB-TABS</div>
+      <div class="cardDesc">
+        Tiny top bar (brand + gear). One unified SEASON CARD groups season name + day/cap +
+        steps/purse/your-pixels + scoreboard. Sub-tabs CANVAS / CASES / PROFILE. Canvas in a
+        thick brass-matte frame with FRAME ▸ affordance. Inline RECENT feed (3 rows) below.
+      </div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+
+    <a class="card chosen" href="option-a-cards-inventory.html" target="_blank">
+      <div class="cardLetter">INVENTORY <span class="chosenBadge">NEW</span></div>
+      <div class="cardTitle">INVENTORY CARD · COLORS / MIXING SUB-TABS</div>
+      <div class="cardDesc">
+        Same aesthetic as Home. INVENTORY CARD shows season name + tiles count + recipes
+        owned + craftable count. Sub-tabs split COLORS (palette grid by category) from
+        MIXING (recipe cards with inputs → output + status-aware CRAFT button). The current
+        CraftModal popover goes away — its content lives in MIXING.
+      </div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+  </div>
+
+  <div class="sectionHead" style="margin-top:32px;font-size:9px">EXPLORATORY HOME VARIANTS (rejected in favor of cards)</div>
+  <div class="grid">
+    <a class="card depr" href="option-a-stacked.html" target="_blank">
+      <div class="cardLetter" style="font-size:14px">STACKED-TIGHT <span class="deprBadge">REJECTED</span></div>
+      <div class="cardTitle" style="font-size:9px">Same 6 bands but tighter; feed-ticker at bottom.</div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+
+    <a class="card depr" href="option-a-hero.html" target="_blank">
+      <div class="cardLetter" style="font-size:14px">CANVAS-HERO <span class="deprBadge">REJECTED</span></div>
+      <div class="cardTitle" style="font-size:9px">Mural dominates; stats &amp; feed behind taps.</div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+  </div>
+
+  <div class="sectionHead" style="margin-top:48px;font-size:9px">PRIOR ITERATIONS (DEPRECATED)</div>
+  <div class="grid">
+    <a class="card depr" href="option-a.html" target="_blank">
+      <div class="cardLetter" style="font-size:14px">A · v2 <span class="deprBadge">SUPERSEDED</span></div>
+      <div class="cardTitle" style="font-size:9px">First v2 with all 6 bands stacked vertically (felt chaotic)</div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+    <a class="card depr" href="option-b.html" target="_blank">
+      <div class="cardLetter" style="font-size:14px">B <span class="deprBadge">DEPRECATED</span></div>
+      <div class="cardTitle" style="font-size:9px">Profile-as-tab, 4 bottom tabs (replaced by Profile-on-Home)</div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+    <a class="card depr" href="option-c.html" target="_blank">
+      <div class="cardLetter" style="font-size:14px">C <span class="deprBadge">DEPRECATED</span></div>
+      <div class="cardTitle" style="font-size:9px">Single-screen, 4 top segments (Inventory absorbed)</div>
+      <div class="cardOpen">OPEN ↗</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    Mockups are HTML/CSS only (one Google Fonts <code>&lt;link&gt;</code> for Press Start 2P;
+    Material Symbols for icon stand-ins). The fake 24×24 canvas in each mockup is generated by
+    a tiny inline script for visual texture — it's not the real mural.
+    <br><br>
+    React-Native implementation will diverge slightly: dither patterns become solid colors with
+    1px borders, Press Start 2P loads via <code>expo-google-fonts</code>, the chamfered button
+    silhouettes use a stacked-View trick. The mockups are about <em>direction</em>, not pixel-perfect
+    output.
+  </div>
+</body>
+</html>

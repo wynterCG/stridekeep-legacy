@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stridekeep · Option A · Cards · Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Material+Symbols+Sharp&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2b3138;--card:#353c46;--cardHi:#404853;--overlay:#1f242a;
+    --cream:#f1ede4;--muted:#8d959e;--dim:#5b6068;
+    --brass:#c79c4a;--brassLight:#f0d091;--brassDeep:#8e6a2c;
+    --red:#c44b3a;--redSoft:#a13c2e;--blue:#6589b8;--blueSoft:#4f6e96;
+    --teal:#5fc9a3;--purple:#a16fc9;
+    --border:#4d5560;--frameWood:#1a1d22;
+    --pixel:'Press Start 2P',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#1a1d22;color:var(--cream);font-family:var(--pixel);font-size:9px;line-height:1.4;
+    -webkit-font-smoothing:none;font-smoothing:none;text-rendering:geometricPrecision;
+    padding:24px;display:flex;justify-content:center;align-items:flex-start;gap:24px;flex-wrap:wrap}
+
+  .phone{width:390px;height:844px;background:var(--bg);border:3px solid #000;
+    box-shadow:0 0 0 6px #444,0 0 0 8px #000,0 24px 60px rgba(0,0,0,.6);
+    position:relative;display:flex;flex-direction:column;overflow:hidden}
+  .phone::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:120px;height:24px;background:#000;border-radius:0 0 10px 10px;z-index:50}
+  .label{font-family:var(--pixel);font-size:10px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:1px;width:390px;text-align:center;margin-top:8px}
+  .label b{color:var(--brassLight)}
+  .strategy{font-family:system-ui;font-size:11px;color:var(--dim);margin-top:4px;text-transform:none;letter-spacing:0}
+
+  /* === MINIMAL TOP BAR (brand + 5 socials + gear — matches Home) === */
+  .topRow{padding:30px 8px 8px;border-bottom:2px solid var(--border);display:flex;align-items:center;
+    justify-content:space-between;background:var(--bg);gap:6px}
+  .brand{font-size:10px;color:var(--brassLight);letter-spacing:2px;flex-shrink:0}
+  .headerIcons{display:flex;gap:3px;align-items:center}
+  .iconBtn{width:26px;height:26px;background:var(--card);border:2px solid var(--border);display:grid;
+    place-items:center;color:var(--brassLight);font-family:'Material Symbols Sharp';font-size:14px;
+    font-feature-settings:'FILL' 1;cursor:pointer;text-decoration:none}
+  .iconBtn img{width:14px;height:14px;display:block}
+  .iconBtn.share{color:var(--teal);border-color:var(--brassDeep)}
+  .iconBtn.web{color:var(--teal);border-color:var(--brassDeep)}
+  .iconBtn.brand{border-color:var(--brassDeep)}
+  .iconBtn.discord{border-style:dashed;opacity:0.7}
+  .iconBtn.gear{color:var(--brassLight)}
+
+  /* === SHARED SEASON CARD (identical to Home — persistent across main tabs) === */
+  .seasonCard{margin:10px 12px 0;background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);
+    border:2px solid var(--brassDeep);padding:10px;display:flex;flex-direction:column;gap:8px;position:relative}
+  .seasonCardCorner{position:absolute;top:-2px;left:-2px;background:var(--brass);color:var(--bg);font-size:7px;
+    padding:3px 6px;letter-spacing:1.5px}
+  .seasonHeader{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+  .seasonTitle{font-size:11px;color:var(--brassLight);letter-spacing:2px}
+  .seasonMeta{font-size:7px;color:var(--muted);letter-spacing:1.2px}
+  .statsLine{display:flex;justify-content:space-around;padding:6px 0;border-top:1px dashed var(--border);
+    border-bottom:1px dashed var(--border)}
+  .statsLine .col{text-align:center}
+  .statsLine .v{font-size:10px;color:var(--brassLight)}
+  .statsLine .k{font-size:6px;color:var(--muted);letter-spacing:1.2px;margin-top:2px}
+  .scoreInline{display:flex;align-items:center;height:18px;border:2px solid var(--border);
+    background:#0e1114}
+  .scoreInline .red,.scoreInline .blue{height:100%;display:flex;align-items:center;padding:0 6px;font-size:7px;
+    letter-spacing:1.5px;color:var(--cream)}
+  .scoreInline .red{background:repeating-linear-gradient(45deg,var(--red) 0 3px,var(--redSoft) 3px 6px)}
+  .scoreInline .blue{background:repeating-linear-gradient(45deg,var(--blue) 0 3px,var(--blueSoft) 3px 6px);justify-content:flex-end}
+  .scoreInline .gap{width:2px;height:100%;background:var(--brassLight)}
+
+  /* === SUB-TABS === */
+  .subTabs{margin-top:10px;display:flex;border-top:2px solid var(--border);border-bottom:2px solid var(--border);
+    background:var(--overlay)}
+  .subTabs label{flex:1;text-align:center;padding:10px 0;font-size:8px;color:var(--muted);
+    letter-spacing:1.5px;border-right:2px solid var(--border);cursor:pointer;
+    background:repeating-linear-gradient(45deg,#1f242a 0 2px,#22272d 2px 4px)}
+  .subTabs label:last-child{border-right:none}
+
+  /* === PANEL === */
+  .panel{flex:1;overflow:auto;padding:12px}
+
+  /* === COLORS PANEL === */
+  .paletteGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px}
+  .colorCell{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+  .swatch{width:60px;height:60px;background:var(--overlay);border:2px solid #000;position:relative;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.4)}
+  .swatch.dim{opacity:0.35;cursor:default}
+  .swatch .code{position:absolute;top:3px;left:3px;font-size:6px;background:rgba(0,0,0,0.65);color:var(--cream);
+    padding:1px 3px;letter-spacing:1px}
+  .swatch .qty{position:absolute;bottom:3px;right:3px;min-width:18px;height:14px;background:rgba(0,0,0,0.7);
+    color:var(--cream);font-size:7px;display:grid;place-items:center;padding:0 3px;letter-spacing:0.5px}
+  .colorName{font-size:7px;color:var(--cream);letter-spacing:0.5px;text-align:center;font-family:system-ui;
+    line-height:1.2;height:2.4em;display:flex;align-items:center;justify-content:center}
+  .colorCell.dim .colorName{color:var(--dim)}
+
+  .sectionDivider{display:flex;justify-content:space-between;align-items:baseline;font-size:8px;
+    color:var(--brass);letter-spacing:2px;margin:4px 4px 10px;border-bottom:1px dashed var(--border);
+    padding-bottom:6px}
+  .sectionDivider .frac{color:var(--brassLight);font-size:9px;letter-spacing:1px}
+
+  /* === MIXING PANEL === */
+  .recipeCard{background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);
+    border:2px solid var(--border);border-left:4px solid var(--purple);padding:12px;margin-bottom:10px}
+  .recipeRow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .recipeInputs{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .miniSwatch{width:28px;height:28px;background:var(--overlay);border:2px solid #000;position:relative;flex-shrink:0}
+  .miniSwatch .ct{position:absolute;bottom:-1px;right:-1px;background:rgba(0,0,0,0.85);color:var(--cream);
+    font-size:6px;padding:1px 3px;letter-spacing:0.5px}
+  .miniSwatch .lbl{position:absolute;top:1px;left:1px;font-size:5px;color:var(--cream);
+    background:rgba(0,0,0,0.6);padding:0 2px;letter-spacing:0.5px}
+  .arrow{font-family:'Material Symbols Sharp';font-size:18px;color:var(--brass);font-feature-settings:'FILL' 1}
+  .recipeOutput{display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
+  .recipeOutput .miniSwatch{width:36px;height:36px;border-color:var(--brassDeep)}
+  .recipeFooter{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding-top:8px;border-top:1px dashed var(--border)}
+  .recipeName{font-size:8px;color:var(--cream);letter-spacing:1px}
+  .recipeName .qty{color:var(--brassLight);font-family:var(--pixel);margin-left:4px}
+  .craftBtn{font-family:var(--pixel);font-size:8px;background:var(--purple);color:var(--bg);padding:6px 12px;
+    letter-spacing:1px;border:none;border-bottom:3px solid #6e4790;cursor:pointer}
+  .craftBtn.disabled{background:var(--overlay);color:var(--dim);border-bottom-color:var(--border);cursor:default}
+  .recipeNeed{font-size:6px;color:var(--muted);letter-spacing:1px}
+  .recipeNeed.short{color:var(--red)}
+
+  .bottomNav{display:flex;border-top:2px solid var(--border);background:var(--bg);padding-bottom:14px}
+  .bottomNav .navTab{flex:1;text-align:center;padding:10px 0;font-size:8px;color:var(--muted);
+    letter-spacing:1.5px;cursor:pointer}
+  .bottomNav .navTab.active{color:var(--brassLight);background:linear-gradient(0deg,rgba(199,156,74,.10) 0,transparent 80%)}
+  .bottomNav .navTab .ico{display:block;font-family:'Material Symbols Sharp';font-size:18px;
+    margin-bottom:2px;font-feature-settings:'FILL' 1}
+
+  input[name=sub]{display:none}
+  #panelColors,#panelMixing{display:none}
+  #subColors:checked ~ .panel #panelColors{display:block}
+  #subMixing:checked ~ .panel #panelMixing{display:block}
+  #subColors:checked ~ .subTabs label[for=subColors],
+  #subMixing:checked ~ .subTabs label[for=subMixing]{
+    color:var(--bg);background:var(--brass);box-shadow:inset 0 -3px var(--brassDeep)}
+</style>
+</head>
+<body>
+<div>
+<div class="phone">
+  <input type="radio" name="sub" id="subColors" checked>
+  <input type="radio" name="sub" id="subMixing">
+
+  <div class="topRow">
+    <div class="brand">STRIDEKEEP</div>
+    <div class="headerIcons">
+      <div class="iconBtn share" title="Share Play Store link">share</div>
+      <div class="iconBtn web" title="stridekeep.app">language</div>
+      <a class="iconBtn brand" href="#" title="Buy Me a Coffee"><img src="https://cdn.simpleicons.org/buymeacoffee/FFDD00" alt="Buy Me a Coffee"></a>
+      <a class="iconBtn brand" href="#" title="Patreon"><img src="https://cdn.simpleicons.org/patreon/F96854" alt="Patreon"></a>
+      <a class="iconBtn brand discord" href="#" title="Discord (coming soon)"><img src="https://cdn.simpleicons.org/discord/5865F2" alt="Discord"></a>
+      <div class="iconBtn gear" title="Settings">settings</div>
+    </div>
+  </div>
+
+  <!-- Same SEASON CARD as Home — persistent across main tabs -->
+  <div class="seasonCard">
+    <div class="seasonCardCorner">SEASON 1</div>
+    <div class="seasonHeader">
+      <div class="seasonTitle">SLATE FORGE</div>
+      <div class="seasonMeta">DAY 12 · CAP 2D 14H</div>
+    </div>
+    <div class="statsLine">
+      <div class="col"><div class="v">12,438</div><div class="k">STEPS</div></div>
+      <div class="col"><div class="v">$12,438</div><div class="k">PURSE</div></div>
+      <div class="col"><div class="v">219</div><div class="k">YOUR PIXELS</div></div>
+    </div>
+    <div class="scoreInline">
+      <div class="red" style="flex:51.5">RED 412</div>
+      <div class="gap"></div>
+      <div class="blue" style="flex:48.5">387 BLUE</div>
+    </div>
+  </div>
+
+  <div class="subTabs">
+    <label for="subColors">COLORS</label>
+    <label for="subMixing">MIXING</label>
+  </div>
+
+  <div class="panel">
+    <!-- COLORS -->
+    <div id="panelColors">
+      <div class="sectionDivider">
+        <span>PIXEL COLORS</span>
+        <span class="frac">9 / 13</span>
+      </div>
+      <div class="paletteGrid">
+        <div class="colorCell">
+          <div class="swatch" style="background:#c44b3a"><span class="code">S1</span><span class="qty">42</span></div>
+          <div class="colorName">Brick Red</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#a13c2e"><span class="code">S2</span><span class="qty">18</span></div>
+          <div class="colorName">Iron Rust</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#7a3026"><span class="code">S3</span><span class="qty">7</span></div>
+          <div class="colorName">Forge Ember</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#d96a55"><span class="code">Q1</span><span class="qty">23</span></div>
+          <div class="colorName">Coral Glow</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#c79c4a"><span class="code">Q2</span><span class="qty">11</span></div>
+          <div class="colorName">Old Brass</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#f0d091"><span class="code">Q3</span><span class="qty">4</span></div>
+          <div class="colorName">Gilded Wheat</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#8e6a2c"><span class="code">F1</span><span class="qty">2</span></div>
+          <div class="colorName">Deep Bronze</div>
+        </div>
+        <div class="colorCell dim">
+          <div class="swatch dim" style="background:#5b3826"><span class="code">F2</span><span class="qty">0</span></div>
+          <div class="colorName">Charred Oak</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:#5fc9a3"><span class="code">P1</span><span class="qty">5</span></div>
+          <div class="colorName">Patina Mint</div>
+        </div>
+        <div class="colorCell dim">
+          <div class="swatch dim" style="background:#a16fc9"><span class="code">P2</span><span class="qty">0</span></div>
+          <div class="colorName">Heath Plum</div>
+        </div>
+        <div class="colorCell dim">
+          <div class="swatch dim" style="background:#6589b8"><span class="code">P3</span><span class="qty">0</span></div>
+          <div class="colorName">Slate Blue</div>
+        </div>
+        <div class="colorCell">
+          <div class="swatch" style="background:linear-gradient(135deg,#c44b3a,#f0d091)"><span class="code">C1</span><span class="qty">1</span></div>
+          <div class="colorName">Sunfire</div>
+        </div>
+        <div class="colorCell dim">
+          <div class="swatch dim" style="background:linear-gradient(135deg,#5fc9a3,#a16fc9)"><span class="code">C2</span><span class="qty">0</span></div>
+          <div class="colorName">Twilight Wash</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIXING -->
+    <div id="panelMixing">
+      <div class="recipeCard">
+        <div class="recipeRow">
+          <div class="recipeInputs">
+            <div class="miniSwatch" style="background:#c44b3a"><span class="lbl">S1</span><span class="ct">×3</span></div>
+            <div class="miniSwatch" style="background:#f0d091"><span class="lbl">Q3</span><span class="ct">×1</span></div>
+          </div>
+          <span class="arrow">arrow_forward</span>
+          <div class="recipeOutput">
+            <div class="miniSwatch" style="background:linear-gradient(135deg,#c44b3a,#f0d091)"><span class="lbl">C1</span></div>
+          </div>
+        </div>
+        <div class="recipeFooter">
+          <div>
+            <div class="recipeName">SUNFIRE <span class="qty">×1</span></div>
+            <div class="recipeNeed">YOU HAVE 42 / 4 · 4 / 1</div>
+          </div>
+          <button class="craftBtn">CRAFT</button>
+        </div>
+      </div>
+
+      <div class="recipeCard">
+        <div class="recipeRow">
+          <div class="recipeInputs">
+            <div class="miniSwatch" style="background:#5fc9a3"><span class="lbl">P1</span><span class="ct">×2</span></div>
+            <div class="miniSwatch" style="background:#a16fc9"><span class="lbl">P2</span><span class="ct">×2</span></div>
+          </div>
+          <span class="arrow">arrow_forward</span>
+          <div class="recipeOutput">
+            <div class="miniSwatch" style="background:linear-gradient(135deg,#5fc9a3,#a16fc9)"><span class="lbl">C2</span></div>
+          </div>
+        </div>
+        <div class="recipeFooter">
+          <div>
+            <div class="recipeName">TWILIGHT WASH <span class="qty">×1</span></div>
+            <div class="recipeNeed short">NEED 2 MORE HEATH PLUM</div>
+          </div>
+          <button class="craftBtn disabled">CRAFT</button>
+        </div>
+      </div>
+
+      <div class="recipeCard">
+        <div class="recipeRow">
+          <div class="recipeInputs">
+            <div class="miniSwatch" style="background:#a13c2e"><span class="lbl">S2</span><span class="ct">×4</span></div>
+            <div class="miniSwatch" style="background:#c79c4a"><span class="lbl">Q2</span><span class="ct">×2</span></div>
+          </div>
+          <span class="arrow">arrow_forward</span>
+          <div class="recipeOutput">
+            <div class="miniSwatch" style="background:linear-gradient(135deg,#a13c2e,#c79c4a)"><span class="lbl">C3</span></div>
+          </div>
+        </div>
+        <div class="recipeFooter">
+          <div>
+            <div class="recipeName">FORGE PATINA <span class="qty">×1</span></div>
+            <div class="recipeNeed">YOU HAVE 18 / 8 · 11 / 4</div>
+          </div>
+          <button class="craftBtn">CRAFT</button>
+        </div>
+      </div>
+
+      <div class="recipeCard">
+        <div class="recipeRow">
+          <div class="recipeInputs">
+            <div class="miniSwatch" style="background:#7a3026"><span class="lbl">S3</span><span class="ct">×2</span></div>
+            <div class="miniSwatch" style="background:#d96a55"><span class="lbl">Q1</span><span class="ct">×3</span></div>
+          </div>
+          <span class="arrow">arrow_forward</span>
+          <div class="recipeOutput">
+            <div class="miniSwatch" style="background:linear-gradient(135deg,#7a3026,#d96a55)"><span class="lbl">C4</span></div>
+          </div>
+        </div>
+        <div class="recipeFooter">
+          <div>
+            <div class="recipeName">EMBER WASH <span class="qty">×1</span></div>
+            <div class="recipeNeed short">NEED 2 MORE FORGE EMBER</div>
+          </div>
+          <button class="craftBtn disabled">CRAFT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomNav">
+    <div class="navTab"><span class="ico">home</span>HOME</div>
+    <div class="navTab active"><span class="ico">inventory_2</span>INVENTORY</div>
+  </div>
+</div>
+<div class="label">
+  <b>INVENTORY · COMPOUND-CARDS</b>
+  <div class="strategy">Same SEASON CARD as Home — persistent across main tabs (steps/purse/your-pixels/scoreboard always visible). Sub-tabs COLORS / MIXING. COLORS is one unified grid headed by "PIXEL COLORS 9/13" (owned/total). MIXING absorbs CraftModal — recipe cards with inputs → output, status-aware CRAFT button. Tap a color cell in COLORS → existing action sheet (SELL · PLACE · CRAFT WITH).</div>
+</div>
+</div>
+</body></html>

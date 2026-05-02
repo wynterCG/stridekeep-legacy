@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stridekeep · Option A · Compound-cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Material+Symbols+Sharp&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2b3138;--card:#353c46;--cardHi:#404853;--overlay:#1f242a;
+    --cream:#f1ede4;--muted:#8d959e;--dim:#5b6068;
+    --brass:#c79c4a;--brassLight:#f0d091;--brassDeep:#8e6a2c;
+    --red:#c44b3a;--redSoft:#a13c2e;--blue:#6589b8;--blueSoft:#4f6e96;
+    --teal:#5fc9a3;--purple:#a16fc9;
+    --border:#4d5560;--frameWood:#1a1d22;
+    --pixel:'Press Start 2P',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#1a1d22;color:var(--cream);font-family:var(--pixel);font-size:9px;line-height:1.4;
+    -webkit-font-smoothing:none;font-smoothing:none;text-rendering:geometricPrecision;
+    padding:24px;display:flex;justify-content:center;align-items:flex-start;gap:24px;flex-wrap:wrap}
+
+  .phone{width:390px;height:844px;background:var(--bg);border:3px solid #000;
+    box-shadow:0 0 0 6px #444,0 0 0 8px #000,0 24px 60px rgba(0,0,0,.6);
+    position:relative;display:flex;flex-direction:column;overflow:hidden}
+  .phone::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:120px;height:24px;background:#000;border-radius:0 0 10px 10px;z-index:50}
+  .label{font-family:var(--pixel);font-size:10px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:1px;width:390px;text-align:center;margin-top:8px}
+  .label b{color:var(--brassLight)}
+  .strategy{font-family:system-ui;font-size:11px;color:var(--dim);margin-top:4px;text-transform:none;letter-spacing:0}
+
+  /* === MINIMAL TOP BAR (brand + 5 socials + gear) === */
+  .topRow{padding:30px 8px 8px;border-bottom:2px solid var(--border);display:flex;align-items:center;
+    justify-content:space-between;background:var(--bg);gap:6px}
+  .brand{font-size:10px;color:var(--brassLight);letter-spacing:2px;flex-shrink:0}
+  .headerIcons{display:flex;gap:3px;align-items:center}
+  .iconBtn{width:26px;height:26px;background:var(--card);border:2px solid var(--border);display:grid;
+    place-items:center;color:var(--brassLight);font-family:'Material Symbols Sharp';font-size:14px;
+    font-feature-settings:'FILL' 1;cursor:pointer;text-decoration:none}
+  .iconBtn img{width:14px;height:14px;display:block}
+  .iconBtn.share{color:var(--teal);border-color:var(--brassDeep)}
+  .iconBtn.web{color:var(--teal);border-color:var(--brassDeep)}
+  .iconBtn.brand{border-color:var(--brassDeep)}
+  .iconBtn.discord{border-style:dashed;opacity:0.7}
+  .iconBtn.gear{color:var(--brassLight)}
+
+  /* === COMPOUND SEASON CARD: groups season meta + stats + scoreboard === */
+  .seasonCard{margin:10px 12px 0;background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);
+    border:2px solid var(--brassDeep);padding:10px;display:flex;flex-direction:column;gap:8px;position:relative}
+  .seasonCardCorner{position:absolute;top:-2px;left:-2px;background:var(--brass);color:var(--bg);font-size:7px;
+    padding:3px 6px;letter-spacing:1.5px}
+  .seasonHeader{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+  .seasonTitle{font-size:11px;color:var(--brassLight);letter-spacing:2px}
+  .seasonMeta{font-size:7px;color:var(--muted);letter-spacing:1.2px}
+  .statsLine{display:flex;justify-content:space-around;padding:6px 0;border-top:1px dashed var(--border);
+    border-bottom:1px dashed var(--border)}
+  .statsLine .col{text-align:center}
+  .statsLine .v{font-size:10px;color:var(--brassLight)}
+  .statsLine .k{font-size:6px;color:var(--muted);letter-spacing:1.2px;margin-top:2px}
+  .scoreInline{display:flex;align-items:center;height:18px;border:2px solid var(--border);
+    background:#0e1114}
+  .scoreInline .red,.scoreInline .blue{height:100%;display:flex;align-items:center;padding:0 6px;font-size:7px;
+    letter-spacing:1.5px;color:var(--cream)}
+  .scoreInline .red{background:repeating-linear-gradient(45deg,var(--red) 0 3px,var(--redSoft) 3px 6px)}
+  .scoreInline .blue{background:repeating-linear-gradient(45deg,var(--blue) 0 3px,var(--blueSoft) 3px 6px);justify-content:flex-end}
+  .scoreInline .gap{width:2px;height:100%;background:var(--brassLight)}
+
+  /* === SUB-TABS === */
+  .subTabs{margin-top:10px;display:flex;border-top:2px solid var(--border);border-bottom:2px solid var(--border);
+    background:var(--overlay)}
+  .subTabs label{flex:1;text-align:center;padding:10px 0;font-size:8px;color:var(--muted);
+    letter-spacing:1.5px;border-right:2px solid var(--border);cursor:pointer;
+    background:repeating-linear-gradient(45deg,#1f242a 0 2px,#22272d 2px 4px)}
+  .subTabs label:last-child{border-right:none}
+
+  /* === PANEL === */
+  .panel{flex:1;overflow:auto;padding:12px}
+
+  /* Canvas (slightly smaller because season card eats space) */
+  .frameOuter{margin:0 auto;width:316px;background:var(--frameWood);padding:6px;
+    box-shadow:0 4px 0 rgba(0,0,0,.4),0 0 0 1px #000}
+  .frameMatte{background:var(--brassDeep);padding:14px;
+    box-shadow:inset 0 0 0 1px var(--brassLight),inset 0 0 0 2px var(--brassDeep)}
+  .canvasGrid{width:272px;height:272px;background:#181a1d;display:grid;
+    grid-template-columns:repeat(24,1fr);grid-template-rows:repeat(24,1fr)}
+  .frameMeta{margin:10px auto 0;width:316px;display:flex;justify-content:center;align-items:center}
+  .muralName{font-size:9px;color:var(--cream);letter-spacing:2px;text-align:center}
+  .muralName .pct{color:var(--brassLight);margin-left:6px}
+
+  /* CASES + PROFILE */
+  .caseCard{background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);
+    border:2px solid var(--border);border-left:4px solid var(--brassLight);padding:10px;
+    margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .caseCard.fine{border-left-color:var(--brassLight)}
+  .caseCard.quality{border-left-color:var(--blue)}
+  .caseCard.starter{border-left-color:var(--brass)}
+  .medallion{width:40px;height:40px;background:var(--overlay);border:2px solid var(--border);
+    display:grid;place-items:center;font-size:18px;font-family:system-ui}
+  .caseInfo{flex:1}
+  .caseName{font-size:9px;color:var(--cream);letter-spacing:1px;margin-bottom:5px}
+  .caseProgress{display:flex;gap:6px;align-items:center}
+  .caseBar{flex:1;height:4px;background:var(--overlay);border:1px solid var(--border)}
+  .caseBar .f{height:100%;background:var(--brass)}
+  .caseSteps{font-size:7px;color:var(--muted);min-width:60px;text-align:right;font-family:var(--pixel)}
+  .openBtn{font-family:var(--pixel);font-size:8px;background:var(--brass);color:var(--bg);padding:6px 10px;
+    letter-spacing:1px;border:none;border-bottom:3px solid var(--brassDeep);cursor:pointer}
+  .idleBtn{font-family:var(--pixel);font-size:7px;color:var(--muted);background:transparent;
+    border:2px solid var(--border);padding:5px 8px;letter-spacing:1px}
+  .profileTitle{font-size:10px;color:var(--brassLight);letter-spacing:2px;margin:6px 4px 10px}
+  .statGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .statBox{background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);
+    border:2px solid var(--border);padding:10px}
+  .statBox .v{font-size:14px;color:var(--brassLight)}
+  .statBox .k{font-size:7px;color:var(--muted);letter-spacing:1.5px;margin-top:4px}
+  .badgeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+  .badgeBox{aspect-ratio:1;background:var(--overlay);border:2px solid var(--brassDeep);position:relative}
+  .badgeBox.empty{border:2px dashed var(--dim);background:transparent}
+  .badgeBox .num{position:absolute;bottom:2px;left:3px;font-size:7px;color:var(--brass)}
+
+  /* === FEED INLINE BELOW CANVAS (not above) === */
+  .feedInline{margin:14px auto 0;display:flex;flex-direction:column;gap:5px}
+  .feedInline .lbl{font-size:7px;color:var(--brass);letter-spacing:2px;margin-bottom:2px}
+  .feedRow{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--overlay);
+    border:1px solid var(--border);font-size:7px;color:var(--cream);letter-spacing:0.5px}
+  .feedRow .swatch{width:8px;height:8px;border:1px solid #000;flex-shrink:0}
+  .feedRow .name{color:var(--cream)}
+  .feedRow .body{color:var(--muted)}
+  .feedRow.bot .name{color:var(--muted);font-style:italic}
+  .feedRow.bot .botTag{color:var(--dim);margin-left:auto;font-size:6px}
+  .feedRow.milestone{background:rgba(199,156,74,.15);border-color:var(--brass)}
+  .feedRow.milestone .name{color:var(--brassLight)}
+
+  .bottomNav{display:flex;border-top:2px solid var(--border);background:var(--bg);padding-bottom:14px}
+  .bottomNav .navTab{flex:1;text-align:center;padding:10px 0;font-size:8px;color:var(--muted);
+    letter-spacing:1.5px;cursor:pointer}
+  .bottomNav .navTab.active{color:var(--brassLight);background:linear-gradient(0deg,rgba(199,156,74,.10) 0,transparent 80%)}
+  .bottomNav .navTab .ico{display:block;font-family:'Material Symbols Sharp';font-size:18px;
+    margin-bottom:2px;font-feature-settings:'FILL' 1}
+
+  input[name=sub]{display:none}
+  #panelCanvas,#panelCases,#panelProfile{display:none}
+  #subCanvas:checked ~ .panel #panelCanvas{display:block}
+  #subCases:checked ~ .panel #panelCases{display:block}
+  #subProfile:checked ~ .panel #panelProfile{display:block}
+  #subCanvas:checked ~ .subTabs label[for=subCanvas],
+  #subCases:checked ~ .subTabs label[for=subCases],
+  #subProfile:checked ~ .subTabs label[for=subProfile]{
+    color:var(--bg);background:var(--brass);box-shadow:inset 0 -3px var(--brassDeep)}
+</style>
+</head>
+<body>
+<div>
+<div class="phone">
+  <input type="radio" name="sub" id="subCanvas" checked>
+  <input type="radio" name="sub" id="subCases">
+  <input type="radio" name="sub" id="subProfile">
+
+  <div class="topRow">
+    <div class="brand">STRIDEKEEP</div>
+    <div class="headerIcons">
+      <div class="iconBtn share" title="Share Play Store link">share</div>
+      <div class="iconBtn web" title="stridekeep.app">language</div>
+      <a class="iconBtn brand" href="#" title="Buy Me a Coffee"><img src="https://cdn.simpleicons.org/buymeacoffee/FFDD00" alt="Buy Me a Coffee"></a>
+      <a class="iconBtn brand" href="#" title="Patreon"><img src="https://cdn.simpleicons.org/patreon/F96854" alt="Patreon"></a>
+      <a class="iconBtn brand discord" href="#" title="Discord (coming soon)"><img src="https://cdn.simpleicons.org/discord/5865F2" alt="Discord"></a>
+      <div class="iconBtn gear" title="Settings">settings</div>
+    </div>
+  </div>
+
+  <div class="seasonCard">
+    <div class="seasonCardCorner">SEASON 1</div>
+    <div class="seasonHeader">
+      <div class="seasonTitle">SLATE FORGE</div>
+      <div class="seasonMeta">DAY 12 · CAP 2D 14H</div>
+    </div>
+    <div class="statsLine">
+      <div class="col"><div class="v">12,438</div><div class="k">STEPS</div></div>
+      <div class="col"><div class="v">$12,438</div><div class="k">PURSE</div></div>
+      <div class="col"><div class="v">219</div><div class="k">YOUR PIXELS</div></div>
+    </div>
+    <div class="scoreInline">
+      <div class="red" style="flex:51.5">RED 412</div>
+      <div class="gap"></div>
+      <div class="blue" style="flex:48.5">387 BLUE</div>
+    </div>
+  </div>
+
+  <div class="subTabs">
+    <label for="subCanvas">CANVAS</label>
+    <label for="subCases">CASES</label>
+    <label for="subProfile">PROFILE</label>
+  </div>
+
+  <div class="panel">
+    <div id="panelCanvas">
+      <div class="frameOuter">
+        <div class="frameMatte">
+          <div class="canvasGrid" id="canvas24"></div>
+        </div>
+      </div>
+      <div class="frameMeta">
+        <div class="muralName">SLATE FORGE <span class="pct">38% FILLED</span></div>
+      </div>
+      <div class="feedInline">
+        <div class="lbl">RECENT</div>
+        <div class="feedRow milestone"><span class="name">RED</span><span class="body">mural hit 25%</span></div>
+        <div class="feedRow"><span class="swatch" style="background:#c44b3a"></span><span class="name">luca</span><span class="body">placed Brick Red</span></div>
+        <div class="feedRow bot"><span class="swatch" style="background:#6589b8"></span><span class="name">north_pyre</span><span class="body">placed</span><span class="botTag">·b</span></div>
+      </div>
+    </div>
+    <div id="panelCases">
+      <div class="caseCard fine"><div class="medallion">💎</div><div class="caseInfo">
+        <div class="caseName">MASTER PIGMENTS</div><div class="caseProgress">
+        <div class="caseBar"><div class="f" style="width:62%"></div></div><div class="caseSteps">3 PENDING</div>
+        </div></div><button class="openBtn">OPEN</button></div>
+      <div class="caseCard quality"><div class="medallion">🧰</div><div class="caseInfo">
+        <div class="caseName">PIGMENT BOX</div><div class="caseProgress">
+        <div class="caseBar"><div class="f" style="width:34%"></div></div><div class="caseSteps">1.3K / 4K</div>
+        </div></div><span class="idleBtn">2.7K LEFT</span></div>
+      <div class="caseCard starter"><div class="medallion">📦</div><div class="caseInfo">
+        <div class="caseName">PIGMENT POUCH</div><div class="caseProgress">
+        <div class="caseBar"><div class="f" style="width:78%"></div></div><div class="caseSteps">1 PENDING</div>
+        </div></div><button class="openBtn">OPEN</button></div>
+    </div>
+    <div id="panelProfile">
+      <div class="profileTitle">LIFETIME</div>
+      <div class="statGrid">
+        <div class="statBox"><div class="v">12,438</div><div class="k">STEPS</div></div>
+        <div class="statBox"><div class="v">47</div><div class="k">CASES OPENED</div></div>
+        <div class="statBox"><div class="v">312</div><div class="k">TILES PLACED</div></div>
+        <div class="statBox"><div class="v">S2</div><div class="k">BEST · 89 PIXELS</div></div>
+      </div>
+      <div class="profileTitle">MURALS · 3</div>
+      <div class="badgeGrid">
+        <div class="badgeBox" style="background:linear-gradient(135deg,var(--red),var(--brassDeep))"><div class="num">S1</div></div>
+        <div class="badgeBox" style="background:linear-gradient(135deg,var(--teal),var(--blue))"><div class="num">S2</div></div>
+        <div class="badgeBox" style="background:linear-gradient(135deg,var(--purple),var(--red))"><div class="num">S3</div></div>
+        <div class="badgeBox empty"></div><div class="badgeBox empty"></div><div class="badgeBox empty"></div><div class="badgeBox empty"></div><div class="badgeBox empty"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomNav">
+    <div class="navTab active"><span class="ico">home</span>HOME</div>
+    <div class="navTab"><span class="ico">inventory_2</span>INVENTORY</div>
+  </div>
+</div>
+<div class="label">
+  <b>COMPOUND-CARDS</b>
+  <div class="strategy">Tiny header (brand + gear). One unified SEASON CARD groups season name + day/cap + stats + scoreboard. Sub-tabs. Canvas + a small RECENT feed (3 rows) below. Less band-noise; related info reads as one unit.</div>
+</div>
+</div>
+<script>
+(function(){var grid=document.getElementById('canvas24');if(!grid)return;
+var palette=['#c44b3a','#a13c2e','#8e6a2c','#c79c4a','#f0d091','#7a3026','#d96a55','#5b3826'];
+function h(i,j){return ((i*73)^(j*131)+i*j*7)&0xff;}
+for(var i=0;i<24;i++)for(var j=0;j<24;j++){var d=document.createElement('div');var v=h(i,j);
+if((v%10)<3){d.style.background=palette[v%palette.length];}else{d.style.background=palette[(v*3)%palette.length];d.style.opacity='0.18';}
+grid.appendChild(d);}})();
+</script>
+</body></html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stridekeep · Option C — Single-screen, top segments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Material+Symbols+Sharp&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2b3138; --card:#353c46; --cardHi:#404853; --overlay:#1f242a;
+    --cream:#f1ede4; --muted:#8d959e; --dim:#5b6068;
+    --brass:#c79c4a; --brassLight:#f0d091; --brassDeep:#8e6a2c;
+    --red:#c44b3a; --blue:#6589b8; --teal:#5fc9a3; --purple:#a16fc9;
+    --border:#4d5560; --pixel:'Press Start 2P',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#1a1d22;color:var(--cream);font-family:var(--pixel);font-size:9px;line-height:1.4;-webkit-font-smoothing:none;font-smoothing:none;image-rendering:pixelated;text-rendering:geometricPrecision;padding:24px;display:flex;justify-content:center;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  .phone{width:390px;height:844px;background:var(--bg);border:3px solid #000;box-shadow:0 0 0 6px #444,0 0 0 8px #000,0 24px 60px rgba(0,0,0,.6);position:relative;display:flex;flex-direction:column;overflow:hidden}
+  .phone::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:24px;background:#000;border-radius:0 0 10px 10px;z-index:50}
+  .label{font-family:var(--pixel);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;width:390px;text-align:center;margin-top:8px}
+  .label b{color:var(--brassLight)}
+  .topHeader{padding:30px 12px 8px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+  .brand{font-size:11px;color:var(--brassLight);letter-spacing:2px}
+  .topRight{display:flex;gap:5px;align-items:center}
+  .seasonChip{font-size:7px;color:var(--muted);background:var(--overlay);border:1px solid var(--border);padding:4px 6px;letter-spacing:1px}
+  .iconBtn{width:28px;height:28px;background:var(--card);border:2px solid var(--border);display:grid;place-items:center;color:var(--brassLight);font-family:'Material Symbols Sharp';font-size:18px;font-feature-settings:'FILL' 1;cursor:pointer}
+  .iconBtn.profile{color:var(--purple);border-color:var(--purple)}
+  .infoStrip{display:flex;justify-content:space-between;padding:8px 12px;background:var(--overlay);border-bottom:2px solid var(--border)}
+  .infoStrip .v{font-size:10px;color:var(--brassLight)}
+  .infoStrip .k{font-size:7px;color:var(--muted);letter-spacing:1px;margin-bottom:2px}
+  /* Top segmented control - 4 tabs */
+  .topSegments{display:flex;background:var(--overlay);border-bottom:2px solid var(--border)}
+  .topSegments .seg{flex:1;text-align:center;padding:11px 0;font-size:7px;color:var(--muted);letter-spacing:1.5px;border-right:2px solid var(--border);cursor:pointer;background:repeating-linear-gradient(45deg,#1f242a 0 2px,#22272d 2px 4px)}
+  .topSegments .seg:last-child{border-right:none}
+  .topSegments .seg.active{color:var(--bg);background:var(--brass);box-shadow:inset 0 -3px var(--brassDeep)}
+  .topSegments .seg .ico{display:block;font-family:'Material Symbols Sharp';font-size:14px;margin-bottom:3px;font-feature-settings:'FILL' 1}
+  .panel{flex:1;overflow:auto;padding:10px}
+  .canvasFrame{margin:0 auto;width:330px;height:330px;background:#181a1d;border:3px solid var(--red);padding:0;position:relative;display:grid;grid-template-columns:repeat(24,1fr);grid-template-rows:repeat(24,1fr)}
+  .canvasMeta{margin-top:10px;padding:8px 10px;background:repeating-linear-gradient(0deg,var(--card) 0 1px,#3a414a 1px 2px);border:2px solid var(--border)}
+  .canvasMeta .titlerow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .canvasMeta .title{font-size:9px;color:var(--brassLight);letter-spacing:1.5px}
+  .canvasMeta .pct{font-size:9px;color:var(--cream)}
+  .progressBar{height:6px;background:#1a1d22;border:1px solid var(--border);position:relative}
+  .progressBar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--red);width:38%;box-shadow:inset 0 -1px rgba(0,0,0,.3)}
+  .badgesRow{display:flex;justify-content:space-around;margin-top:12px;padding:8px;background:var(--overlay);border:2px solid var(--border)}
+  .badgesRow .stat{text-align:center}
+  .badgesRow .v{font-size:11px;color:var(--cream);letter-spacing:0.5px}
+  .badgesRow .k{font-size:7px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+  /* Bottom safe area only - no nav */
+  .safeArea{height:24px;background:var(--bg);border-top:2px solid var(--border)}
+</style>
+</head>
+<body>
+<div>
+<div class="phone">
+  <div class="topHeader">
+    <div class="brand">STRIDEKEEP</div>
+    <div class="topRight">
+      <div class="seasonChip">S1 · D12</div>
+      <div class="iconBtn profile" title="Profile">person</div>
+      <div class="iconBtn" title="Settings">settings</div>
+    </div>
+  </div>
+
+  <div class="infoStrip">
+    <div><div class="k">STEPS</div><div class="v">12,438</div></div>
+    <div><div class="k">PURSE</div><div class="v">$12,438</div></div>
+    <div><div class="k">CAP IN</div><div class="v">2D 14H</div></div>
+  </div>
+
+  <div class="topSegments">
+    <div class="seg active"><span class="ico">palette</span>CANVAS</div>
+    <div class="seg"><span class="ico">inventory_2</span>CASES</div>
+    <div class="seg"><span class="ico">backpack</span>INV.</div>
+    <div class="seg"><span class="ico">flag</span>TOWN</div>
+  </div>
+
+  <div class="panel">
+    <div class="canvasFrame" id="canvas24"></div>
+    <div class="canvasMeta">
+      <div class="titlerow">
+        <div class="title">RED MURAL · OUR TEAM</div>
+        <div class="pct">38%</div>
+      </div>
+      <div class="progressBar"><div class="fill"></div></div>
+    </div>
+    <div class="badgesRow">
+      <div class="stat"><div class="v">219</div><div class="k">YOUR PIXELS</div></div>
+      <div class="stat"><div class="v">412</div><div class="k">RED TOTAL</div></div>
+      <div class="stat"><div class="v">387</div><div class="k">BLUE TOTAL</div></div>
+    </div>
+  </div>
+
+  <div class="safeArea"></div>
+</div>
+<div class="label"><b>OPTION C</b> · Single-screen / 4 top segments / no bottom nav</div>
+</div>
+
+<script>
+(function(){
+  var grid = document.getElementById('canvas24');
+  if(!grid) return;
+  var palette = ['#c44b3a','#a13c2e','#8e6a2c','#c79c4a','#f0d091','#7a3026','#d96a55','#5b3826'];
+  function h(i,j){return ((i*73)^(j*131)+i*j*7)&0xff;}
+  for(var i=0;i<24;i++){for(var j=0;j<24;j++){
+    var d = document.createElement('div');
+    d.className='pix';
+    var v = h(i,j);
+    if((v%10)<3){
+      d.style.background = palette[v % palette.length];
+    } else {
+      var t = palette[(v*3) % palette.length];
+      d.style.background = t;
+      d.style.opacity = '0.18';
+    }
+    grid.appendChild(d);
+  }}
+})();
+</script>
+</body>
+</html>
