@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stridekeep · SeasonCard variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Bebas+Neue&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2b3138;--card:#353c46;--cardHi:#404853;--overlay:#1f242a;
+    --cream:#f1ede4;--muted:#8d959e;--dim:#5b6068;
+    --brass:#c79c4a;--brassLight:#f0d091;--brassDeep:#8e6a2c;
+    --red:#c44b3a;--redSoft:#a13c2e;--blue:#6589b8;--blueSoft:#4f6e96;
+    --border:#4d5560;--frameWood:#1a1d22;
+    --pixel:'Press Start 2P',ui-monospace,monospace;
+    --bebas:'Bebas Neue',Impact,sans-serif;
+    --body:'Outfit',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#1a1d22;color:var(--cream);font-family:var(--body);font-size:13px;line-height:1.4;
+    padding:24px;min-height:100vh}
+  h1{font-family:var(--pixel);color:var(--brassLight);font-size:14px;letter-spacing:2px;margin-bottom:8px}
+  .lede{color:var(--muted);max-width:720px;margin-bottom:24px}
+  .lede b{color:var(--cream)}
+  .grid{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:340px;display:flex;flex-direction:column;gap:8px}
+  .col h2{font-family:var(--pixel);font-size:9px;letter-spacing:2px;color:var(--brassLight)}
+  .col p{color:var(--muted);font-size:12px;min-height:44px}
+  .col p b{color:var(--cream)}
+
+  /* common card chrome */
+  .card{background:var(--card);border:2px solid var(--brassDeep);position:relative}
+  .corner{position:absolute;top:-2px;left:-2px;background:var(--brass);color:var(--bg);
+    font-family:var(--pixel);font-size:7px;letter-spacing:1.5px;padding:3px 6px}
+  .scoreBar{display:flex;height:22px;border:2px solid var(--border);background:#0e1114}
+  .scoreBar .red{background:var(--red);display:flex;align-items:center;padding:0 8px;
+    font-family:var(--pixel);font-size:7px;letter-spacing:1.5px;color:var(--cream)}
+  .scoreBar .div{width:2px;background:var(--brassLight)}
+  .scoreBar .blue{background:var(--blue);display:flex;align-items:center;justify-content:flex-end;
+    padding:0 8px;font-family:var(--pixel);font-size:7px;letter-spacing:1.5px;color:var(--cream)}
+  .stat .v{font-family:var(--pixel);font-size:11px;color:var(--brassLight);letter-spacing:0.5px}
+  .stat .k{font-family:var(--pixel);font-size:6px;color:var(--muted);letter-spacing:1.2px;margin-top:5px}
+
+  /* ============== A — STACKED TITLE ============== */
+  .a{padding:18px 12px 10px;display:flex;flex-direction:column;gap:12px}
+  .a .title{font-family:var(--pixel);font-size:13px;color:var(--brassLight);letter-spacing:2.5px;line-height:1.2}
+  .a .sub{font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:1.5px;margin-top:4px}
+  .a .sub .cd{color:var(--brass)}
+  .a .stats{display:flex;justify-content:space-around;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+
+  /* ============== B — RIBBON HEADER ============== */
+  .b{display:flex;flex-direction:column}
+  .b .ribbon{background:linear-gradient(180deg,var(--brassDeep) 0,#6f5524 100%);padding:10px 12px;
+    display:flex;align-items:center;gap:10px;border-bottom:2px solid #000}
+  .b .badge{background:var(--brassLight);color:var(--bg);font-family:var(--pixel);font-size:7px;
+    letter-spacing:1.5px;padding:4px 6px}
+  .b .title{font-family:var(--pixel);font-size:12px;color:var(--cream);letter-spacing:2px;flex:1;text-align:right}
+  .b .body{padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:var(--card)}
+  .b .meta{font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:1.2px;text-align:center}
+  .b .meta .cd{color:var(--brass)}
+  .b .stats{display:flex;justify-content:space-around;padding:8px 0;background:var(--overlay)}
+
+  /* ============== C — MUSEUM PLAQUE (centered) ============== */
+  .c{padding:18px 12px 12px;display:flex;flex-direction:column;gap:14px;align-items:stretch;text-align:center}
+  .c .slot{font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:2px}
+  .c .title{font-family:var(--bebas);font-size:30px;color:var(--brassLight);letter-spacing:6px;line-height:1;margin-top:-2px}
+  .c .rule{height:1px;background:var(--brassDeep);margin:0 auto;width:60%}
+  .c .meta{font-family:var(--pixel);font-size:7px;color:var(--muted);letter-spacing:1.5px}
+  .c .meta .cd{color:var(--brass)}
+  .c .stats{display:flex;justify-content:space-around;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+
+  /* phone wrapper for sense of scale */
+  .phone{background:var(--bg);padding:10px;border:3px solid #000;box-shadow:0 0 0 4px #444,0 0 0 6px #000}
+</style>
+</head>
+<body>
+
+<h1>SEASONCARD VARIANTS</h1>
+<p class="lede">Three takes on the SeasonCard to fix today's problems: <b>title clipping</b> (canyon_da…), <b>raw slug formatting</b>, <b>cramped scoreboard</b>, <b>half-committed dashed borders</b>. All variants assume client-side formatting (<code>canyon_dawn</code> → <code>CANYON DAWN</code>). Pick the direction; I'll wire it.</p>
+
+<div class="grid">
+
+  <!-- ===== A ===== -->
+  <div class="col">
+    <h2>A — STACKED TITLE</h2>
+    <p>Title gets its own row, meta drops below as subtitle. Smallest change vs current. <b>Safest pick.</b></p>
+    <div class="phone">
+      <div class="card a">
+        <div class="corner">SEASON 1</div>
+        <div>
+          <div class="title">CANYON DAWN</div>
+          <div class="sub">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+          <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+        </div>
+        <div class="scoreBar">
+          <div class="red" style="flex:79">RED 79</div>
+          <div class="div"></div>
+          <div class="blue" style="flex:50">50 BLUE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== B ===== -->
+  <div class="col">
+    <h2>B — RIBBON HEADER</h2>
+    <p>Brass ribbon at top holds SEASON badge + title. Body is pure stats + scoreboard. <b>Most "card-like".</b></p>
+    <div class="phone">
+      <div class="card b" style="border-color:#000">
+        <div class="ribbon">
+          <div class="badge">SEASON 1</div>
+          <div class="title">CANYON DAWN</div>
+        </div>
+        <div class="body">
+          <div class="meta">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+          <div class="stats">
+            <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+            <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+          </div>
+          <div class="scoreBar">
+            <div class="red" style="flex:79">RED 79</div>
+            <div class="div"></div>
+            <div class="blue" style="flex:50">50 BLUE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== C ===== -->
+  <div class="col">
+    <h2>C — MUSEUM PLAQUE</h2>
+    <p>Centered, Bebas Neue title for room to breathe at any length. Pixel font for labels only. <b>Most premium.</b></p>
+    <div class="phone">
+      <div class="card c">
+        <div class="slot">— SEASON 1 —</div>
+        <div class="title">CANYON DAWN</div>
+        <div class="rule"></div>
+        <div class="meta">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+        <div class="stats">
+          <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+          <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+        </div>
+        <div class="scoreBar">
+          <div class="red" style="flex:79">RED 79</div>
+          <div class="div"></div>
+          <div class="blue" style="flex:50">50 BLUE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="lede" style="margin-top:24px">
+  <b>Long-name stress test</b> — same three variants with a deliberately long mural name to confirm none of them break.
+</p>
+
+<div class="grid">
+  <!-- A long -->
+  <div class="col">
+    <div class="phone">
+      <div class="card a">
+        <div class="corner">SEASON 1</div>
+        <div>
+          <div class="title">EMERALD CATHEDRAL OF THE LOST CAPE</div>
+          <div class="sub">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+          <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+        </div>
+        <div class="scoreBar">
+          <div class="red" style="flex:79">RED 79</div>
+          <div class="div"></div>
+          <div class="blue" style="flex:50">50 BLUE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- B long -->
+  <div class="col">
+    <div class="phone">
+      <div class="card b" style="border-color:#000">
+        <div class="ribbon">
+          <div class="badge">SEASON 1</div>
+          <div class="title">EMERALD CATHEDRAL</div>
+        </div>
+        <div class="body">
+          <div class="meta">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+          <div class="stats">
+            <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+            <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+          </div>
+          <div class="scoreBar">
+            <div class="red" style="flex:79">RED 79</div>
+            <div class="div"></div>
+            <div class="blue" style="flex:50">50 BLUE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- C long -->
+  <div class="col">
+    <div class="phone">
+      <div class="card c">
+        <div class="slot">— SEASON 1 —</div>
+        <div class="title">EMERALD CATHEDRAL</div>
+        <div class="rule"></div>
+        <div class="meta">DAY 3 · <span class="cd">11d 4h LEFT</span></div>
+        <div class="stats">
+          <div class="stat"><div class="v">4,345</div><div class="k">STEPS</div></div>
+          <div class="stat"><div class="v">$457</div><div class="k">PURSE</div></div>
+        </div>
+        <div class="scoreBar">
+          <div class="red" style="flex:79">RED 79</div>
+          <div class="div"></div>
+          <div class="blue" style="flex:50">50 BLUE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
