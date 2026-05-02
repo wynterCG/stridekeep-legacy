@@ -52,6 +52,7 @@ export async function syncSeasonOnce(): Promise<void> {
         fresh.setSeasonPalette(palette);
         fresh.setSeasonCraftRecipes(recipes);
         fresh.setSeasonTimes(active.startedAt, active.softCapAt);
+        fresh.setSeasonMuralName(active.muralName);
       } catch (err) {
         console.warn('[stridekeep] palette/recipes load failed:', err);
       }
@@ -65,6 +66,7 @@ export async function syncSeasonOnce(): Promise<void> {
         fresh.setSeasonPalette(null);
         fresh.setSeasonCraftRecipes(null);
         fresh.setSeasonTimes(null, null);
+        fresh.setSeasonMuralName(null);
         return;
       }
       try {
@@ -80,6 +82,7 @@ export async function syncSeasonOnce(): Promise<void> {
           targetPixels,
           active.startedAt,
           active.softCapAt,
+          active.muralName,
         );
       } catch (err) {
         console.warn('[stridekeep] palette/recipes load failed:', err);
@@ -133,7 +136,7 @@ async function silentReset(
 ): Promise<void> {
   const fresh = useGameStore.getState();
   if (active === null) {
-    fresh.applySeasonReset(null, null, null, null, null, null);
+    fresh.applySeasonReset(null, null, null, null, null, null, null);
     return;
   }
   try {
@@ -149,6 +152,7 @@ async function silentReset(
       targetPixels,
       active.startedAt,
       active.softCapAt,
+      active.muralName,
     );
   } catch (err) {
     console.warn('[stridekeep] silentReset palette/recipes load failed:', err);

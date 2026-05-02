@@ -351,6 +351,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
       snap.newTargetPixels,
       snap.newStartedAt,
       snap.newSoftCapAt,
+      snap.newSeasonName,
     );
     markCeremonyShown(snap.prevSeasonNumber);
     setPendingSeasonEnd(null);

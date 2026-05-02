@@ -7,6 +7,7 @@ import {
   PlayfairDisplay_900Black_Italic,
 } from '@expo-google-fonts/playfair-display';
 import { Outfit_400Regular, Outfit_700Bold } from '@expo-google-fonts/outfit';
+import { PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
 import * as SplashScreen from 'expo-splash-screen';
 import RootTabs from './src/navigation/RootTabs';
 import SeasonEndCeremony from './src/components/SeasonEndCeremony';
@@ -44,6 +45,7 @@ export default function App(): React.JSX.Element | null {
     PlayfairDisplay_900Black_Italic,
     Outfit_400Regular,
     Outfit_700Bold,
+    PressStart2P_400Regular,
   });
 
   // Realtime trigger for SeasonEndCeremony — listens to seasons

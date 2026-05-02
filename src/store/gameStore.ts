@@ -44,6 +44,12 @@ interface GameState {
   // header correctly before the first foreground syncSeason completes.
   seasonStartedAt: string | null;
   seasonSoftCapAt: string | null;
+  // Display name for the current mural (e.g. "WINE CANYON"). Mirrored
+  // from `seasons.mural_name`. Persisted so SeasonCard's title renders
+  // correctly on cold-start before bootstrap completes; null in
+  // awaiting-mural state, in which case SeasonCard falls back to
+  // `SEASON {n}`.
+  seasonMuralName: string | null;
   // Per-season server data — non-persisted (re-fetched on launch / rollover).
   seasonPalette: Record<string, ColorDef> | null;
   seasonCraftRecipes: Record<string, CraftRecipe> | null;
@@ -149,11 +155,13 @@ interface GameActions {
     newTargetPixels: Record<number, string> | null,
     startedAt: string | null,
     softCapAt: string | null,
+    muralName: string | null,
   ) => void;
   // Refresh path — same season, server timestamps may have moved (cap
   // extension on completion-no-queue, etc.). Called from App.tsx's
   // syncSeason whenever the active season number matches what's persisted.
   setSeasonTimes: (startedAt: string | null, softCapAt: string | null) => void;
+  setSeasonMuralName: (name: string | null) => void;
   setTeam: (team: Team) => void;
   setTeamTotals: (totals: { red: number; blue: number }) => void;
   setTeamTotal: (color: 'red' | 'blue', total: number) => void;
@@ -232,6 +240,7 @@ const initialState: GameState = {
   seasonNumber: null,
   seasonStartedAt: null,
   seasonSoftCapAt: null,
+  seasonMuralName: null,
   seasonPalette: null,
   seasonCraftRecipes: null,
   canvasTargetPixels: null,
@@ -569,6 +578,7 @@ export const useGameStore = create<GameStore>()(
         newTargetPixels: Record<number, string> | null,
         startedAt: string | null,
         softCapAt: string | null,
+        muralName: string | null,
       ) => {
         set({
           inventory: {},
@@ -579,6 +589,7 @@ export const useGameStore = create<GameStore>()(
           seasonNumber: newSeasonNumber,
           seasonStartedAt: startedAt,
           seasonSoftCapAt: softCapAt,
+          seasonMuralName: muralName,
           seasonPalette: newPalette,
           seasonCraftRecipes: newRecipes,
           canvasTargetPixels: newTargetPixels,
@@ -589,6 +600,9 @@ export const useGameStore = create<GameStore>()(
 
       setSeasonTimes: (startedAt: string | null, softCapAt: string | null) =>
         set({ seasonStartedAt: startedAt, seasonSoftCapAt: softCapAt }),
+
+      setSeasonMuralName: (name: string | null) =>
+        set({ seasonMuralName: name }),
 
       setTeam: (team: Team) => set({ team }),
 

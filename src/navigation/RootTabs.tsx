@@ -3,7 +3,6 @@ import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import InventoryScreen from '../screens/InventoryScreen';
-import MuralScreen from '../screens/MuralScreen';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -14,6 +13,11 @@ function tabIcon(emoji: string): () => React.JSX.Element {
   };
 }
 
+// Phase-4 redesign: 2-tab bottom nav (HOME / INVENTORY). The 3rd tab
+// (MURAL) was dropped — its content (banner, scoreboard, feed) migrated
+// into the persistent SeasonCard + the inline RECENT feed on Home's
+// CANVAS sub-tab. Future MARKET tab can slide in as a 3rd slot when
+// shop UI is needed.
 export default function RootTabs(): React.JSX.Element {
   return (
     <Tab.Navigator
@@ -21,15 +25,15 @@ export default function RootTabs(): React.JSX.Element {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.bg.primary,
-          borderTopColor: '#3a2a1e',
-          borderTopWidth: 1,
+          borderTopColor: colors.accent.brassDeep,
+          borderTopWidth: 2,
         },
-        tabBarActiveTintColor: colors.accent.brass,
+        tabBarActiveTintColor: colors.accent.brassLight,
         tabBarInactiveTintColor: colors.text.dim,
         tabBarLabelStyle: {
-          fontFamily: fonts.bebasNeue,
-          fontSize: 12,
-          letterSpacing: 1,
+          fontFamily: fonts.pressStart,
+          fontSize: 8,
+          letterSpacing: 1.5,
         },
       }}
     >
@@ -47,14 +51,6 @@ export default function RootTabs(): React.JSX.Element {
         options={{
           tabBarLabel: 'INVENTORY',
           tabBarIcon: tabIcon('🎒'),
-        }}
-      />
-      <Tab.Screen
-        name="Mural"
-        component={MuralScreen}
-        options={{
-          tabBarLabel: 'MURAL',
-          tabBarIcon: tabIcon('🎨'),
         }}
       />
     </Tab.Navigator>

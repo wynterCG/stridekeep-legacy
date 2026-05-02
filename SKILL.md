@@ -250,7 +250,7 @@ These are decisions we've explicitly rejected. Don't reintroduce them.
 - ❌ **Streak pressure.** Don't build streak features that punish breaks. Users have unpredictable lives (shift changes, illness, family emergencies). Optional streak bonuses OK; losing-progress-if-you-miss-a-day is not OK.
 - ❌ **Login bonuses.** Would reward app-opening, not walking. Off-brand.
 - ❌ **Energy/stamina systems.** See "artificial pacing."
-- ❌ **Sub-tabs inside main tabs.** Previously tried, removed. Adds navigation friction without payoff.
+- ⚠️ **Sub-tabs inside main tabs** — RETIRED 2026-05-02 with the compound-cards redesign. Previously listed as anti-pattern (tried + removed in an early prototype, felt like nav friction). After ~1 week of real-use solo testing the Phase-4 build, the user reversed: a single bottom nav with 2 tabs (HOME / INVENTORY) plus segmented sub-tabs inside Home (CANVAS / CASES / PROFILE) and Inventory (COLORS / MIXING) actually reads cleaner than three flat top-level tabs that each try to do multiple things. Real-use authority overrides the original principle here; the sub-tab Code-of-Conduct is now: ONLY when the parent tab has 2-3 logically distinct facets that benefit from sharing the parent's persistent chrome (SeasonCard banner). Don't nest two levels deep. Don't add sub-tabs that reflect mode-switching the player wants to do once-per-session — those belong as separate top-level tabs.
 
 ## 9. Data model
 

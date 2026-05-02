@@ -40,6 +40,7 @@ export interface ActiveSeason {
   number: number;
   startedAt: string;
   softCapAt: string | null;
+  muralName: string | null;
 }
 
 // Returns the active season row (number + ISO timestamps), or null if
@@ -51,7 +52,7 @@ export interface ActiveSeason {
 export async function loadActiveSeason(): Promise<ActiveSeason | null> {
   const { data, error } = await supabase
     .from('seasons')
-    .select('number,started_at,soft_cap_at')
+    .select('number,started_at,soft_cap_at,mural_name')
     .not('started_at', 'is', null)
     .is('ended_at', null)
     .limit(1)
@@ -62,6 +63,7 @@ export async function loadActiveSeason(): Promise<ActiveSeason | null> {
     number: Number(data.number),
     startedAt: data.started_at,
     softCapAt: typeof data.soft_cap_at === 'string' ? data.soft_cap_at : null,
+    muralName: typeof data.mural_name === 'string' ? data.mural_name : null,
   };
 }
 

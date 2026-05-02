@@ -1,117 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, RadialGradient, Stop, Defs, Circle, Polygon } from 'react-native-svg';
-import { useGameStore } from '../store/gameStore';
-import { fmtCountdown, msLeftInSeason } from '../data/season';
-import { colors, fonts, spacing } from '../theme';
-import ShopModal from './ShopModal';
 import AccountModal from './AccountModal';
-import AccountChip from './AccountChip';
+import SocialIconRow from './SocialIconRow';
+import { colors, fonts, spacing } from '../theme';
 
-// Persistent state strip. Shows team identity (crest + name) on the left,
-// the player's purse on the right. Sized for glance-readability in motion —
-// names/numbers must be visible without focusing.
+// Stripped-down persistent header (compound-cards redesign 2026-05-02).
+// Just the brand on the left + the social-icon row on the right. Team
+// crest, season + countdown chip, purse button, and ShopModal mount
+// have all migrated:
+//
+// - Team identity: surfaced via the mural border colour (red mural for
+//   red team players) + the SeasonCard scoreboard team labels.
+// - Season + countdown: now in SeasonCard's header line.
+// - Purse: now in SeasonCard's stats line.
+// - ShopModal: deferred — current Inventory action sheets cover the
+//   buy flow; if a discoverability gap emerges, add a SHOP icon to
+//   SocialIconRow or a SHOP sub-tab on Inventory.
+//
+// AccountModal still mounts here because the gear icon (in
+// SocialIconRow) toggles its visibility. Keeping the modal local to
+// the header lets multiple screens share the same TopHeader without
+// each having to manage its own AccountModal state.
 export default function TopHeader(): React.JSX.Element {
-  const team = useGameStore((s) => s.team);
-  const purse = useGameStore((s) => s.purse);
-  const seasonNumber = useGameStore((s) => s.seasonNumber);
-  const seasonStartedAt = useGameStore((s) => s.seasonStartedAt);
-  const seasonSoftCapAt = useGameStore((s) => s.seasonSoftCapAt);
-  const accountLinked = useGameStore((s) => s.accountLinked);
-
-  const teamColor = team === 'red' ? colors.team.red : colors.team.blue;
-  const teamColorSoft = team === 'red' ? colors.team.redSoft : colors.team.blueSoft;
-  // v1 keeps color-name team naming. Thematic rebrand (HEARTH/TIDE) is queued
-  // in the review but scoped out of this batch.
-  const teamName = team === 'red' ? 'RED' : team === 'blue' ? 'BLUE' : '—';
-
-  // Round countdown ticker. Coarse cadence (60s) when there's still hours
-  // left so we don't burn battery; switches to 1s when under an hour so
-  // the closing-minutes urgency reads in real time. msLeft is null while
-  // the store hasn't hydrated a seasonStartedAt yet — render '—' until then.
-  const [msLeft, setMsLeft] = useState(() =>
-    msLeftInSeason(seasonStartedAt, seasonSoftCapAt),
-  );
-  // Track the cadence as discrete state so the effect's deps are stable
-  // identifiers — a boolean expression in the deps array gets recomputed
-  // every render and `react-hooks/exhaustive-deps` would auto-fix it to
-  // include msLeft, which would re-create the interval every tick under
-  // 1hr (battery drain).
-  const subHour = msLeft != null && msLeft < 60 * 60 * 1000;
-  useEffect(() => {
-    const tick = () =>
-      setMsLeft(msLeftInSeason(seasonStartedAt, seasonSoftCapAt));
-    tick();
-    const interval = subHour ? 1000 : 60 * 1000;
-    const id = setInterval(tick, interval);
-    return () => clearInterval(id);
-  }, [seasonStartedAt, seasonSoftCapAt, subHour]);
-
-  const [shopOpen, setShopOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={styles.row}>
-        <View style={styles.crestBlock}>
-          <View style={styles.crestBox}>
-            <Svg width={18} height={18} viewBox="0 0 24 24">
-              <Defs>
-                <RadialGradient id="crestGlow" cx="50%" cy="50%" r="60%">
-                  <Stop offset="0" stopColor={teamColor} stopOpacity="1" />
-                  <Stop offset="1" stopColor={teamColorSoft} stopOpacity="1" />
-                </RadialGradient>
-              </Defs>
-              <Circle cx="12" cy="12" r="11" fill="url(#crestGlow)" />
-              {team === 'red' ? (
-                <Path
-                  d="M12 5C10 9 8 9 8 14a4 4 0 008 0c0-2-1.5-3-2-5-.5 1-1.5 1-2 0z"
-                  fill={colors.text.cream}
-                />
-              ) : (
-                <Path
-                  d="M4 14c1.5 0 1.5-1.5 3-1.5s1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 4-1.5v3c-2.5 0-2.5 1.5-4 1.5s-1.5-1.5-3-1.5-1.5 1.5-3 1.5-1.5-1.5-3-1.5-1.5 1.5-3 1.5z"
-                  fill={colors.text.cream}
-                />
-              )}
-            </Svg>
-          </View>
-          <View>
-            <Text style={styles.teamName}>{teamName}</Text>
-            <Text style={styles.meta}>
-              {seasonNumber == null ? `S— · ` : `S${seasonNumber} · `}
-              <Text style={styles.metaCountdown}>
-                {msLeft == null ? '—' : fmtCountdown(msLeft)}
-              </Text>
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.rightCluster}>
-          <Pressable
-            onPress={() => setAccountOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open account"
-            hitSlop={6}
-          >
-            <AccountChip linked={accountLinked} size={20} />
-          </Pressable>
-          <Pressable
-            style={styles.purseBlock}
-            onPress={() => setShopOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open shop"
-          >
-            <Text style={styles.purseLabel}>PURSE</Text>
-            <Svg width={11} height={14} viewBox="0 0 10 14">
-              <Polygon points="5,0 10,7 5,14 0,7" fill={colors.accent.brass} />
-            </Svg>
-            <Text style={styles.purseValue}>{`$${purse.toLocaleString()}`}</Text>
-          </Pressable>
-        </View>
+        <Text style={styles.brand}>STRIDEKEEP</Text>
+        <SocialIconRow onSettings={() => setAccountOpen(true)} />
       </View>
-      <ShopModal visible={shopOpen} onClose={() => setShopOpen(false)} />
       <AccountModal visible={accountOpen} onClose={() => setAccountOpen(false)} />
     </SafeAreaView>
   );
@@ -120,66 +38,23 @@ export default function TopHeader(): React.JSX.Element {
 const styles = StyleSheet.create({
   safe: {
     backgroundColor: colors.bg.overlay,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.accent.brassDeep,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.ui.border,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  crestBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
     gap: spacing.sm,
   },
-  crestBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  teamName: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 17,
+  brand: {
+    fontFamily: fonts.pressStart,
+    fontSize: 11,
     color: colors.accent.brassLight,
-    letterSpacing: 2.5,
-    lineHeight: 18,
-  },
-  meta: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 10,
-    color: colors.accent.brassDeep,
     letterSpacing: 2,
-    marginTop: 1,
-  },
-  metaCountdown: {
-    color: colors.accent.brass,
-  },
-  rightCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  purseBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  purseLabel: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 10,
-    color: colors.text.muted,
-    letterSpacing: 1.5,
-  },
-  purseValue: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 20,
-    color: colors.accent.brassLight,
-    letterSpacing: 1,
+    flexShrink: 0,
   },
 });

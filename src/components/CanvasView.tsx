@@ -11,7 +11,7 @@ import Svg, { Rect } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { tapHeavy } from '../lib/haptics';
-import { colors, radii } from '../theme';
+import { colors } from '../theme';
 
 interface Props {
   team: Team;
@@ -21,6 +21,14 @@ interface Props {
   filled: Record<number, string>;
   palette: Record<string, ColorDef>;
   onPixelTap?: (idx: number) => void;
+  // Optional explicit edge length in CSS pixels. When provided,
+  // overrides the default screen-width-based sizing. Required by
+  // PixelFrame-wrapped mounts (CanvasPanel) where the surrounding
+  // frame eats horizontal space — without this, the canvas would
+  // overflow the matte on devices wider than ~352dp because the
+  // self-computed size doesn't account for the frame's wood + matte
+  // padding.
+  size?: number;
 }
 
 const PULSE_DURATION_MS = 600;
@@ -49,9 +57,10 @@ export default function CanvasView({
   filled,
   palette,
   onPixelTap,
+  size,
 }: Props): React.JSX.Element {
   const { width: screenWidth } = useWindowDimensions();
-  const canvasPx = Math.min(screenWidth - 32, 360);
+  const canvasPx = size ?? Math.min(screenWidth - 32, 360);
   const cellPx = canvasPx / width;
 
   const rects = useMemo(() => {
@@ -155,14 +164,18 @@ export default function CanvasView({
     onPixelTap(row * width + col);
   };
 
-  const teamBorder = team === 'red' ? colors.team.red : colors.team.blue;
+  // Team identity is now communicated by the surrounding PixelFrame's
+  // accentColor (CanvasPanel passes the team-coloured hairline). Dropped
+  // the team-coloured 2px outer border that used to live here — with
+  // the picture-frame wrapper, it created a competing fourth ring
+  // around the canvas. The bare-CanvasView path (no PixelFrame wrap) is
+  // not currently used by any call site; if it returns, re-add the
+  // border via a `bordered?: boolean` prop.
+  void team;
 
   return (
     <View
-      style={[
-        styles.frame,
-        { borderColor: teamBorder, width: canvasPx, height: canvasPx },
-      ]}
+      style={[styles.frame, { width: canvasPx, height: canvasPx }]}
     >
       <Svg width={canvasPx} height={canvasPx}>{rects}</Svg>
       {pulses.map((p) => (
@@ -303,8 +316,6 @@ function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps
 const styles = StyleSheet.create({
   frame: {
     alignSelf: 'center',
-    borderWidth: 2,
-    borderRadius: radii.card,
     overflow: 'hidden',
     backgroundColor: colors.bg.primary,
   },
