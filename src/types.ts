@@ -98,6 +98,14 @@ export interface FeedEvent {
   // crafted=produced, sold/shop_bought=transaction count.
   qty: number;
   tier: string | null;
+  // True when this row was emitted by tick_bots (Step 7: bots paint up
+  // to per-team 70% cap). LiveFeed renders bot `tile_placed` rows
+  // distinctly so players can tell at a glance which placements are
+  // bot-driven; atmospheric kinds (case_opened/sold/crafted/shop_bought)
+  // intentionally blend regardless of is_bot, so the world feels alive.
+  // Column added in migration 0017 with default false; pre-Step-7 events
+  // backfill to false on read.
+  is_bot: boolean;
   created_at: string;
 }
 

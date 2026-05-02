@@ -122,6 +122,10 @@ async function fetchSeasonRow(seasonNumber: number): Promise<SeasonRow | null> {
   };
 }
 
+// Exported for ad-hoc reuse (e.g. a future stats panel that wants to
+// show contribution count without building a full snapshot). In-tree
+// callers that need ceremony-shaped data prefer loadSeasonEndSnapshot
+// above, which already invokes this internally.
 export async function fetchMyContribution(seasonNumber: number): Promise<number> {
   // RPC defined in migration 0015a. Requires an authenticated session
   // (anon Supabase sessions count — anon UIDs are real auth.uid()

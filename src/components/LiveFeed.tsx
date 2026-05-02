@@ -49,24 +49,49 @@ function FeedRow({ event, palette }: FeedRowProps): React.JSX.Element {
   const swatchHex = event.color_id ? colorHex(palette, event.color_id) : '#666';
   const name = event.color_id ? colorName(palette, event.color_id) : '—';
   const isTilePlaced = event.kind === 'tile_placed';
+  // Step 7: bot-emitted tile_placed rows render distinctly from human
+  // ones — humans get the celebratory bold + brass; bots get a quieter
+  // italic + muted treatment with a small `· bot` tag. Other bot kinds
+  // (atmospheric case_opened/sold/etc.) intentionally blend with humans
+  // so the world feels alive — `is_bot` is ignored on those.
+  const isBotPlacement = isTilePlaced && event.is_bot;
+  const humanTilePlaced = isTilePlaced && !event.is_bot;
 
   return (
-    <View style={[styles.row, isTilePlaced && styles.rowEmphasis]}>
+    <View style={[styles.row, humanTilePlaced && styles.rowEmphasis]}>
       <View
         style={[
           styles.swatch,
           { backgroundColor: swatchHex },
           isTilePlaced && {
             borderColor:
-              event.team === 'red' ? colors.team.red : event.team === 'blue' ? colors.team.blue : colors.ui.border,
+              isBotPlacement
+                ? colors.ui.border
+                : event.team === 'red'
+                  ? colors.team.red
+                  : event.team === 'blue'
+                    ? colors.team.blue
+                    : colors.ui.border,
             borderWidth: 1,
+            opacity: isBotPlacement ? 0.7 : 1,
           },
         ]}
       />
       <Text style={styles.line} numberOfLines={1}>
-        <Text style={[styles.nickname, isTilePlaced && styles.nicknameEmphasis]}>{event.nickname}</Text>
+        <Text
+          style={[
+            styles.nickname,
+            humanTilePlaced && styles.nicknameEmphasis,
+            isBotPlacement && styles.nicknameBot,
+          ]}
+        >
+          {event.nickname}
+        </Text>
         <Text style={styles.dim}>{' '}</Text>
-        <Text style={isTilePlaced ? styles.bodyEmphasis : styles.body}>{copyForEvent(event, name)}</Text>
+        <Text style={humanTilePlaced ? styles.bodyEmphasis : styles.body}>
+          {copyForEvent(event, name)}
+        </Text>
+        {isBotPlacement && <Text style={styles.botTag}> · bot</Text>}
       </Text>
       <Text style={styles.time}>{relativeTime(event.created_at)}</Text>
     </View>
@@ -155,6 +180,16 @@ const styles = StyleSheet.create({
   },
   nicknameEmphasis: {
     color: colors.accent.brassLight,
+  },
+  nicknameBot: {
+    color: colors.text.muted,
+    fontStyle: 'italic',
+  },
+  botTag: {
+    color: colors.text.dim,
+    fontFamily: fonts.outfitRegular,
+    fontSize: 11,
+    fontStyle: 'italic',
   },
   body: {
     color: colors.text.secondary,

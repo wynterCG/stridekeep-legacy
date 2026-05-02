@@ -17,7 +17,7 @@ export async function loadFeedEvents(opts: LoadOpts = {}): Promise<FeedEvent[]> 
   const limit = opts.limit ?? 50;
   let q = supabase
     .from('feed_events')
-    .select('id,kind,nickname,team,color_id,qty,tier,created_at')
+    .select('id,kind,nickname,team,color_id,qty,tier,is_bot,created_at')
     .order('id', { ascending: false })
     .limit(limit);
   if (typeof opts.sinceId === 'number') {
@@ -37,6 +37,9 @@ export async function loadFeedEvents(opts: LoadOpts = {}): Promise<FeedEvent[]> 
       color_id: typeof r.color_id === 'string' ? r.color_id : null,
       qty: Number(r.qty) || 1,
       tier: typeof r.tier === 'string' ? r.tier : null,
+      // Defaults to false on missing column / null payload (covers
+      // pre-0017 historical rows + edge race during migration apply).
+      is_bot: r.is_bot === true,
       created_at: String(r.created_at),
     });
   }
