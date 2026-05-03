@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Modal · Tile Picker — Stridekeep Wood/Canyon</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Reuse canvas styles for the dimmed background */
+  .canvas-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 4px 6px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 10.5px;
+    letter-spacing: 1.3px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .canvas-meta .pct { color: var(--team-red-deep); }
+  .canvas {
+    border: 3px solid var(--banner-edge);
+    background: linear-gradient(180deg, var(--canvas-hi) 0%, var(--canvas-mid) 50%, var(--canvas-lo) 100%);
+    height: 280px;
+    position: relative;
+    overflow: hidden;
+  }
+  .canvas::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, var(--canvas-grid-minor) 1px, transparent 1px),
+      linear-gradient(90deg, var(--canvas-grid-minor) 1px, transparent 1px);
+    background-size: 13px 13px;
+  }
+  .canvas::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, var(--canvas-grid-major) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, var(--canvas-grid-major) 1.5px, transparent 1.5px);
+    background-size: 65px 65px;
+    pointer-events: none;
+  }
+
+  /* Dim all of the underlying screen */
+  .screen-dimmed > *:not(.modal-backdrop) { opacity: 0.45; filter: blur(0.5px); }
+
+  /* Tile picker modal */
+  .picker-kicker {
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 10px;
+    color: var(--brass-deep);
+    letter-spacing: 2.5px;
+    margin-bottom: 14px;
+  }
+  .picker-preview {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px;
+  }
+  .picker-swatch {
+    width: 76px; height: 76px;
+    background: #4a8cba;
+    border: 2px solid var(--banner-edge);
+    border-radius: 4px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -3px 4px rgba(0,0,0,0.25),
+      0 2px 4px rgba(0,0,0,0.25);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .picker-swatch .code {
+    position: absolute;
+    top: 3px; left: 4px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 9px;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 0 2px rgba(0,0,0,0.7);
+    letter-spacing: 0.5px;
+  }
+  .picker-target-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-bottom: 4px;
+    font-style: italic;
+  }
+  .picker-target-name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--ink);
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+  .picker-owned {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .picker-owned .qty {
+    font-weight: 900;
+    color: var(--team-red-deep);
+    font-size: 16px;
+  }
+  .picker-close {
+    margin-top: 6px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="phone"><div class="screen screen-dimmed">
+
+  <!-- Underlying canvas screen, dimmed -->
+  <div class="topbar">
+    <svg class="shield" viewBox="0 0 42 50" fill="none">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d7ec4"/><stop offset="1" stop-color="#234a82"/></linearGradient>
+        <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe6b0"/><stop offset="1" stop-color="#8a6028"/></linearGradient>
+      </defs>
+      <path d="M21 1 L39 5 L38 28 C38 39 30 46 21 49 C12 46 4 39 4 28 L3 5 Z" fill="url(#sg)" stroke="url(#rg)" stroke-width="1.8"/>
+      <ellipse cx="21" cy="22" rx="7" ry="10" fill="#f0d088"/>
+      <circle cx="16" cy="12" r="2.2" fill="#f0d088"/><circle cx="20" cy="10" r="1.8" fill="#f0d088"/><circle cx="24" cy="10" r="1.8" fill="#f0d088"/><circle cx="27" cy="12" r="1.8" fill="#f0d088"/>
+    </svg>
+    <div class="title-block">
+      <div class="title">STRIDEKEEP:</div>
+      <div class="subtitle">Season1 . CANYON</div>
+    </div>
+    <div class="utilities">
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18 M12 3a13 13 0 010 18 M12 3a13 13 0 000 18"/></svg></span>
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 01-14 0 7 7 0 0114 0z"/></svg></span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="day-line">
+      <span class="label-day">DAY 3</span> <span class="sep">·</span>
+      <span class="countdown">11d 4h<span class="left"> LEFT</span></span>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">4,345</div><div class="label">STEPS</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="num">$457</div><div class="label">PURSE</div></div>
+    </div>
+    <div class="tug">
+      <div class="tug-side" style="flex:79">RED 79</div>
+      <div class="tug-center">LEAD: RED +29</div>
+      <div class="tug-side blue" style="flex:50">50 BLUE</div>
+    </div>
+  </div>
+
+  <div class="subtabs">
+    <div class="subtab active">Mural</div>
+    <div class="subtab">Cases</div>
+    <div class="subtab">Profile</div>
+  </div>
+
+  <div class="content">
+    <div class="canvas-meta">
+      <span>YOU PLACED 3 TILES</span>
+      <span class="pct">11%FILLED</span>
+    </div>
+    <div class="canvas"></div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8 M5 10v10h5v-6h4v6h5V10"/></svg>
+      <span>HOME</span>
+      <span class="nav-state">Active</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V5a3 3 0 016 0v3"/></svg>
+      <span>INVENTORY</span>
+    </div>
+  </div>
+
+  <!-- TILE PICKER MODAL -->
+  <div class="modal-backdrop">
+    <div class="modal-card">
+      <div class="picker-kicker">PIXEL #487</div>
+      <div class="picker-preview">
+        <div class="picker-swatch"><span class="code">BL</span></div>
+        <div>
+          <div class="picker-target-label">This pixel needs</div>
+          <div class="picker-target-name">River</div>
+        </div>
+      </div>
+      <div class="picker-owned">
+        You have <span class="qty">9</span> tiles
+      </div>
+      <button class="btn-primary">PLACE</button>
+      <div class="picker-close">
+        <button class="btn-secondary">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+</div></div>
+</body>
+</html>

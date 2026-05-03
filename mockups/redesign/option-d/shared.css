@@ -1,0 +1,451 @@
+/* ============================================================
+   Option D · Wood / Canyon — shared design tokens + chrome
+   ----------------------------------------------------------
+   All per-screen mockups link this file. Update tokens here
+   and every screen reflects the change.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Banner — medium slate-blue, NOT dark navy. Reference samples
+     ~#4a6788 → #3a5778. Used for top banner, sub-tab band, bottom
+     nav (top + bottom act as bookends around parchment middle). */
+  --banner-hi: #4a6886;
+  --banner-mid: #3a5876;
+  --banner-lo: #2e4a66;
+  --banner-edge: #1a2c40;
+
+  /* Parchment — muted kraft tan, not bright cream. Reads as aged
+     paper rather than fresh notebook. Used for stats card, sub-tab
+     interiors, canvas backdrop, feed card. */
+  --parchment-hi: #d8b888;
+  --parchment: #c8a878;
+  --parchment-lo: #b8985e;
+  --parchment-edge: rgba(70, 40, 14, 0.35);
+
+  /* Sub-tabs — all three live in the same cream-tan family. Active
+     is just slightly lifted/lighter. */
+  --tab-active-hi: #ecd0a0;
+  --tab-active-lo: #d8b888;
+  --tab-inactive-hi: #c8a878;
+  --tab-inactive-lo: #a88858;
+
+  --brass: #d4a44a;
+  --brass-light: #f0d088;
+  --brass-deep: #8a6028;
+  --brass-rim: #fbe6b0;
+
+  --ink: #2a1c0c;
+  --ink-soft: #4a3214;
+  --ink-mute: #806240;
+
+  --team-red: #c43a32;
+  --team-red-deep: #7a1c14;
+  --team-blue: #3866b6;
+  --team-blue-deep: #1c3870;
+
+  /* Canvas — medium ocean-blue with VISIBLE grid (minor light blue
+     + major reddish/maroon). The maroon major lines are the most
+     distinctive feature of the wood-canyon canvas. */
+  --canvas-hi: #6da0ce;
+  --canvas-mid: #4f86b8;
+  --canvas-lo: #386c98;
+  --canvas-grid-minor: rgba(20, 60, 100, 0.30);
+  --canvas-grid-major: rgba(140, 30, 30, 0.55);
+
+  --active-green: #9ee07a;
+  --tier-fine: #f0c878;
+  --tier-quality: #7a9fd4;
+  --tier-starter: #c79c4a;
+  --tier-purple: #8c5ec4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: 'Outfit', system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 30% 20%, #4a4034 0%, transparent 55%),
+    radial-gradient(circle at 70% 80%, #2c2a26 0%, transparent 60%),
+    linear-gradient(160deg, #38322a 0%, #1c1a18 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  color: var(--ink);
+}
+
+/* === Phone device chrome === */
+.phone {
+  position: relative;
+  width: 380px;
+  height: 780px;
+  border-radius: 42px;
+  background: #0a0a0c;
+  padding: 8px;
+  box-shadow:
+    0 0 0 1.5px #1c1c20 inset,
+    0 30px 80px rgba(0,0,0,0.65),
+    0 8px 22px rgba(0,0,0,0.45);
+}
+.phone::after {
+  content: "";
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 118px; height: 22px;
+  background: #0a0a0c;
+  border-radius: 0 0 16px 16px;
+  z-index: 5;
+}
+.screen {
+  width: 100%; height: 100%;
+  border-radius: 34px;
+  overflow: hidden;
+  background: var(--parchment);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === TOP BANNER === */
+.topbar {
+  padding: 32px 12px 10px;
+  background: linear-gradient(180deg,
+    var(--banner-hi) 0%,
+    var(--banner-mid) 60%,
+    var(--banner-lo) 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.shield {
+  width: 42px; height: 50px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.45));
+}
+.title-block { flex: 1; min-width: 0; line-height: 1; }
+.title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 23px;
+  color: #fff8e0;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.45);
+}
+.subtitle {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff8e0;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+.utilities { display: flex; gap: 10px; align-items: center; padding-right: 4px; }
+.util-icon {
+  color: #f0d088;
+  cursor: pointer;
+  display: grid; place-items: center;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.4));
+}
+.util-icon svg { width: 22px; height: 22px; }
+
+/* === STATS CARD === */
+.stats {
+  padding: 8px 14px 10px;
+  background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+  border-top: 2px solid var(--banner-edge);
+  border-bottom: 2px solid var(--banner-edge);
+  position: relative;
+}
+.stats::before {
+  content: "";
+  position: absolute;
+  left: 14px; right: 14px; height: 1px; top: 5px;
+  background-image: linear-gradient(to right,
+    var(--parchment-edge) 0 6px, transparent 6px 12px);
+  background-size: 12px 1px;
+}
+.day-line {
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 1.2px;
+  padding: 8px 0 8px;
+}
+.day-line .sep { color: var(--ink-mute); margin: 0 6px; font-weight: 400; }
+.day-line .label-day { text-transform: uppercase; }
+.day-line .countdown { color: var(--team-red-deep); font-weight: 700; }
+.day-line .countdown .left { text-transform: uppercase; margin-left: 3px; }
+
+.stat-row {
+  display: grid; grid-template-columns: 1fr 1px 1fr;
+  padding: 0 0 8px;
+  align-items: center;
+}
+.stat { text-align: center; padding: 2px 0; }
+.stat .num {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: #000;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.stat .label {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+.stat-divider {
+  background-image: linear-gradient(to bottom,
+    transparent 0 4px,
+    var(--ink-mute) 4px 7px,
+    transparent 7px 11px);
+  background-size: 1px 11px;
+  height: 48px;
+}
+
+/* Tug-of-war scoreboard */
+.tug {
+  height: 22px;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--banner-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(0,0,0,0.3),
+    inset 0 -1px 0 rgba(255,255,255,0.18);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #fff5dc;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.45);
+  font-size: 10.5px;
+}
+.tug-side {
+  display: flex; align-items: center;
+  padding: 0 9px;
+  background: linear-gradient(180deg, var(--team-red) 0%, var(--team-red-deep) 100%);
+}
+.tug-side.blue {
+  background: linear-gradient(180deg, var(--team-blue) 0%, var(--team-blue-deep) 100%);
+  justify-content: flex-end;
+}
+.tug-center {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 8px;
+  background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+  color: var(--team-red-deep);
+  font-size: 9px;
+  font-weight: 800;
+  border-left: 1px solid var(--banner-edge);
+  border-right: 1px solid var(--banner-edge);
+  text-shadow: none;
+  letter-spacing: 0.8px;
+}
+
+/* === SUB-TABS === */
+.subtabs {
+  display: flex;
+  padding: 5px 10px 0;
+  gap: 0;
+  background: linear-gradient(180deg, var(--banner-lo) 0%, var(--banner-mid) 100%);
+}
+.subtab {
+  flex: 1;
+  padding: 8px 6px 10px;
+  background: linear-gradient(180deg, var(--tab-inactive-hi) 0%, var(--tab-inactive-lo) 100%);
+  border: 1px solid var(--banner-edge);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    inset 0 -2px 3px rgba(60, 30, 8, 0.20);
+  margin: 0 -1px;
+}
+.subtab.active {
+  background: linear-gradient(180deg, var(--tab-active-hi) 0%, var(--tab-active-lo) 100%);
+  color: var(--ink);
+  z-index: 3;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    0 -2px 5px rgba(0,0,0,0.18);
+  transform: translateY(-1px);
+  padding-top: 9px;
+  padding-bottom: 11px;
+}
+.subtab svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* === MAIN CONTENT WRAPPER === */
+.content {
+  flex: 1;
+  background: linear-gradient(180deg, var(--parchment) 0%, var(--parchment-lo) 100%);
+  padding: 8px 12px 8px;
+  position: relative;
+  overflow-y: auto;
+}
+
+/* === SECTION KICKER (used in profile, inventory headers) === */
+.kicker {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  margin: 6px 2px 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--parchment-edge);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.kicker .count {
+  color: var(--team-red-deep);
+  font-size: 10px;
+}
+
+/* === LIVE FEED === */
+.feed {
+  margin: 4px 0 4px;
+  padding: 8px 12px 10px;
+  background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+  border: 1px solid var(--banner-edge);
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.4),
+    0 1px 3px rgba(0,0,0,0.15);
+}
+.feed-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.feed ul { list-style: none; padding: 0; margin: 0; }
+.feed li {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  padding: 2px 0 2px 14px;
+  position: relative;
+  line-height: 1.45;
+}
+.feed li::before {
+  content: "";
+  position: absolute; left: 3px; top: 9px;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--ink-soft);
+}
+.feed .name { color: var(--ink); font-weight: 700; }
+.feed .blue-tile { color: var(--team-blue-deep); font-weight: 700; text-decoration: underline; }
+.feed .num { color: var(--team-red-deep); font-weight: 800; }
+.feed .underline { text-decoration: underline; }
+
+/* === BOTTOM NAV === */
+.navbar {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  background: linear-gradient(180deg, var(--banner-mid) 0%, var(--banner-lo) 100%);
+  border-top: 2px solid var(--banner-edge);
+  padding: 9px 0 14px;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer;
+  color: var(--brass-light);
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.nav-item svg { width: 22px; height: 22px; }
+.nav-item.active { color: var(--brass-rim); }
+.nav-item.active .nav-state {
+  color: var(--active-green);
+  font-size: 9px;
+  margin-top: 0;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* === MODAL BACKDROP === */
+.modal-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(10, 6, 2, 0.65);
+  display: grid; place-items: center;
+  z-index: 100;
+}
+.modal-card {
+  background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+  border: 2.5px solid var(--banner-edge);
+  border-radius: 8px;
+  padding: 18px 16px 14px;
+  width: 86%;
+  max-width: 320px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    0 8px 30px rgba(0,0,0,0.6);
+}
+
+/* === BUTTONS (PRIMARY ACTION) === */
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 12px 0;
+  background: linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 100%);
+  border: 1.5px solid var(--banner-edge);
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -2px 3px rgba(80, 50, 10, 0.30),
+    0 2px 4px rgba(0,0,0,0.25);
+}
+.btn-primary:disabled,
+.btn-primary.disabled {
+  background: linear-gradient(180deg, #a89878 0%, #807050 100%);
+  color: var(--ink-mute);
+  cursor: default;
+}
+.btn-secondary {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: center;
+}

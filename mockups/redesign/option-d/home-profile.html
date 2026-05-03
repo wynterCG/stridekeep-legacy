@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Home · Profile — Stridekeep Wood/Canyon</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Profile-screen specific */
+  .section-card {
+    background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.45),
+      0 1px 3px rgba(0,0,0,0.18);
+  }
+  .section-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 9.5px;
+    letter-spacing: 2.5px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--parchment-edge);
+  }
+  .section-label .count { color: var(--team-red-deep); }
+
+  .lifetime-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .stat-tile {
+    text-align: center;
+    padding: 4px 0;
+  }
+  .stat-tile .num {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .stat-tile .label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 8.5px;
+    color: var(--ink-mute);
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .cases-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .case-stat {
+    text-align: center;
+    padding: 6px 4px;
+    border: 1px solid var(--parchment-edge);
+    border-radius: 3px;
+    background: rgba(40, 24, 8, 0.06);
+  }
+  .case-stat .num {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .case-stat.starter .num { color: var(--tier-starter); }
+  .case-stat.quality .num { color: var(--team-blue-deep); }
+  .case-stat.fine .num { color: var(--team-red-deep); }
+  .case-stat .tier {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    color: var(--ink-mute);
+    letter-spacing: 1.5px;
+    margin-top: 4px;
+  }
+
+  .badges-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .badge-cell {
+    text-align: center;
+  }
+  .badge-img {
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, var(--canvas-mid) 0%, var(--canvas-lo) 100%);
+    border: 2px solid var(--brass-deep);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .badge-img.s2 { background: linear-gradient(135deg, #a55a3c 0%, #6b3220 100%); }
+  .badge-img.s3 { background: linear-gradient(135deg, #5a8c44 0%, #2e5028 100%); }
+  .badge-img::after {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, rgba(0,0,0,0.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.25) 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.55;
+  }
+  .badge-season {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 9px;
+    color: var(--brass-deep);
+    letter-spacing: 1.2px;
+    margin-top: 3px;
+  }
+
+  .best-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .best-season {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .best-sub {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+    font-style: italic;
+  }
+  .big-stat {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--team-red-deep);
+    line-height: 1;
+    text-align: right;
+  }
+  .big-stat .unit {
+    font-size: 9px;
+    color: var(--ink-mute);
+    letter-spacing: 1.5px;
+    margin-left: 3px;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="phone"><div class="screen">
+
+  <div class="topbar">
+    <svg class="shield" viewBox="0 0 42 50" fill="none">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d7ec4"/><stop offset="1" stop-color="#234a82"/></linearGradient>
+        <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe6b0"/><stop offset="1" stop-color="#8a6028"/></linearGradient>
+      </defs>
+      <path d="M21 1 L39 5 L38 28 C38 39 30 46 21 49 C12 46 4 39 4 28 L3 5 Z" fill="url(#sg)" stroke="url(#rg)" stroke-width="1.8"/>
+      <ellipse cx="21" cy="22" rx="7" ry="10" fill="#f0d088"/>
+      <circle cx="16" cy="12" r="2.2" fill="#f0d088"/><circle cx="20" cy="10" r="1.8" fill="#f0d088"/><circle cx="24" cy="10" r="1.8" fill="#f0d088"/><circle cx="27" cy="12" r="1.8" fill="#f0d088"/>
+    </svg>
+    <div class="title-block">
+      <div class="title">STRIDEKEEP:</div>
+      <div class="subtitle">Season1 . CANYON</div>
+    </div>
+    <div class="utilities">
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18 M12 3a13 13 0 010 18 M12 3a13 13 0 000 18"/></svg></span>
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="day-line">
+      <span class="label-day">DAY 3</span> <span class="sep">·</span>
+      <span class="countdown">11d 4h<span class="left"> LEFT</span></span>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">4,345</div><div class="label">STEPS</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="num">$457</div><div class="label">PURSE</div></div>
+    </div>
+    <div class="tug">
+      <div class="tug-side" style="flex:79">RED 79</div>
+      <div class="tug-center">LEAD: RED +29</div>
+      <div class="tug-side blue" style="flex:50">50 BLUE</div>
+    </div>
+  </div>
+
+  <!-- Sub-tabs (PROFILE active) -->
+  <div class="subtabs">
+    <div class="subtab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="9" cy="10" r="1.5" fill="currentColor"/></svg>
+      Mural
+    </div>
+    <div class="subtab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+      Cases
+    </div>
+    <div class="subtab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+      Profile
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-card">
+      <div class="section-label">LIFETIME</div>
+      <div class="lifetime-grid">
+        <div class="stat-tile">
+          <div class="num">147,832</div>
+          <div class="label">STEPS</div>
+        </div>
+        <div class="stat-tile">
+          <div class="num">1,284</div>
+          <div class="label">TILES PLACED</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-label">CASES OPENED</div>
+      <div class="cases-row">
+        <div class="case-stat starter"><div class="num">42</div><div class="tier">STARTER</div></div>
+        <div class="case-stat quality"><div class="num">18</div><div class="tier">QUALITY</div></div>
+        <div class="case-stat fine"><div class="num">3</div><div class="tier">FINE</div></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-label">MURALS <span class="count">· 3</span></div>
+      <div class="badges-grid">
+        <div class="badge-cell">
+          <div class="badge-img"></div>
+          <div class="badge-season">S1</div>
+        </div>
+        <div class="badge-cell">
+          <div class="badge-img s2"></div>
+          <div class="badge-season">S2</div>
+        </div>
+        <div class="badge-cell">
+          <div class="badge-img s3"></div>
+          <div class="badge-season">S3</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-label">BEST SEASON</div>
+      <div class="best-row">
+        <div>
+          <div class="best-season">SEASON 2</div>
+          <div class="best-sub">Your peak contribution</div>
+        </div>
+        <div class="big-stat">847<span class="unit">PIXELS</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8 M5 10v10h5v-6h4v6h5V10"/></svg>
+      <span>HOME</span>
+      <span class="nav-state">Active</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V5a3 3 0 016 0v3"/></svg>
+      <span>INVENTORY</span>
+    </div>
+  </div>
+
+</div></div>
+</body>
+</html>

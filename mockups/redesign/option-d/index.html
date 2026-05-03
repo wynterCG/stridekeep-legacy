@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Option D · Wood / Canyon — Stridekeep mockups index</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Override the centered single-phone layout from shared.css */
+  body {
+    padding: 0;
+    display: block;
+    place-items: initial;
+  }
+
+  .index-header {
+    padding: 28px 24px 18px;
+    background: linear-gradient(180deg, var(--banner-hi) 0%, var(--banner-lo) 100%);
+    border-bottom: 3px solid var(--banner-edge);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  .index-header::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: -3px; height: 3px;
+    background: var(--brass);
+    opacity: 0.8;
+  }
+  .index-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    color: #fff8e0;
+    letter-spacing: 2px;
+    text-shadow: 1px 2px 0 rgba(0,0,0,0.5);
+    margin-bottom: 2px;
+  }
+  .index-sub {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--brass-light);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+  }
+  .index-meta {
+    margin-top: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: rgba(255,248,224, 0.6);
+    line-height: 1.5;
+    max-width: 720px;
+  }
+  .index-meta a {
+    color: var(--brass-light);
+    text-decoration: underline;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 28px 18px;
+    padding: 28px 18px 60px;
+  }
+
+  .mockup-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mockup-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    color: var(--brass-light);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .mockup-link {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    color: rgba(240, 208, 136, 0.7);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-decoration: none;
+  }
+  .mockup-link:hover { color: var(--brass-rim); text-decoration: underline; }
+
+  .mockup-frame {
+    width: 412px;
+    height: 844px;
+    border: none;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #14100a;
+    /* the inner shared.css already pads + draws the phone shadow */
+  }
+
+  /* Section headers between groups */
+  .group-header {
+    grid-column: 1 / -1;
+    padding: 12px 4px 0;
+    border-bottom: 1px dashed rgba(240, 208, 136, 0.25);
+    margin-bottom: -8px;
+  }
+  .group-header h2 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--brass-light);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+  }
+  .group-header .desc {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    color: rgba(255, 248, 224, 0.5);
+    margin-top: -6px;
+    padding-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="index-header">
+    <div class="index-title">OPTION D · WOOD / CANYON</div>
+    <div class="index-sub">Stridekeep mockup set</div>
+    <div class="index-meta">
+      All core game screens in the wood-canyon aesthetic. Each tile below is a live HTML mockup
+      embedded as an iframe — click "open standalone" to view a single screen in its own tab.
+      Edit <code>shared.css</code> to retune the palette across every screen at once.
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="group-header">
+      <h2>Home</h2>
+      <div class="desc">3 sub-tabs · sub-tab band sits between persistent stats and the panel content</div>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Home · Mural</div>
+      <a class="mockup-link" href="home-canvas.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="home-canvas.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Home · Cases</div>
+      <a class="mockup-link" href="home-cases.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="home-cases.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Home · Profile</div>
+      <a class="mockup-link" href="home-profile.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="home-profile.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="group-header">
+      <h2>Inventory</h2>
+      <div class="desc">2 sub-tabs · same banner + stats chrome as Home for context continuity</div>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Inventory · Colors</div>
+      <a class="mockup-link" href="inventory-colors.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="inventory-colors.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Inventory · Mixing</div>
+      <a class="mockup-link" href="inventory-mixing.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="inventory-mixing.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="group-header">
+      <h2>Modals</h2>
+      <div class="desc">Underlying screen shown dimmed beneath each modal so you can read modal-vs-base contrast</div>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Modal · Tile Picker</div>
+      <a class="mockup-link" href="modal-tile-picker.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="modal-tile-picker.html" loading="lazy"></iframe>
+    </div>
+
+    <div class="mockup-wrap">
+      <div class="mockup-label">Modal · Case Reveal</div>
+      <a class="mockup-link" href="modal-case-reveal.html" target="_blank">open standalone ↗</a>
+      <iframe class="mockup-frame" src="modal-case-reveal.html" loading="lazy"></iframe>
+    </div>
+
+  </div>
+
+</body>
+</html>

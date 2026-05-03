@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Inventory · Colors — Stridekeep Wood/Canyon</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Inventory sub-tabs are 2 instead of 3 — flex still works */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 4px 0 8px;
+  }
+  .swatch-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 3px;
+    position: relative;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -2px 3px rgba(0,0,0,0.18),
+      0 1px 2px rgba(0,0,0,0.20);
+  }
+  .swatch.dimmed { opacity: 0.30; }
+  .swatch .qty {
+    position: absolute;
+    bottom: 1px; right: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 9px;
+    color: #fff;
+    text-shadow:
+      -1px 0 0 #000, 1px 0 0 #000,
+      0 -1px 0 #000, 0 1px 0 #000;
+    letter-spacing: 0.3px;
+  }
+  .swatch .code {
+    position: absolute;
+    top: 1px; left: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 7px;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 0 2px rgba(0,0,0,0.7);
+    letter-spacing: 0.5px;
+  }
+  .swatch-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 8.5px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.1;
+    height: 1em;
+    overflow: hidden;
+  }
+
+  /* Action sheet (bottom sheet) */
+  .sheet-backdrop {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background: rgba(10, 6, 2, 0.55);
+    z-index: 50;
+    display: flex; align-items: flex-end;
+  }
+  .sheet {
+    width: 100%;
+    background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment-lo) 100%);
+    border-top: 3px solid var(--banner-edge);
+    padding: 14px 14px 18px;
+    box-shadow: 0 -8px 20px rgba(0,0,0,0.4);
+  }
+  .sheet-header {
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--parchment-edge);
+  }
+  .sheet-swatch {
+    width: 44px; height: 44px;
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 3px;
+    background: #c4543a;
+    position: relative;
+  }
+  .sheet-swatch .qty {
+    position: absolute;
+    bottom: 1px; right: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 9px;
+    color: #fff;
+    text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
+  }
+  .sheet-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 17px;
+    color: var(--ink);
+    letter-spacing: 0.5px;
+  }
+  .sheet-sub {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+  }
+  .sheet-action {
+    display: block;
+    width: 100%;
+    padding: 11px 0;
+    margin-top: 6px;
+    background: linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 100%);
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 4px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--ink);
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .sheet-action.secondary {
+    background: linear-gradient(180deg, var(--tab-active-hi) 0%, var(--tab-inactive-hi) 100%);
+  }
+  .sheet-cancel {
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+    margin-top: 8px;
+    background: transparent;
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div class="phone"><div class="screen">
+
+  <div class="topbar">
+    <svg class="shield" viewBox="0 0 42 50" fill="none">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4d7ec4"/><stop offset="1" stop-color="#234a82"/></linearGradient>
+        <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe6b0"/><stop offset="1" stop-color="#8a6028"/></linearGradient>
+      </defs>
+      <path d="M21 1 L39 5 L38 28 C38 39 30 46 21 49 C12 46 4 39 4 28 L3 5 Z" fill="url(#sg)" stroke="url(#rg)" stroke-width="1.8"/>
+      <ellipse cx="21" cy="22" rx="7" ry="10" fill="#f0d088"/>
+      <circle cx="16" cy="12" r="2.2" fill="#f0d088"/><circle cx="20" cy="10" r="1.8" fill="#f0d088"/><circle cx="24" cy="10" r="1.8" fill="#f0d088"/><circle cx="27" cy="12" r="1.8" fill="#f0d088"/>
+    </svg>
+    <div class="title-block">
+      <div class="title">STRIDEKEEP:</div>
+      <div class="subtitle">Season1 . CANYON</div>
+    </div>
+    <div class="utilities">
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18 M12 3a13 13 0 010 18 M12 3a13 13 0 000 18"/></svg></span>
+      <span class="util-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="day-line">
+      <span class="label-day">DAY 3</span> <span class="sep">·</span>
+      <span class="countdown">11d 4h<span class="left"> LEFT</span></span>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">4,345</div><div class="label">STEPS</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="num">$457</div><div class="label">PURSE</div></div>
+    </div>
+    <div class="tug">
+      <div class="tug-side" style="flex:79">RED 79</div>
+      <div class="tug-center">LEAD: RED +29</div>
+      <div class="tug-side blue" style="flex:50">50 BLUE</div>
+    </div>
+  </div>
+
+  <!-- Inventory sub-tabs (COLORS active) -->
+  <div class="subtabs">
+    <div class="subtab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.5" fill="currentColor"/><circle cx="16" cy="10" r="1.5" fill="currentColor"/><circle cx="9" cy="15" r="1.5" fill="currentColor"/><circle cx="15" cy="15" r="1.5" fill="currentColor"/></svg>
+      Colors
+    </div>
+    <div class="subtab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6 M15 3v6 M7 9h10l-1 11H8z"/></svg>
+      Mixing
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="kicker">
+      <span>PIXEL COLORS</span>
+      <span class="count">14 / 24</span>
+    </div>
+
+    <div class="palette-grid">
+      <!-- Row 1 — owned -->
+      <div class="swatch-cell"><div class="swatch" style="background:#c4543a"><span class="code">RD</span><span class="qty">12</span></div><div class="swatch-name">Rust Red</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#d8884a"><span class="code">RD</span><span class="qty">8</span></div><div class="swatch-name">Canyon</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#e8b86a"><span class="code">YL</span><span class="qty">5</span></div><div class="swatch-name">Sandstone</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#f0d088"><span class="code">YL</span><span class="qty">3</span></div><div class="swatch-name">Wheat</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#a86838"><span class="code">RD</span><span class="qty">22</span></div><div class="swatch-name">Adobe</div></div>
+      <!-- Row 2 -->
+      <div class="swatch-cell"><div class="swatch" style="background:#6b3e1c"><span class="code">BR</span><span class="qty">7</span></div><div class="swatch-name">Cocoa</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#8c5424"><span class="code">BR</span><span class="qty">14</span></div><div class="swatch-name">Bark</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#3a2818"><span class="code">BR</span><span class="qty">2</span></div><div class="swatch-name">Espresso</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#4a8cba"><span class="code">BL</span><span class="qty">9</span></div><div class="swatch-name">River</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#2c5c80"><span class="code">BL</span><span class="qty">4</span></div><div class="swatch-name">Twilight</div></div>
+      <!-- Row 3 -->
+      <div class="swatch-cell"><div class="swatch" style="background:#5a8c44"><span class="code">GR</span><span class="qty">1</span></div><div class="swatch-name">Sage</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#9eaf60"><span class="code">GR</span><span class="qty">6</span></div><div class="swatch-name">Brush</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#d8c5a0"><span class="code">YL</span><span class="qty">11</span></div><div class="swatch-name">Bone</div></div>
+      <div class="swatch-cell"><div class="swatch" style="background:#7c5a3a"><span class="code">BR</span><span class="qty">3</span></div><div class="swatch-name">Driftwood</div></div>
+      <!-- Row 4 — dimmed (not owned) -->
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#8c5ec4"><span class="code">PR</span></div><div class="swatch-name">Mauve</div></div>
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#d8d8d8"><span class="code">WH</span></div><div class="swatch-name">Bone-W</div></div>
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#404040"><span class="code">BK</span></div><div class="swatch-name">Charcoal</div></div>
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#aa3838"><span class="code">RD</span></div><div class="swatch-name">Crimson</div></div>
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#6c4828"><span class="code">BR</span></div><div class="swatch-name">Bronze</div></div>
+      <div class="swatch-cell"><div class="swatch dimmed" style="background:#e0a050"><span class="code">YL</span></div><div class="swatch-name">Honey</div></div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8 M5 10v10h5v-6h4v6h5V10"/></svg>
+      <span>HOME</span>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V5a3 3 0 016 0v3"/></svg>
+      <span>INVENTORY</span>
+      <span class="nav-state">Active</span>
+    </div>
+  </div>
+
+  <!-- ACTION SHEET (showing the "Rust Red" cell tapped) -->
+  <div class="sheet-backdrop">
+    <div class="sheet">
+      <div class="sheet-header">
+        <div class="sheet-swatch"><span class="qty">12</span></div>
+        <div>
+          <div class="sheet-title">Rust Red</div>
+          <div class="sheet-sub">You have 12 tiles</div>
+        </div>
+      </div>
+      <button class="sheet-action">SELL 1 · $48</button>
+      <button class="sheet-action">PLACE ON CANVAS</button>
+      <button class="sheet-action secondary">CRAFT WITH</button>
+      <button class="sheet-cancel">CANCEL</button>
+    </div>
+  </div>
+
+</div></div>
+</body>
+</html>
