@@ -34,6 +34,20 @@ export const colors = {
     brassRim: '#fbe6b0',      // brightest brass — for highlights / glow accents
     teal: '#5fc9a3',          // kept — used for "ok" indicators (mixing inputs)
     purple: '#8c5ec4',        // adjusted slightly — recipe-card accent
+    activeGold: '#f5c842',    // saturated gold — bottom-nav active tint
+  },
+  // Rarity tints used by RarityName / RarityFrame across live feed,
+  // case-reveal modal, and inventory grid frame. Common stays
+  // undefined → callers inherit their default text colour. Legendary
+  // is a paired blink (A ↔ B every 600 ms) so the two endpoints live
+  // together; future legendary look tweaks should change them as a
+  // pair.
+  rarity: {
+    uncommon:    '#9ca3af',    // slate grey
+    rare:        '#3b82f6',    // saturated blue
+    epic:        '#d946ef',    // saturated magenta
+    legendaryA:  '#f5c842',    // blink endpoint (yellow)
+    legendaryB:  '#22d3ee',    // blink endpoint (cyan)
   },
   team: {
     red: '#c43a32',           // cherry red
@@ -45,8 +59,7 @@ export const colors = {
     border: '#1a2c40',        // banner-edge — universal hard edge / outline
     progressBg: 'rgba(40,24,8,0.30)',  // dark-on-parchment progress track
     buttonDisabled: '#a89878',         // parchment-tone disabled
-    frameWood: '#1a2c40',     // canvas outer frame — same as banner edge
-    activeGreen: '#9ee07a',   // bright lime — "Active" sub-label in nav
+    activeGreen: '#9ee07a',   // bright lime — "Active" sub-label in nav (currently unused after the green sublabel removal)
   },
   // Persistent chrome: top banner + bottom navigation. Bookends around
   // the parchment middle of the app.

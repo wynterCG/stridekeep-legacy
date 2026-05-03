@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
+  PanResponder,
   View,
   StyleSheet,
-  Pressable,
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Rect, Line } from 'react-native-svg';
@@ -21,6 +21,19 @@ interface Props {
   filled: Record<number, string>;
   palette: Record<string, ColorDef>;
   onPixelTap?: (idx: number) => void;
+  // Live horizontal-pan callbacks. The gesture state machine:
+  //   - touch start: gestureKind = 'pending'
+  //   - first significant move: latch to 'horizontal' or 'vertical'
+  //     based on which axis dominates
+  //   - subsequent moves while 'horizontal': stream `onPanMove(dx)` so
+  //     the parent (CanvasPanel) can drive a live follow-the-finger
+  //     translation. 'vertical' moves are silenced.
+  //   - release while 'horizontal': fire `onPanEnd(dx, vx)` so the
+  //     parent can decide commit-vs-snap-back.
+  // Read-only call sites (CeremonyMiniCanvas) omit both — taps still
+  // fire via onPixelTap, vertical drags still no-op.
+  onPanMove?: (dx: number) => void;
+  onPanEnd?: (dx: number, vx: number) => void;
   // Optional explicit edge length in CSS pixels. When provided,
   // overrides the default screen-width-based sizing. Required by
   // PixelFrame-wrapped mounts (CanvasPanel) where the surrounding
@@ -34,6 +47,17 @@ interface Props {
 const PULSE_DURATION_MS = 600;
 const SELF_PULSE_DURATION_MS = 800;
 const MAX_CONCURRENT_PULSES = 5;
+// A release with total movement under TAP_TOLERANCE counts as a tap;
+// anything beyond is at least a wiggle. Keeps a steady finger from
+// being mis-classified as a vertical drag (which would otherwise eat
+// the tap), and keeps a real drag from being mis-classified as a tap.
+const TAP_TOLERANCE = 8;
+// Movement past this in either axis ends the "pending" gesture phase
+// and latches the kind (horizontal vs vertical). Smaller than
+// TAP_TOLERANCE so the parent's live-follow translateX kicks in
+// before the user perceives lag, but large enough that a steady
+// finger doesn't accidentally start a pan.
+const PAN_LATCH_PX = 6;
 
 // Hero canvas. Renders unfilled pixels as dimmed target colors (paint-by-
 // numbers preview) and filled pixels at full opacity in the placed color.
@@ -57,6 +81,8 @@ export default function CanvasView({
   filled,
   palette,
   onPixelTap,
+  onPanMove,
+  onPanEnd,
   size,
 }: Props): React.JSX.Element {
   const { width: screenWidth } = useWindowDimensions();
@@ -180,14 +206,6 @@ export default function CanvasView({
     });
   }, [filled, palette]);
 
-  const handleTap = (locationX: number, locationY: number) => {
-    if (!onPixelTap) return;
-    const col = Math.floor(locationX / cellPx);
-    const row = Math.floor(locationY / cellPx);
-    if (col < 0 || col >= width || row < 0 || row >= height) return;
-    onPixelTap(row * width + col);
-  };
-
   // Team identity is now communicated by the surrounding PixelFrame's
   // accentColor (CanvasPanel passes the team-coloured hairline). Dropped
   // the team-coloured 2px outer border that used to live here — with
@@ -197,8 +215,117 @@ export default function CanvasView({
   // border via a `bordered?: boolean` prop.
   void team;
 
+  // Single PanResponder owns ALL canvas gestures (tap, horizontal
+  // pan that the parent drives live, vertical no-op).
+  //
+  // CRITICAL: this PanResponder is created ONCE on mount and never
+  // recreated. Earlier we used `useMemo` with the callbacks in the
+  // dep array — but CanvasPanel re-renders frequently (live feed
+  // events, realtime canvas pixel updates), and each re-render gave
+  // CanvasView fresh `onPanMove`/`onPanEnd` function references,
+  // which forced the PanResponder to be reconstructed mid-gesture.
+  // PanResponder's internal `gestureState` resets on construction,
+  // so a fresh instance saw `dx ≈ 0` even though the finger was
+  // already 30 px out — the canvas snapped back to 0, then jumped
+  // forward again as the new responder accumulated dx. That
+  // produced the user-visible "stutter" during a slow drag.
+  //
+  // Fix: keep the PanResponder stable, route all latest props/dims
+  // through `propsRef` (mutated synchronously each render). The
+  // callback closures inside `PanResponder.create` then read fresh
+  // values without ever needing to be reconstructed.
+  //
+  // State machine (gestureKindRef):
+  //   - 'pending'   : finger down, movement < PAN_LATCH_PX
+  //   - 'horizontal': first dominant horizontal move → stream
+  //                   onPanMove(dx) until release → onPanEnd(dx, vx)
+  //   - 'vertical'  : first dominant vertical move → silenced;
+  //                   ancestor ScrollView can claim via
+  //                   onPanResponderTerminationRequest.
+  //
+  // Tap = release in 'pending' kind with total movement < TAP_TOLERANCE.
+  // Uses the touch-START point so finger drift doesn't shift the pixel.
+  const propsRef = useRef({ onPixelTap, onPanMove, onPanEnd, cellPx, width, height });
+  propsRef.current = { onPixelTap, onPanMove, onPanEnd, cellPx, width, height };
+
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const gestureKindRef = useRef<'pending' | 'horizontal' | 'vertical'>('pending');
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponderCapture: () => false,
+        onPanResponderTerminationRequest: () => true,
+        onPanResponderGrant: (e) => {
+          startRef.current = {
+            x: e.nativeEvent.locationX,
+            y: e.nativeEvent.locationY,
+          };
+          gestureKindRef.current = 'pending';
+        },
+        onPanResponderMove: (_, g) => {
+          if (gestureKindRef.current === 'pending') {
+            const absDx = Math.abs(g.dx);
+            const absDy = Math.abs(g.dy);
+            if (absDx < PAN_LATCH_PX && absDy < PAN_LATCH_PX) return;
+            // 1.2x bias keeps near-vertical-near-horizontal drags from
+            // mis-latching as horizontal.
+            gestureKindRef.current = absDx > absDy * 1.2 ? 'horizontal' : 'vertical';
+          }
+          if (gestureKindRef.current === 'horizontal') {
+            propsRef.current.onPanMove?.(g.dx);
+          }
+        },
+        onPanResponderTerminate: () => {
+          startRef.current = null;
+          gestureKindRef.current = 'pending';
+        },
+        onPanResponderRelease: (_, g) => {
+          const start = startRef.current;
+          const kind = gestureKindRef.current;
+          startRef.current = null;
+          gestureKindRef.current = 'pending';
+
+          if (kind === 'horizontal') {
+            propsRef.current.onPanEnd?.(g.dx, g.vx);
+            return;
+          }
+
+          // 'pending' or 'vertical' — only 'pending' with truly
+          // negligible movement counts as a tap.
+          const absDx = Math.abs(g.dx);
+          const absDy = Math.abs(g.dy);
+          if (
+            kind === 'pending' &&
+            absDx < TAP_TOLERANCE &&
+            absDy < TAP_TOLERANCE
+          ) {
+            const {
+              onPixelTap: latestOnPixelTap,
+              cellPx: latestCellPx,
+              width: latestWidth,
+              height: latestHeight,
+            } = propsRef.current;
+            if (latestOnPixelTap && start) {
+              const col = Math.floor(start.x / latestCellPx);
+              const row = Math.floor(start.y / latestCellPx);
+              if (col >= 0 && col < latestWidth && row >= 0 && row < latestHeight) {
+                latestOnPixelTap(row * latestWidth + col);
+              }
+            }
+          }
+          // vertical or pending-but-moved → no-op
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   return (
     <View
+      {...panResponder.panHandlers}
       style={[styles.frame, { width: canvasPx, height: canvasPx }]}
     >
       <Svg width={canvasPx} height={canvasPx}>
@@ -217,12 +344,6 @@ export default function CanvasView({
           onDone={removePulse}
         />
       ))}
-      {onPixelTap && (
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={(e) => handleTap(e.nativeEvent.locationX, e.nativeEvent.locationY)}
-        />
-      )}
     </View>
   );
 }

@@ -69,7 +69,12 @@ export default function PixelFrame({
   const cornerStyle = { width: cornerSize, height: cornerSize };
   return (
     <View style={styles.container}>
-      <View style={[styles.outerWood, { padding: woodWidth }]}>
+      <View
+        style={[
+          styles.outerWood,
+          { padding: woodWidth, backgroundColor: accentColor },
+        ]}
+      >
         <View style={[styles.matte, { padding: mattePadding }]}>
           <View style={[styles.hairline, { borderColor: accentColor }]}>
             {children}
@@ -105,7 +110,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   outerWood: {
-    backgroundColor: colors.ui.frameWood,
+    // backgroundColor is set inline so the frame's outer ring tracks
+    // the viewing team's accent (red for red team, blue for blue).
   },
   matte: {
     backgroundColor: colors.accent.brassDeep,

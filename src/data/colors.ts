@@ -61,6 +61,37 @@ export async function loadSeasonCraftRecipes(
 
 // Display helpers ───────────────────────────────────────────────────────────
 
+// Visual-rarity bucket derived from tier + dropWeightPct. Phase-4
+// dropped the explicit Phase-3 Rarity field but the UI wants 5 buckets
+// to highlight rare drops with progressively louder styling
+// (grey → blue → magenta → blinking legendary). Mapping uses a single
+// `< 15` "rarer-within-tier" threshold across all three tiers:
+//   starter + dropWeight >= 15     → common
+//   starter + dropWeight < 15      → uncommon
+//   quality + dropWeight >= 15     → rare
+//   quality + dropWeight < 15      → epic
+//   fine    + dropWeight >= 15     → epic
+//   fine    + dropWeight < 15      → legendary
+//   no tier (shop/craft, unknown)  → common
+// The 15% threshold corresponds to a color appearing at ~1-in-7 odds
+// within its tier. Per-tier weights sum to 100 by seed_next_mural's
+// invariant, so most evenly-split tiers (e.g. four starter colors at
+// 25% each) stay 'common' — only a tier with one notably-rare entry
+// will surface an uncommon/epic/legendary tint.
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export function colorRarity(
+  palette: Record<string, ColorDef> | null,
+  id: string,
+): Rarity {
+  const c = palette?.[id];
+  if (!c || !c.tier) return 'common';
+  const dw = c.dropWeightPct ?? 100;
+  if (c.tier === 'fine') return dw < 15 ? 'legendary' : 'epic';
+  if (c.tier === 'quality') return dw < 15 ? 'epic' : 'rare';
+  return dw < 15 ? 'uncommon' : 'common';
+}
+
 export function colorName(
   palette: Record<string, ColorDef> | null,
   id: string,

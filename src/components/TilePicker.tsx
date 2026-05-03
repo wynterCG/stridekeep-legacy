@@ -4,6 +4,8 @@ import { useGameStore } from '../store/gameStore';
 import { placeErrorMessage } from '../lib/placeErrors';
 import { tapLight } from '../lib/haptics';
 import ColorCell from './ColorCell';
+import { RarityName } from './RarityName';
+import { colorRarity } from '../data/colors';
 import { colors, fonts, radii, spacing } from '../theme';
 
 interface Props {
@@ -64,7 +66,11 @@ export default function TilePicker({
               <ColorCell color={targetDef} size={64} qty={undefined} showCode />
               <View style={styles.previewText}>
                 <Text style={styles.targetLabel}>This pixel needs</Text>
-                <Text style={styles.targetName}>{targetDef.name}</Text>
+                <RarityName
+                  name={targetDef.name}
+                  rarity={colorRarity(palette, targetColorId)}
+                  style={styles.targetName}
+                />
               </View>
             </View>
           ) : (

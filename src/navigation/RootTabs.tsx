@@ -17,9 +17,16 @@ const Tab = createBottomTabNavigator();
 // render the icon + both labels ourselves and hide the default label.
 type IconKind = 'home' | 'bag';
 
+// Saturated gold for the active state; moderate brass for inactive.
+// Active pops at-a-glance ("you are here"); inactive stays bright
+// enough to read as a clickable tab (brassDeep was too dark — read
+// as locked/disabled).
+const TAB_ACTIVE_TINT = colors.accent.activeGold;
+const TAB_INACTIVE_TINT = colors.accent.brassLight;
+
 function tabRenderer(label: string, kind: IconKind): (props: { focused: boolean }) => React.JSX.Element {
   return function TabContent({ focused }) {
-    const tint = focused ? colors.accent.brassRim : colors.accent.brassLight;
+    const tint = focused ? TAB_ACTIVE_TINT : TAB_INACTIVE_TINT;
     const Icon = kind === 'home' ? IconHome : IconBag;
     return (
       <View style={styles.tabContent}>
@@ -103,10 +110,10 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: fonts.outfitBold,
     fontSize: 10,
-    color: colors.accent.brassLight,
+    color: TAB_INACTIVE_TINT,
     letterSpacing: 1,
   },
   tabLabelActive: {
-    color: colors.accent.brassRim,
+    color: TAB_ACTIVE_TINT,
   },
 });

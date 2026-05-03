@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import { useCanvasLiveSync } from '../../hooks/useCanvasLiveSync';
 import { useTownFeed } from '../../hooks/useTownFeed';
@@ -8,7 +8,9 @@ import TilePicker from '../../components/TilePicker';
 import EmptyStateIcon from '../../components/EmptyStateIcon';
 import PixelFrame from '../../components/PixelFrame';
 import { relativeTime } from '../../hooks/useTownFeed';
-import { colorHex, colorName } from '../../data/colors';
+import { colorHex, colorName, colorRarity, type Rarity } from '../../data/colors';
+import { RarityName } from '../../components/RarityName';
+import type { Team } from '../../types';
 import { colors, fonts, spacing } from '../../theme';
 
 const CANVAS_W = 32;
@@ -31,17 +33,52 @@ export default function CanvasPanel(): React.JSX.Element {
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const targetPixels = useGameStore((s) => s.canvasTargetPixels);
   const palette = useGameStore((s) => s.seasonPalette);
-  const filled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
   const teamsCanvasProgress = useGameStore((s) => s.teamsCanvasProgress);
   // Pulled out of SeasonCard's stats row and paired with "% FILLED" so
   // the line under the mural reads as a single contribution summary
   // ("3 TILES · 8% FILLED") instead of two stats living in two places.
   const tilesLifetime = useGameStore((s) => s.lifetimeStats.tiles_placed_lifetime);
 
-  // CanvasView already subscribes via useCanvasLiveSync inside the
-  // existing HomeScreen pattern; we re-subscribe here so the panel can
-  // mount independently. Same hook, idempotent.
+  // Horizontal-swipe lets the player toggle the canvas they're looking
+  // at — own team by default, swipes flip to the enemy. Both teams stay
+  // in `canvasFilled`; the second useCanvasLiveSync below keeps the
+  // enemy slot live while the Mural sub-tab is mounted.
+  const enemyTeam: Team | null =
+    team === 'red' ? 'blue' : team === 'blue' ? 'red' : null;
+  const [viewingTeam, setViewingTeam] = useState<Team | null>(team);
+
+  // Card-swipe slide animation. translateX drives the canvas from
+  // 0 → ±slideDistance during phase 1 (current canvas leaves), data
+  // swaps + value jumps to ∓slideDistance, then phase 2 animates back
+  // to 0 (new canvas slides in from the opposite side). swappingRef
+  // gates re-fires while a slide is in flight.
+  const translateX = useRef(new Animated.Value(0)).current;
+  const swappingRef = useRef(false);
+  // True only while the post-release snap-back spring is animating.
+  // handlePanMove uses this to detect "user re-grabbed mid-snap-back"
+  // and run the stopAnimation+setOffset dance (so the new pan is
+  // additive to the spring's current position, not relative to 0).
+  const snapBackActiveRef = useRef(false);
+
+  useEffect(() => {
+    setViewingTeam(team);
+    // Defensive reset: if the player's own team changes mid-flip,
+    // clear the in-flight animation so the canvas isn't stuck off-axis.
+    translateX.setValue(0);
+    translateX.setOffset(0);
+    swappingRef.current = false;
+    snapBackActiveRef.current = false;
+  }, [team, translateX]);
+  const isOwnView = viewingTeam !== null && viewingTeam === team;
+  const filled = useGameStore((s) =>
+    viewingTeam ? s.canvasFilled[viewingTeam] : EMPTY_FILLED,
+  );
+
+  // Subscribe both teams while CanvasPanel is on screen so the swap is
+  // instantaneous (no "loading" flash on first swipe). InventoryScreen
+  // still mounts only the own-team sync — no canvas there.
   useCanvasLiveSync(team, seasonNumber);
+  useCanvasLiveSync(enemyTeam, seasonNumber);
 
   // RECENT feed — 3 most recent events from the same poll source the
   // (now-retired) LiveFeed used. Slimmer rendering: one line per event,
@@ -61,13 +98,13 @@ export default function CanvasPanel(): React.JSX.Element {
     setPickerPixel(idx);
   };
 
-  // Frame accent matches the player's team color so red-team players
-  // see a red-toned matte hairline and blue see a blue one. Keeps team
-  // identity visible without a separate banner.
+  // Frame accent + completion both follow the VIEWING team, not the
+  // player's own team — so when the user swipes to the enemy canvas
+  // they see the enemy's colour hairline + the enemy's % filled.
   const teamAccent =
-    team === 'red'
+    viewingTeam === 'red'
       ? colors.team.red
-      : team === 'blue'
+      : viewingTeam === 'blue'
         ? colors.team.blue
         : colors.accent.brassLight;
 
@@ -76,30 +113,124 @@ export default function CanvasPanel(): React.JSX.Element {
   // third feed row clipped beneath the nav.
   const maxCanvasPx = Math.min(screenWidth - 80, 230);
 
-  const completion = teamsCanvasProgress[team ?? 'red'] ?? 0;
+  const completion = teamsCanvasProgress[viewingTeam ?? 'red'] ?? 0;
   const totalPixels = CANVAS_W * CANVAS_H;
   const pct = totalPixels > 0 ? Math.round((completion / totalPixels) * 100) : 0;
 
+  // Tinder-style live drag. CanvasView calls handlePanMove with the
+  // gestureState dx every move event — we mirror it on translateX so
+  // the canvas follows the finger immediately. No setState here:
+  // translateX is a single Animated.Value driven directly from JS, so
+  // there's no React render churn during the drag.
+  const handlePanMove = (dx: number) => {
+    if (swappingRef.current) return;
+    if (snapBackActiveRef.current) {
+      // User re-grabbed during a snap-back. Capture the spring's
+      // current value as an offset so this gesture's dx is additive
+      // (the canvas stays where it was, then follows the finger
+      // from there). The setValue(dx) MUST happen inside the
+      // stopAnimation callback — calling it outside races the
+      // async callback and produces a visible jump.
+      snapBackActiveRef.current = false;
+      translateX.stopAnimation((current) => {
+        translateX.setOffset(current);
+        translateX.setValue(dx);
+      });
+      return;
+    }
+    translateX.setValue(dx);
+  };
+
+  // On release, commit the swap if the user has dragged past
+  // SWIPE_COMMIT_DX OR flicked fast enough (|vx| > SWIPE_COMMIT_VX).
+  // Below either threshold we snap back to 0 with a gentle spring.
+  const handlePanEnd = (dx: number, vx: number) => {
+    // Merge any in-effect offset back into the value so the next
+    // animation's toValue is interpreted in absolute coordinates.
+    // (Set during a re-grab in handlePanMove; harmless no-op when
+    // there's no offset.)
+    translateX.flattenOffset();
+    if (swappingRef.current) return;
+    if (!enemyTeam) {
+      snapBackActiveRef.current = true;
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start(() => {
+        snapBackActiveRef.current = false;
+      });
+      return;
+    }
+
+    const SWIPE_COMMIT_DX = 50;
+    const SWIPE_COMMIT_VX = 0.4; // dp/ms — RN gestureState velocity
+
+    const shouldCommit =
+      Math.abs(dx) > SWIPE_COMMIT_DX || Math.abs(vx) > SWIPE_COMMIT_VX;
+
+    if (!shouldCommit) {
+      snapBackActiveRef.current = true;
+      Animated.spring(translateX, {
+        toValue: 0,
+        friction: 7,
+        tension: 90,
+        useNativeDriver: true,
+      }).start(() => {
+        snapBackActiveRef.current = false;
+      });
+      return;
+    }
+
+    swappingRef.current = true;
+    const sign = dx > 0 ? 1 : -1;
+    const slideDistance = maxCanvasPx + 60;
+
+    // Phase 1: from current dx to ±slideDistance. Animation runs on
+    // the UI thread via useNativeDriver — JS only owns the start/end
+    // callbacks.
+    Animated.timing(translateX, {
+      toValue: sign * slideDistance,
+      duration: 160,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      setViewingTeam((cur) => (cur === team ? enemyTeam : team));
+      translateX.setValue(-sign * slideDistance);
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        swappingRef.current = false;
+      });
+    });
+  };
+
   return (
     <View style={styles.root}>
-      {team && palette ? (
-        <PixelFrame accentColor={teamAccent}>
-          {/* Passing `size` explicitly so CanvasView matches the
-              wrapper exactly — without it CanvasView's self-computed
-              size (screenWidth - 32) overflows the matte on devices
-              wider than ~352dp, breaking the picture-frame illusion
-              AND mis-aligning the tap-target Pressable. */}
-          <CanvasView
-            team={team}
-            width={CANVAS_W}
-            height={CANVAS_H}
-            targetPixels={targetPixels}
-            filled={filled}
-            palette={palette}
-            onPixelTap={handlePixelTap}
-            size={maxCanvasPx}
-          />
-        </PixelFrame>
+      {team && viewingTeam && palette ? (
+        <Animated.View style={{ transform: [{ translateX }] }}>
+          <PixelFrame accentColor={teamAccent}>
+            {/* Passing `size` explicitly so CanvasView matches the
+                wrapper exactly — without it CanvasView's self-computed
+                size (screenWidth - 32) overflows the matte on devices
+                wider than ~352dp, breaking the picture-frame illusion
+                AND mis-aligning the tap-target Pressable. */}
+            <CanvasView
+              team={viewingTeam}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              targetPixels={targetPixels}
+              filled={filled}
+              palette={palette}
+              onPixelTap={isOwnView ? handlePixelTap : undefined}
+              onPanMove={enemyTeam ? handlePanMove : undefined}
+              onPanEnd={enemyTeam ? handlePanEnd : undefined}
+              size={maxCanvasPx}
+            />
+          </PixelFrame>
+        </Animated.View>
       ) : (
         <View style={styles.placeholder}>
           <EmptyStateIcon kind="canvas" size={64} />
@@ -109,7 +240,24 @@ export default function CanvasPanel(): React.JSX.Element {
         </View>
       )}
 
-      <View style={styles.completionLine}>
+      {/* Tight pair: viewing-team label stacked directly above the
+          contribution summary, with no gap between them. Wrapping in a
+          single View keeps the root's `gap` from inserting space here
+          — the two lines read as one stat block, so the live-feed
+          card below gets back the vertical room. */}
+      <View style={styles.metaGroup}>
+        {team && viewingTeam && enemyTeam && (
+          <View style={styles.viewingLine}>
+            <Text style={[styles.viewingText, { color: teamAccent }]}>
+              {isOwnView ? 'YOUR TEAM' : 'ENEMY TEAM'}
+            </Text>
+            <Text style={styles.viewingHint}>
+              {isOwnView
+                ? '  ·  swipe to see opponent'
+                : '  ·  swipe to return'}
+            </Text>
+          </View>
+        )}
         <Text style={styles.completionText}>
           {`${tilesLifetime.toLocaleString()} TILES`}
           <Text style={styles.completionSep}>{'  ·  '}</Text>
@@ -129,6 +277,10 @@ export default function CanvasPanel(): React.JSX.Element {
           recent.map((e) => {
             const swatchHex = e.color_id ? colorHex(palette, e.color_id) : '#666';
             const name = e.color_id ? colorName(palette, e.color_id) : null;
+            const rarity: Rarity = e.color_id
+              ? colorRarity(palette, e.color_id)
+              : 'common';
+            const prefix = e.kind !== 'milestone' ? verbPrefix(e) : '';
             return (
               <View key={e.id} style={styles.recentRow}>
                 {e.color_id && (
@@ -136,7 +288,16 @@ export default function CanvasPanel(): React.JSX.Element {
                 )}
                 <Text style={styles.recentText} numberOfLines={1}>
                   <Text style={styles.recentName}>{e.nickname}</Text>
-                  <Text style={styles.recentBody}>{verbForKind(e, name)}</Text>
+                  {e.kind === 'milestone' ? (
+                    <Text style={styles.recentBody}>
+                      {` ${e.team?.toUpperCase() ?? ''} hit ${e.qty}%`}
+                    </Text>
+                  ) : prefix !== '' ? (
+                    <>
+                      <Text style={styles.recentBody}>{prefix}</Text>
+                      <RarityName name={name ?? '—'} rarity={rarity} />
+                    </>
+                  ) : null}
                 </Text>
                 <Text style={styles.recentTime}>{relativeTime(e.created_at)}</Text>
               </View>
@@ -158,25 +319,27 @@ export default function CanvasPanel(): React.JSX.Element {
 
 // Slim copy variant (vs the retired LiveFeed's longer copy). Compact
 // for the 3-row inline strip — keeps each row to one truncated line.
-function verbForKind(
-  e: { kind: string; team: string | null; tier: string | null; qty: number },
-  colorName: string | null,
-): string {
-  const c = colorName ?? '—';
+// Returns the prefix BEFORE the colour name; the JSX appends a
+// rarity-tinted <RarityName> after this so the colour pops in the
+// rolled rarity colour. Milestone events have no colour name and are
+// routed through their own branch in the map.
+function verbPrefix(e: { kind: string; qty: number }): string {
   switch (e.kind) {
     case 'tile_placed':
-      return ` placed ${c}`;
+      return ' placed ';
     case 'case_opened':
-      return ` opened ${c}`;
+      return ' opened ';
     case 'crafted':
-      return e.qty > 1 ? ` crafted ${e.qty}× ${c}` : ` crafted ${c}`;
+      return e.qty > 1 ? ` crafted ${e.qty}× ` : ' crafted ';
     case 'sold':
-      return e.qty > 1 ? ` sold ${e.qty}× ${c}` : ` sold ${c}`;
+      return e.qty > 1 ? ` sold ${e.qty}× ` : ' sold ';
     case 'shop_bought':
-      return ` bought ${c}`;
-    case 'milestone':
-      return ` ${e.team?.toUpperCase() ?? ''} hit ${e.qty}%`;
+      return ' bought ';
     default:
+      // Unknown event kind — return empty so the row renders as just
+      // the nickname + relative time. Better than appending a stray
+      // space + colour name with no verb when a future kind isn't
+      // wired here yet.
       return '';
   }
 }
@@ -184,8 +347,8 @@ function verbForKind(
 const styles = StyleSheet.create({
   root: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
   placeholder: {
     paddingVertical: spacing.xl,
@@ -201,8 +364,33 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     letterSpacing: 1.5,
   },
-  completionLine: {
+  // Wraps the YOUR/ENEMY-TEAM line + the "X TILES · Y% FILLED"
+  // contribution line as a single stat block. Negative top margin
+  // pulls it tight under the canvas (cancelling part of the root's
+  // `gap: 8`) so the label reads as a caption attached to the frame
+  // rather than a free-floating row. The exact value was tuned by
+  // hand for the "a bit upper" look — changing it is a visual
+  // decision, not a refactor. Don't replace with -spacing.xs (=-4)
+  // without confirming the new visual.
+  metaGroup: {
     alignItems: 'center',
+    marginTop: -5,
+  },
+  viewingLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewingText: {
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+  },
+  viewingHint: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 11,
+    color: colors.text.muted,
+    letterSpacing: 0.5,
   },
   completionText: {
     fontFamily: fonts.outfitExtraBold,

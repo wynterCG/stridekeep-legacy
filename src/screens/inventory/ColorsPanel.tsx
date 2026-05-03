@@ -12,12 +12,24 @@ import { useNavigation } from '@react-navigation/native';
 import { useGameStore } from '../../store/gameStore';
 import ColorCell from '../../components/ColorCell';
 import EmptyStateIcon from '../../components/EmptyStateIcon';
-import { rawNextSellPrice } from '../../data/colors';
+import { RarityFrame } from '../../components/RarityName';
+import { colorRarity, rawNextSellPrice, type Rarity } from '../../data/colors';
 import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
 import { todayKey } from '../../native/healthConnect';
 import { colors, fonts, spacing } from '../../theme';
 import type { ColorDef } from '../../types';
+
+// Higher rarity = lower rank = sorts first. Used to surface
+// legendaries/epics at the top of the inventory grid so the rarest
+// drops are visible at a glance.
+const RARITY_RANK: Record<Rarity, number> = {
+  legendary: 0,
+  epic: 1,
+  rare: 2,
+  uncommon: 3,
+  common: 4,
+};
 
 const EMPTY_FILLED: Readonly<Record<number, string>> = Object.freeze({});
 
@@ -49,7 +61,14 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   const teamFilled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
   const navigation = useNavigation();
 
-  const paletteEntries = seasonPalette ? Object.values(seasonPalette) : [];
+  const paletteEntries = useMemo(() => {
+    if (!seasonPalette) return [];
+    return [...Object.values(seasonPalette)].sort((a, b) => {
+      const ra = colorRarity(seasonPalette, a.id);
+      const rb = colorRarity(seasonPalette, b.id);
+      return RARITY_RANK[ra] - RARITY_RANK[rb];
+    });
+  }, [seasonPalette]);
   const ownedCount = paletteEntries.filter((c) => (inventory[c.id] ?? 0) > 0).length;
   const totalCount = paletteEntries.length;
 
@@ -125,9 +144,12 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
           {paletteEntries.map((color) => {
             const qty = inventory[color.id] ?? 0;
             const interactive = qty > 0;
+            const rarity = colorRarity(seasonPalette, color.id);
             const inner = (
               <>
-                <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
+                <RarityFrame rarity={rarity}>
+                  <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
+                </RarityFrame>
                 <Text style={styles.cellName} numberOfLines={1}>
                   {color.name}
                 </Text>

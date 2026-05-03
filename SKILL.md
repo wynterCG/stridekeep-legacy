@@ -70,16 +70,25 @@ The meta-principle to apply when unsure: **"Would a tired warehouse worker at 9p
 
 ## 5. Navigation structure
 
-Two-level navigation:
+Two-level navigation. Compound-cards redesign locked 2026-05-02 and shipped through the wood-canyon polish — see §11 entries for the full delta. Current tree:
 
 **Bottom nav (primary, always visible, fixed-position):**
-- 🏠 **Home** — season banner, Purse indicator (tap to open Shop modal), team canvas (CanvasView hero — tap a pixel to place a matching-color tile), step counter + flat $/step strip, 3 CaseCards (fine/quality/starter), simulate-walk demo button
-- 🎒 **Inventory** — grid of the current season's colors (dynamic cell count, ~10-16 per season) with qty badges; tap cell → SELL / PLACE ON CANVAS / USE IN RECIPE action sheet; badge gallery at bottom (FlatList windowed)
-- 🏛️ **Town** — season banner; side-by-side Red vs Blue canvas preview (read-only, shows both teams' progress %); TugOfWar (pixels-placed metric); 14-day countdown until cap; LiveFeed (multi-kind events)
+- 🏠 **Home** — TopHeader (shield + STRIDEKEEP wordmark + Season N · MURAL NAME + social-icon row + gear) → SeasonCard (DAY N · 14d countdown + STEPS + PURSE + RED-vs-BLUE tug-of-war) → SubTabs (CANVAS / CASES / PROFILE).
+- 🎒 **Inventory** — same TopHeader + SeasonCard chrome → SubTabs (COLORS / MIXING).
+- (future MARKET tab placeholder — not in v1.)
 
-**Strict isolation (Clash Royale pattern):** each tab is its own screen. CanvasView (for placing tiles), Purse indicator, CaseCards appear ONLY on Home. Players navigate back to Home to interact with the canvas. The Inventory action sheet's PLACE ON CANVAS button is a shortcut that auto-places one tile on the first unfilled pixel of matching target color, then jumps to Home so the realtime fill is visible. The deliberate isolation keeps per-tab identity clear; the shortcut just lets a player avoid hunting for a matching pixel when they already chose the color.
+The Town tab from the Phase-3 lexicon **was deleted entirely** (not renamed) when the compound-cards redesign shipped. TugOfWar and LiveFeed live under the Home → CANVAS sub-tab now (the live feed sits inline below the framed mural).
 
-**No sub-tabs.** Craft modal opens from Inventory tap-on-material; Shop modal opens from Home Purse tap. Both are modals over the current tab, not separate nav entries.
+**Sub-tabs (inside main tabs):**
+- **Home → CANVAS** — framed mural canvas (CanvasView hero — tap a pixel to place a matching-color tile; horizontal swipe swaps to view the enemy team's mural in real time) + inline 3-row LIVE STRIDE FEED.
+- **Home → CASES** — three case cards (Pigment Pouch / Pigment Box / Master Pigments) with progress bars + OPEN buttons; reveal handled by the root-mounted CaseRevealModal.
+- **Home → PROFILE** — badges grid + lifetime stats (absorbs the prior JournalModal).
+- **Inventory → COLORS** — single unified palette grid headed by "PIXEL COLORS X/Y" (rarity-coloured frames, sorted rarest-first); tap cell → action sheet (SELL / PLACE ON CANVAS / CRAFT WITH).
+- **Inventory → MIXING** — craft recipes for the current season (absorbs the prior CraftModal).
+
+**Inventory PLACE ON CANVAS shortcut:** auto-places one tile on the first unfilled pixel of matching target color, then jumps to Home so the realtime fill is visible. Lets a player avoid hunting for a matching pixel when they already chose the color.
+
+**Modals over content (not nav entries):** ShopModal opens from the Purse tap; CaseRevealModal mounts at App root and fires on case OPEN; SeasonEndCeremony mounts at App root and fires on rollover.
 
 ### Currency copy (use exactly)
 - **PURSE** = personal money (from selling surplus tiles). Resets at season end.
@@ -121,11 +130,13 @@ Reset everything except badges. Next season's palette + mural load from queue.
 
 ### Case tiers (stable across seasons)
 
-| Case | Steps | Drop weights | Notes |
-|---|---|---|---|
-| Starter 📦 | 200 | common, uncommon, rare | ~50-60% of case-category colors in most palettes |
-| Quality 🧰 | 1,500 | +epic | ~25-35% |
-| Fine Craftsmanship 🏛️ | 5,000 | +legendary (with pity system) | ~10-20%. **Never consumed in craft recipes** — precious. |
+| Case | Tier | Steps | Drop weights | Notes |
+|---|---|---|---|---|
+| Pigment Pouch 📦 | starter | 200 | common, uncommon, rare | ~50-60% of case-category colors in most palettes |
+| Pigment Box 🧰 | quality | 1,500 | +epic | ~25-35% |
+| Master Pigments 💎 | fine | 5,000 | +legendary (with pity system) | ~10-20%. **Never consumed in craft recipes** — precious. |
+
+The internal `tier` keys (`starter` / `quality` / `fine`) drive code; the display names were renamed in the visual-polish round 2026-04-30 (commit `f45d5ee`).
 
 **Pity system**: 20 consecutive tier-3 opens without a rare+ drop → next open forces the rare color. Prevents RNG lockout on tier-3 legendaries. Resets on rare drop OR at season rollover.
 
@@ -170,9 +181,9 @@ Per-player, per-color daily counter. `sellPrice(colorId, n) = baseValue × max(0
 **Resets**: inventory, Purse, pityCounter, sellHistory, caseState progress, season palette/recipes (server-side cache).
 **Persists**: `badges: Badge[]` (lifetime collection), team assignment (immutable), nickname, platform state.
 
-### Stride Power and Slot upgrades — REMOVED (Phase 4)
+### Phase-3 archaeology (one-line summary)
 
-Previous versions had a Stride Power upgrade ($1/step scaling) and Inventory Slot upgrades. Both gone. Walking always earns flat `$1/step` via `baseValue`. Only progression vector = badge collection. Reasoning: keeps every action serving the mosaic loop; no side-grind. The meta-principle line "Stride Power (the only upgrade)" from earlier versions is superseded.
+**Removed in the Phase-4 pivot, do not re-introduce:** Stride Power upgrade ($1/step scaling), Inventory Slot upgrades, kept-inventory passive team income, BuildButton, the `deposits` table + `deposit_for_town` RPC, the original Town-tab layout. Flat `$1/step` via `baseValue` is the only path; badges are the only cross-season progression. See `git log` before commit `eecad51` (Step 6 — wire client to server) for the prior implementation.
 
 ### Simulate-walk (demo only, remove for production)
 
@@ -184,9 +195,9 @@ Previous versions had a Stride Power upgrade ($1/step scaling) and Inventory Slo
 
 ### Visual defaults (UI chrome; mural subject is unrestricted)
 
-- **Palette (Slate & Brass, current):** slate background `#2b3138`, card `#353c46`, cream text `#f1ede4`, brass accent `#c79c4a / #f0d091`, team red `#c44b3a`, team blue `#6589b8`. See [theme.ts](e:/Vibe%20Coding/Stridekeep/src/theme.ts) for the full 11-token palette. Mural PALETTE is separate and regenerates per season from the ComfyUI source image — it is NOT constrained to match the UI chrome.
-- **Typography:** Bebas Neue (condensed caps for labels/CTAs), Playfair Display italic (milestone names, page headers), Outfit (body text)
-- **Border radius:** 10-14px for cards, 20px for badges/chips
+- **Palette (Wood-Canyon, current — adopted 2026-05-03):** parchment background `#c8a878`, card-hi `#ecd0a0`, dark slate overlay `#2e353f` for stat bands, ink-dark text `#2a1c0c` on parchment + light cream `#fff8e0` on dark surfaces, brass accent family (`#d4a44a / #f0d088 / #fbe6b0 / #8a6028`), team red `#c43a32`, team blue `#3866b6`. Plus `accent.activeGold #f5c842` (bottom-nav active) and `rarity.{uncommon, rare, epic, legendaryA, legendaryB}` for rarity tints. **See [theme.ts](e:/Vibe%20Coding/Stridekeep/src/theme.ts) for the live tokens — that file is the source of truth, not this snippet.** Mural PALETTE is separate and regenerates per season from the ComfyUI source image — it is NOT constrained to match the UI chrome.
+- **Typography:** Bebas Neue (condensed caps for labels/CTAs), Playfair Display italic (milestone names, page headers), Outfit family (regular / bold / extraBold / black for body + headlines), Press Start 2P (pixel-art accents on short labels).
+- **Border radius:** 4 px for cards / buttons (`radii.card / .button = 4`), 13 px for pill-style chips (`radii.pill = 13`). Wood-canyon flipped from the Phase-3 10-14 px round corners to subtle 4 px.
 - **Animations:** cubic-bezier easing, ~0.3-0.5s durations. No slot-machine spinning. No Candy-Crush style explosions.
 - **Haptics:** native haptic feedback on taps, impact on reveals, notification on milestone unlocks. Use expo-haptics.
 - **Rare tier-3 case reveals:** when a Fine Craftsmanship (tier-3) case drops a color whose `drop_weight_pct < 15` for its tier that season (the rarest colors in this season's tier-3 palette), trigger a radial color-flash overlay during the open animation. Flash hex matches the rolled tile. Uses `react-native-svg` circle primitives with an animated scale+opacity transition. Pity-forced drops also trigger the flash. Replaces the prototype's per-item `rarityFlash` keyframe — Phase 4 has no per-tile rarity attribute, so the trigger is drop-weight-based.
@@ -215,10 +226,10 @@ Each season has a curated 10-16 color palette extracted from that season's mural
 - "Don't lose your streak!" (pressure-based)
 
 ### TugOfWar (signature element)
-On Town tab. Horizontal bar showing the current season's pixel-placement race: RED side fills from left, BLUE from right, meeting at the crossover point proportional to each team's `filled_count / pixel_count`. Team colors; zero line labeled by both team names. Above the bar, show `LEAD: RED +47 pixels` (or BLUE, or `TIED`) for scannable legibility. Same SVG pattern as the original Phase-3 trading chart, different metric (pixels-placed, not dollars).
+Lives in the SeasonCard banner (shared across Home and Inventory). Horizontal bar showing the current season's pixel-placement race: RED side fills from left, BLUE from right, meeting at the crossover point proportional to each team's `filled_count / pixel_count`. Team colors; zero line labeled by both team names. Centre cell shows `LEAD: RED +47` (or BLUE, or `TIED`) for scannable legibility. Same SVG pattern as the original Phase-3 trading chart, different metric (pixels-placed, not dollars).
 
 ### Live feed ticker
-Below the TugOfWar on Town. Shows recent team + community activity: tile placements, case opens, crafts, sells, shop buys (5 event kinds; see §9 `feed_events`). Bots emit atmospheric events only (no tile placements); real players emit all 5 kinds. **The user's own events show as "YOU" in gold.** Tile placements get team-color accent; atmospheric events are quieter-styled. No pixel coordinates (too noisy for a high-throughput feed).
+LIVE STRIDE FEED card sits inline below the framed mural on Home → Canvas sub-tab. Shows recent team + community activity: tile placements, case opens, crafts, sells, shop buys, milestones — **6 event kinds** (`tile_placed | case_opened | crafted | sold | shop_bought | milestone`; milestone added 2026-05-02 via migration 0019). Bots emit atmospheric events plus `tile_placed` (up to the 70% per-team cap); real players emit all kinds. **The user's own events show as "YOU" in gold.** Tile placements get team-color accent; atmospheric events are quieter-styled; **the colour name in each row is rendered with rarity-tinted text (uncommon = grey, rare = blue, epic = magenta, legendary = blinking yellow ↔ cyan)**. No pixel coordinates (too noisy for a high-throughput feed).
 
 ### Onboarding
 Three-step contextual tour using refs + `measure()` (NOT hardcoded pixel positions). Spotlight the **CanvasView** (explain paint-by-numbers + tap-a-pixel-to-place-a-tile), then the **season banner** (explain 14-day soft cap + that the completed mural becomes a badge), then the **bottom nav**. Scroll is locked during onboarding. Use `scrollIntoView` / React Native equivalent to animate between anchors.
@@ -226,7 +237,7 @@ Three-step contextual tour using refs + `measure()` (NOT hardcoded pixel positio
 **Libraries to consider:** `react-native-walkthrough-tooltip` or `react-native-copilot` instead of reinventing this.
 
 ### Empty states
-- **New user on Town:** welcome banner ("Welcome to Season N — your team is painting `<mural name>` together").
+- **New user on first launch:** welcome banner above the canvas ("Welcome to Season N — your team is painting `<mural name>` together"). (Was previously on the Town tab — Town tab no longer exists.)
 - **Empty inventory:** dimmed color cells for the current season's palette (all 10-16 colors rendered dim with qty 0; no "slot" concept anymore).
 - **No recent activity:** rare in practice — bots emit atmospheric feed events continuously while a season is active. If truly empty (awaiting-mural state), show "Next mural coming soon."
 
@@ -293,8 +304,14 @@ type Badge = {
 };
 
 // Note: legacy types from the money-era are GONE:
-//   Case (items), Item, KeptItem, Rarity (common/uncommon/rare/epic/legendary),
+//   Case (items), Item, KeptItem, RarityWeights, ITEMS_BY_TIER,
 //   Milestone ($-threshold). Replaced by the above.
+//
+// EXCEPTION: Rarity ('common'|'uncommon'|'rare'|'epic'|'legendary') was
+// re-introduced 2026-05-03 as a UI-DERIVED helper in src/data/colors.ts:
+// `colorRarity(palette, id)` buckets a colour by its tier + dropWeightPct
+// at runtime — it is not a stored field on ColorDef. Drives RarityName /
+// RarityFrame styling across feed, case-reveal, and inventory grid.
 ```
 
 ### Server tables (Supabase) — Phase 4 Mosaic Edition schema
@@ -388,33 +405,12 @@ feed_events — replaces old `deposits` table
 
 ### Reading steps (Android, Health Connect)
 
-```typescript
-import {
-  initialize,
-  requestPermission,
-  readRecords,
-} from 'react-native-health-connect';
+Implementation lives in [src/native/healthConnect.ts](e:/Vibe%20Coding/Stridekeep/src/native/healthConnect.ts). The two relevant exports:
 
-async function readDailySteps(): Promise<number> {
-  await initialize();
-  const granted = await requestPermission([
-    { accessType: 'read', recordType: 'Steps' }
-  ]);
-  if (!granted) return 0;
+- `ensureStepsPermission(): Promise<boolean>` — calls `initialize()` once, then checks `getGrantedPermissions` first (avoids re-prompting if already granted), and only calls `requestPermission` when needed.
+- `readDailySteps(): Promise<number>` — assumes `ensureStepsPermission()` has already run. Reads today's steps via `readRecords('Steps', { timeRangeFilter })` from local midnight, summing `r.count`.
 
-  const midnight = new Date();
-  midnight.setHours(0, 0, 0, 0);
-
-  const { records } = await readRecords('Steps', {
-    timeRangeFilter: {
-      operator: 'after',
-      startTime: midnight.toISOString(),
-    },
-  });
-
-  return records.reduce((sum, r) => sum + r.count, 0);
-}
-```
+Plus a `todayKey()` helper for the per-day sell-decay counter. Don't duplicate the inner logic into other files — go through these two functions so the permission flow stays in one place.
 
 ### Case opening — CLIENT-SIDE (Phase 4 Mosaic Edition)
 
@@ -436,55 +432,23 @@ function openCase(tier: 'starter' | 'quality' | 'fine'): string {
 
 **Server-auth for case opens is deferred to a future Phase** (Phase 5+). Audit log table `case_open_events` (migration 0016 OPTIONAL) gives retroactive audit trail. When moving to server-auth: replace the client function with an RPC that does the roll server-side.
 
-### Inventory passive income — REMOVED (Phase 4)
+### Theme tokens
 
-Earlier versions had kept inventory items generating passive team income at 0.5% of sell value per hour. Phase 4 removes this entirely — inventory is a `Record<colorId, qty>` of tiles awaiting canvas placement, not a long-term holding with ticking income. Resting rate of `$3/sec` still exists (see balance.ts) as a minimum floor.
+The wood-canyon palette (adopted 2026-05-03) lives in [src/theme.ts](e:/Vibe%20Coding/Stridekeep/src/theme.ts) as the source of truth. **Don't duplicate the token map here** — the snippet in earlier revisions of this file drifted out of sync within weeks of every theme change. Read theme.ts directly.
 
-### Theme tokens (extract these first)
+Top-level shape:
 
-```typescript
-// theme.ts
-export const colors = {
-  bg: {
-    primary: '#2a1f17',
-    card: 'rgba(255,255,255,0.04)',
-    cardHighlight: 'rgba(255,255,255,0.08)',
-  },
-  text: {
-    primary: '#f5ecdb',
-    secondary: 'rgba(255,255,255,0.6)',
-    dim: 'rgba(255,255,255,0.4)',
-  },
-  brass: {
-    bright: '#f2c77a',
-    primary: '#c8923c',
-    deep: '#e6a950',
-  },
-  team: {
-    red: { primary: '#c9452b', dim: '#6b1f15', soft: '#e8a898' },
-    blue: { primary: '#3b5998', dim: '#1c3461', soft: '#8fa5c8' },
-  },
-  rarity: {
-    common: '#a09589',
-    uncommon: '#7ca84d',
-    rare: '#5b88b8',
-    epic: '#a87fcc',
-    legendary: '#e0a33f',
-    mythic: '#c84530',
-  },
-  status: {
-    success: '#7ca84d',
-    warning: '#d97a3a',
-  },
-};
+- `colors.bg.{primary, card, cardHi, overlay}` — parchment + dark slate band.
+- `colors.text.{cream, secondary, muted, dim, lightCream}` — `cream` is now dark ink on parchment; `lightCream` is the on-dark variant.
+- `colors.accent.{brass, brassLight, brassDeep, brassRim, teal, purple, activeGold}` — brass family + bottom-nav active gold.
+- `colors.team.{red, redSoft, blue, blueSoft}` — team colours (kept legacy `*Soft` names; semantically those are deep, not soft).
+- `colors.banner.{hi, mid, lo, edge}` — top banner + bottom nav chrome bookends.
+- `colors.canvas.{hi, mid, lo, gridMinor, gridMajor}` — kept for legacy callers; the canvas itself now uses `bg.overlay` slate as backing per the wood-canyon polish (see §11 entry).
+- `colors.rarity.{uncommon, rare, epic, legendaryA, legendaryB}` — used by RarityName / RarityFrame across feed, modal, inventory frame.
+- `colors.tier.{starter, quality, fine}` — case-tier accents.
+- `colors.ui.{border, progressBg, buttonDisabled, activeGreen}`.
 
-export const fonts = {
-  display: 'BebasNeue_400Regular',
-  serif: 'PlayfairDisplay_900Black_Italic',
-  body: 'Outfit_400Regular',
-  bodyBold: 'Outfit_700Bold',
-};
-```
+Fonts: `bebasNeue / playfairItalic / outfitRegular / outfitBold / outfitExtraBold / outfitBlack / pressStart`. Spacing: `xs:4 / sm:8 / md:16 / lg:24 / xl:32`. Radii: `card / badge / button = 4`, `pill = 13`.
 
 ### Balance config (one file, not scattered)
 
@@ -559,7 +523,7 @@ Prove the technical path works before committing to the full build.
 
 **Shipped goal met**: multi-user, real competition with $-based deposits + milestone thresholds.
 
-### Phase 4: MOSAIC EDITION — IN PROGRESS on `phase-4/mural-prep-godot` branch
+### Phase 4: MOSAIC EDITION — ACTIVE on `master`
 Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md` (approved 2026-04-23).
 
 **Fundamental pivot**: game was always about collaborative pixel art, not abstract town-building. Phase 4 replaces the money-deposit economy with material-tiles-on-a-canvas:
@@ -581,7 +545,7 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 - Season length is variable (14-day soft cap).
 - Mural queue system for solo-dev operational resilience.
 
-**Implementation status (as of 2026-04-29):**
+**Implementation status (last entry 2026-05-03):**
 
 ✅ Standalone Godot mural-prep tool MVP — shipped (commits up to `b94a1e7`). §13 ship-checklist run on 3 real ComfyUI murals; auto-name dedup applied.
 
@@ -609,7 +573,7 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 
 ✅ **Visual polish round (focused) shipped 2026-04-30** — commit `f45d5ee` on master. Phase-3 lexicon retired: cases renamed Pigment Pouch 📦 / Pigment Box 🧰 / Master Pigments 💎 (was Basic Supplies / Quality Materials / Fine Craftsmanship); third bottom-tab renamed `Town` 🏛️ → `Mural` 🎨 with `git mv src/screens/TownScreen.tsx → MuralScreen.tsx`. Animations implemented with **React Native's built-in Animated API**, NOT Reanimated. We tried Reanimated first (`react-native-reanimated@^3.19` is in deps), but Reanimated v4 is the Expo-SDK-54-recommended version and requires the new architecture, which conflicts with `react-native-health-connect@3.5.0`'s old-arch lock. v3 on SDK 54 + old-arch silently no-ops `withTiming`/`withSpring` even though the build succeeds, so we fell back to the stock Animated API. The Reanimated package + babel plugin remain installed (harmless when no code uses the hooks); revisit if/when health-connect ships new-arch support. New [src/components/CanvasView.tsx](e:/Vibe%20Coding/Stridekeep/src/components/CanvasView.tsx) pulses each newly-placed pixel via realtime (delta detection vs first-render snapshot — bulk loads don't pulse the whole grid; capped to 5 concurrent pulses). New [src/components/CaseCard.tsx](e:/Vibe%20Coding/Stridekeep/src/components/CaseCard.tsx) reveal sequence: medallion squash-and-stretch on OPEN, panel slides + fades, swatch springs in, tier-aware haptic at landing (success / medium / light), radial color-flash for tier-3 colors with `dropWeightPct < 15` per SKILL.md §7. **Auto-scroll on case OPEN**: HomeScreen passes a `scrollRef` to each CaseCard; on reveal mount the card calls `measureLayout` against the ScrollView (60ms delay so panel height is reflected) and the scroll lands the card top ~16px below the screen edge — fixes the bottom-case reveal panel getting half-cut by the bottom nav. New [src/components/AccountChip.tsx](e:/Vibe%20Coding/Stridekeep/src/components/AccountChip.tsx) SVG silhouette in TopHeader (dim outline anon, brass-fill linked) replaces the 👤 emoji + new SVG diamond replaces the ◆ glyph. New [src/components/EmptyStateIcon.tsx](e:/Vibe%20Coding/Stridekeep/src/components/EmptyStateIcon.tsx) SVG primitive (palette / badge / canvas variants) sits above empty-state copy on Home + Inventory. Light haptic on TilePicker PLACE + Inventory PLACE-shortcut success; success haptic on link / sign-in / sign-out completion via [src/lib/haptics.ts](e:/Vibe%20Coding/Stridekeep/src/lib/haptics.ts) wrapper. New `accountLinked: boolean` field on gameStore hydrated by `bootstrapAuthAndSeason` via `getAccountStatus`; AccountModal keeps it fresh after link. APK size +~1MB. Built + verified on the Samsung A52 release APK.
 
-⏳ S4.C — `ShopModal` + `CraftModal` + InventoryScreen action sheet wiring.
+⏳ S4.C — `ShopModal` still pending. CraftModal + InventoryScreen action sheet wiring SHIPPED via the Inventory MIXING sub-tab + the COLORS-grid action sheet (commit `a031647`); Mixing absorbed the prior CraftModal entirely. ShopModal (Purse-tap → buy shop-category colours) remains the only piece of original S4.C scope still open.
 
 ⏳ **S4.D — implementation complete 2026-05-01, dev-button-driven smoke-test passing on the Samsung A52 release APK; SQL-rollover + realtime-trigger paths still pending verification before flipping to ✅.** Dev-only `DevTriggerCeremonyButton` (4 pills: WIN / LOSE / TIE / NO QUEUE) bypasses the 14-day rollover wait by synthesising a `SeasonEndSnapshot` from current store state + the real `my_contribution_count` RPC. **All three dev buttons (`SimulateWalkButton`, `DevGrantTilesButton`, `DevTriggerCeremonyButton`) are temporarily ungated** in HomeScreen for pre-internal-testing iteration — TEMP marker in code; re-gate inside `{__DEV__ && (...)}` before shipping to internal testers. Defer-reset architecture: bootstrap detects rollover → `loadSeasonEndSnapshot(prevNumber, newNumber)` → `setPendingSeasonEnd(snap)`; CONTINUE button on the ceremony owns the `applySeasonReset` call (so a force-quit mid-ceremony re-fires on next boot). New gameStore fields: `pendingSeasonEnd: SeasonEndSnapshot | null` (transient, not persisted), `lastShownCeremonySeason: number | null` (persisted, prevents re-show after CONTINUE). New files: [src/lib/seasonEnd.ts](e:/Vibe%20Coding/Stridekeep/src/lib/seasonEnd.ts) (snapshot loader + `subscribeSeasonRollover` channel filtering UPDATEs where `ended_at` flips null→non-null), [src/hooks/useSeasonEndWatcher.ts](e:/Vibe%20Coding/Stridekeep/src/hooks/useSeasonEndWatcher.ts) (mounted at App root, foreground-only), [src/components/CeremonyMiniCanvas.tsx](e:/Vibe%20Coding/Stridekeep/src/components/CeremonyMiniCanvas.tsx) (Rect-grid thumbnail), [src/components/SeasonEndCeremony.tsx](e:/Vibe%20Coding/Stridekeep/src/components/SeasonEndCeremony.tsx) (full-screen Modal). Animation sequence (built-in `Animated`, ~5s total): backdrop fade → headline drop-in → side-by-side canvas fade-in (staggered) → winner-glow loop on winning team → contribution count up-counter via Animated.Value listener → badge dock spring-in (winners only) → "Next up →" preview slide-in → CONTINUE fade-in. Skip → link appears at 1.5s and snaps to end-state. Unified flow with copy swap: WINNER / LOSER / STALEMATE headlines; tie skips winner-glow + badge-dock; loser skips badge-dock only. No-queue rollover (rollover_season `cap_no_queue` / `completion_no_queue`): preview shows "Next mural coming soon" placeholder; `applySeasonReset` accepts `null` for newSeasonNumber/palette/recipes. `applySeasonReset` signature relaxed to `number | null` accordingly. Server-side already provided everything (no migrations) — `my_contribution_count` RPC, `seasons.winner_team`, `teams_canvas_progress`. Verification list (10 items) in plan file at `~/.claude/plans/check-gradle-build-status-snoopy-willow.md`.
 
@@ -621,7 +585,7 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 
 ⏳ **UI/UX overhaul (next session)** — user flagged 2026-05-02 immediately after polish-pass push: "we have to change a lot the UI/UX". Scope unspecified yet — brainstorm before implementing. Keep this in mind when reading the current screen layouts: don't invest in tweaks to surfaces likely to be reworked.
 
-✅ **Wood-canyon polish pass shipped 2026-05-03 — commit `19bccd8` on master, pushed to `wynterCG/stridekeep`.** Iterated on the locked compound-cards mockups (Option D) on the Samsung A52 release APK. Several **intentional divergences from the mockup spec** are now shipped — record them here so future passes don't revert to the older spec by following the mockups:
+✅ **Wood-canyon polish pass shipped 2026-05-03 — commit `19bccd8` on master, pushed to `wynterCG/stridekeep`.** Iterated on the locked compound-cards mockups (Option D) on the Samsung A52 release APK. *Reads in date order BELOW the 2026-05-02 redesign-lock entry — placed here so the divergences-from-mockup list sits immediately under the lock-spec section it deviates from.* Several **intentional divergences from the mockup spec** are now shipped — record them here so future passes don't revert to the older spec by following the mockups:
 - **Canvas backing went from ocean-blue → dark slate (`colors.bg.overlay`).** Spec called for `colors.canvas.mid` ocean blue; on real-device review the dim unfilled-tile preview washed out into a uniform blue and lost its paint-by-numbers reading. Switched to dark slate with unfilled tiles at `opacity: 0.35` — placed tiles read as bright glowing pixels against a recessed canyon silhouette. **Do NOT re-introduce the blue canvas backing without re-checking with the user.**
 - **Major maroon 5-cell grid REMOVED.** The cyan-minor + maroon-major two-tier grid was tuned for the blue canvas; on dark slate the maroon read as "big red squares" (user-flagged). Only per-cell `gridMinor` lines remain in [CanvasView.tsx](e:/Vibe%20Coding/Stridekeep/src/components/CanvasView.tsx).
 - **Sub-tab inactive style** is now dark navy `#415266` with `colors.text.lightCream` text + icon, NOT parchment-hi with dark text as the mockup showed. Active stays parchment-hi cream face. The mockup's parchment-on-parchment lacked enough on-device contrast.
@@ -632,7 +596,17 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 - **STRIDEKEEP wordmark** lost its trailing colon and shrunk 23 → 20pt; subtitle (`Season N · MURAL NAME`) tightened to 11pt with `letterSpacing: -0.3` so it reads as a denser line under the wordmark.
 - **Bottom nav green "Active" sublabel REMOVED.** [RootTabs.tsx](e:/Vibe%20Coding/Stridekeep/src/navigation/RootTabs.tsx) now renders icon + label only; the prior `tabActiveBadge` style is gone. Active state signalled by `colors.accent.brassRim` icon/label tint only.
 
-✅ **Redesign direction LOCKED 2026-05-02 via HTML mockups** at [mockups/redesign/](e:/Vibe%20Coding/Stridekeep/mockups/redesign/). User picked the **COMPOUND-CARDS** layout from [option-a-cards.html](e:/Vibe%20Coding/Stridekeep/mockups/redesign/option-a-cards.html). Locked points: (1) drop the 3rd nav tab — bottom nav becomes HOME / INVENTORY only (future MARKET); (2) Home gets sub-tabs CANVAS / CASES / PROFILE (Profile absorbs JournalModal contents — badges + lifetime stats); (3) badges OUT of Inventory; (4) compound SEASON CARD on Home groups season meta + steps + purse + your-pixels + RED-vs-BLUE scoreboard into one bordered unit; (5) framed mural with even brass-deep matte padding (no frame-customization affordance on Home — future customizable-frames cosmetic lives in the PROFILE sub-tab when implemented, since frames are loadout/cosmetic data, not playing-surface data); (6) inline RECENT feed (3 vertical rows) below canvas; (7) AccountChip → gear icon, plus a social-icon row in TopHeader before the gear: share (Material) · website-globe · Buy Me a Coffee (yellow logo) · Patreon (coral logo) · Discord (blurple logo, dimmed via opacity for "coming soon"). **Bare icons — no border, no card background, no frame of any kind** (user-flagged 2026-05-02); tap target via `hitSlop`, not visible padding. Same bare treatment for the gear icon at the row end. **Visual placeholders only in v1** — no tap handlers; wire URLs in a follow-up pass. Brand logos bundle as local SVG assets in production; (8) **pixel-art aesthetic across the WHOLE UI** — Press Start 2P font, `border-radius: 0`, 2-3px solid borders, dithered card backgrounds, expanded palette (slate/brass foundation + saturated team colors + new teal `#5fc9a3` + purple `#a16fc9` accents). Inventory redesign LOCKED 2026-05-02 ([option-a-cards-inventory.html](e:/Vibe%20Coding/Stridekeep/mockups/redesign/option-a-cards-inventory.html)): sub-tabs **COLORS / MIXING**. The **SEASON CARD is shared across Home and Inventory** (same banner — season title + day/cap + steps/purse/your-pixels + scoreboard) — implementation extracts a `<SeasonCard>` component mounted in a screen-layout wrapper. COLORS panel is one unified grid headed by "PIXEL COLORS X/Y" (no case/shop/craft subdivision; 2-char a11y code overlay still distinguishes categories). MIXING absorbs CraftModal entirely. Note: §8 anti-pattern "sub-tabs inside main tabs" must be retired in the implementation commit (1-week real-use authority overrides the original Clash-Royale-pattern principle here).
+✅ **Redesign direction LOCKED 2026-05-02 via HTML mockups** at [mockups/redesign/](e:/Vibe%20Coding/Stridekeep/mockups/redesign/). User picked the **COMPOUND-CARDS** layout from [option-a-cards.html](e:/Vibe%20Coding/Stridekeep/mockups/redesign/option-a-cards.html). Locked points: (1) drop the 3rd nav tab — bottom nav becomes HOME / INVENTORY only (future MARKET); (2) Home gets sub-tabs CANVAS / CASES / PROFILE (Profile absorbs JournalModal contents — badges + lifetime stats); (3) badges OUT of Inventory; (4) compound SEASON CARD on Home groups season meta + steps + purse + your-pixels + RED-vs-BLUE scoreboard into one bordered unit; (5) framed mural with even brass-deep matte padding (no frame-customization affordance on Home — future customizable-frames cosmetic lives in the PROFILE sub-tab when implemented, since frames are loadout/cosmetic data, not playing-surface data); (6) inline RECENT feed (3 vertical rows) below canvas; (7) AccountChip → gear icon, plus a social-icon row in TopHeader before the gear: share (Material) · website-globe · Buy Me a Coffee (yellow logo) · Patreon (coral logo) · Discord (blurple logo, dimmed via opacity for "coming soon"). **Bare icons — no border, no card background, no frame of any kind** (user-flagged 2026-05-02); tap target via `hitSlop`, not visible padding. Same bare treatment for the gear icon at the row end. **Visual placeholders only in v1** — no tap handlers; wire URLs in a follow-up pass. Brand logos bundle as local SVG assets in production; (8) **pixel-art aesthetic across the WHOLE UI** — Press Start 2P font, `border-radius: 0`, 2-3px solid borders, dithered card backgrounds, expanded palette (slate/brass foundation + saturated team colors + new teal `#5fc9a3` + purple `#a16fc9` accents). Inventory redesign LOCKED 2026-05-02 ([option-a-cards-inventory.html](e:/Vibe%20Coding/Stridekeep/mockups/redesign/option-a-cards-inventory.html)): sub-tabs **COLORS / MIXING**. The **SEASON CARD is shared across Home and Inventory** (same banner — season title + day/cap + steps/purse/your-pixels + scoreboard) — implementation extracts a `<SeasonCard>` component mounted in a screen-layout wrapper. COLORS panel is one unified grid headed by "PIXEL COLORS X/Y" (no case/shop/craft subdivision; 2-char a11y code overlay still distinguishes categories). MIXING absorbs CraftModal entirely. The §8 sub-tabs anti-pattern was retired alongside this lock (see the ⚠️ marker on the relevant bullet in §8).
+
+✅ **Mural-canvas + rarity-tints feature pass shipped 2026-05-03 (continued, layered on top of `19bccd8`).** Same-day follow-up to the wood-canyon polish — built incrementally over the session against the Samsung A52 release APK.
+
+- **Mural canvas gestures rewritten.** [src/components/CanvasView.tsx](src/components/CanvasView.tsx) replaced the bottom-of-component `Pressable` (which mis-fired tile placements on vertical-drag-and-release) with a single `PanResponder` running a `pending → horizontal | vertical` state machine. Latched gesture-kind decision at `PAN_LATCH_PX = 6` with a 1.2× horizontal-bias; `propsRef` keeps the responder stable across re-renders (earlier we hit a stutter where caseState/feed re-renders rebuilt the responder mid-drag and `gestureState.dx` reset to 0). Tap = release in `pending` with total movement < `TAP_TOLERANCE = 8`. New `onPanMove(dx)` + `onPanEnd(dx, vx)` callback API (replaces the old `onSwipe(direction)`).
+- **Tinder-style live drag + own/enemy canvas swap.** [src/screens/home/CanvasPanel.tsx](src/screens/home/CanvasPanel.tsx) drives a shared `translateX` Animated.Value live from `handlePanMove` so the canvas follows the finger; on release, `handlePanEnd` either commits a card-swipe slide (if `|dx| > 50` OR `|vx| > 0.4`) or springs back. Phase 1 → setViewingTeam + setValue(opposite-side) → phase 2 keeps the swap atomic at the off-screen frame. Snap-back hijack fix uses `stopAnimation` + `setOffset` so a re-grab during the spring is **additive** to the current position, then `flattenOffset` before the next animation. Both teams' `canvasFilled` stay live via two `useCanvasLiveSync` mounts; the enemy canvas updates in realtime as you watch.
+- **Cases sub-tab indicator (calm + rare states).** [src/components/SubTabs.tsx](src/components/SubTabs.tsx) added a `TabIndicator = 'ready' | 'rare'` prop. 'ready' = any tier pending → calm brass dot at top-right (`Indicator` component, 800 ms half-cycle pulse). 'rare' = `caseState.fine.pending > 0` → bright `brassRim` dot + halo + tab-wide background overlay (`TabPulse`) at 500 ms cadence. Active tab suppresses the tab-wide pulse (no point pulsing the panel you're already on). [HomeScreen.tsx](src/screens/HomeScreen.tsx) computes the indicator from the store and `useMemo`'s the `tabs` array on `[casesIndicator]` so feed-tick re-renders don't churn.
+- **Rarity-coloured text + frames everywhere.** New [src/data/colors.ts](src/data/colors.ts) `colorRarity(palette, id)` derives 5 buckets from `tier` + `dropWeightPct` (`< 15` = rarer-within-tier; per-tier weights sum to 100 so most evenly-split tiers stay 'common'). New [src/components/RarityName.tsx](src/components/RarityName.tsx) exports `RarityName` (tinted `<Text>`), `RarityFrame` (rarity-coloured wrapping `<View>`), and a singleton `useLegendaryBlink` hook (module-level Animated.Value + refcounted `Animated.loop` — every visible legendary tints in sync, paused when none are mounted). Single `RARITY_COLOR` table feeds both the text tint and the border tint (one source of truth — uncommon=grey applies everywhere by changing one entry). Used in: LIVE STRIDE FEED row colour names; CaseRevealModal's colour name AND the prior tier-label `<Text>` (now reads "COMMON" / "RARE" / "LEGENDARY" — `tier` still drives `TIER_TIMINGS` pacing, only the *display* concept switched); inventory `ColorsPanel` grid frame around each cell + sorted rarest-first via `RARITY_RANK`; TilePicker target colour name. Inventory cell *text* stays in default cream — rarity-tinted text became unreadable on parchment.
+- **Theme tokens extracted (SKILL.md §10 compliance).** Three previously-inline hex literals moved to [theme.ts](src/theme.ts): `accent.activeGold #f5c842` (bottom-nav active tint), `rarity.uncommon/rare/epic` (#9ca3af / #3b82f6 / #d946ef), `rarity.legendaryA/B` (#f5c842 / #22d3ee — paired blink endpoints kept together so future legendary look tweaks travel as a pair, even though `legendaryA` and `activeGold` happen to share a value today). Removed orphan `colors.ui.frameWood`. PixelFrame's outer wood now uses the team `accentColor` directly (matched ring around the canvas).
+- **TopHeader social-icon row.** [src/components/TopHeader.tsx](src/components/TopHeader.tsx) renders share / globe / Patreon (coral) / Discord (blurple, dimmed via 50% opacity, no Pressable wrapper) / gear next to STRIDEKEEP wordmark. Buy Me a Coffee dropped from the locked-redesign spec during this pass; `SocialIconRow.tsx` + `IconBuyMeACoffee.tsx` deleted as dead code.
+- **Code-review pass (12 findings) + SKILL.md audit (7 critical drift items) — all addressed in this commit.** Critical fixes: snap-back hijack (stopAnimation+setOffset pattern), theme-token extraction (above), HomeScreen tabs `useMemo`, `verbPrefix` graceful default for unknown event kinds, `RarityName` fontWeight override removal (silently no-op on Android due to font-family weight). SKILL.md drift fixes: §5 navigation rewritten to 2-tabs-with-sub-tabs (no Town tab), §7 palette block updated to wood-canyon, §10 theme-tokens snippet replaced with a "go read theme.ts" pointer, §6 case names corrected to Pigment Pouch / Pigment Box / Master Pigments, §9 Rarity-deletion claim corrected (kept as derived helper), §12/§13 prototype.jsx references removed.
 
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
@@ -654,13 +628,13 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 - **Domain:** `stridekeep.app` (not yet purchased; `.com` is parked at €90, deferred)
 - **Google Play dev account:** active
 - **Apple Developer:** deferred until iOS phase
-- **Prototype:** `prototype.jsx` — ~2,450-line React JSX reference implementation. Use as visual/behavioral reference; DO NOT port verbatim.
 - **This file:** the design + technical brief. Update it when major decisions change.
+- **Mockups:** [mockups/redesign/option-d/](e:/Vibe%20Coding/Stridekeep/mockups/redesign/option-d/) — locked compound-cards / wood-canyon visual reference (full set of HTML mockups). The earlier `prototype.jsx` JSX reference is no longer in the repo — Phase 4 has shipped past the point where verbatim porting is meaningful.
 
 ## 13. Reference files
 
-- `prototype.jsx` — working JSX prototype. Read for: component structure, state shapes, UI flows, animation feel, visual tokens. Don't copy its architecture (single 2,400-line component) — in native, split into proper components.
 - `SKILL.md` — this file. The source of truth for design decisions.
+- `mockups/redesign/option-d/` — locked compound-cards visual reference. Source for spacing / chrome / mural-frame proportions. Note: the shipped UI diverges deliberately from these mockups in several places (dark canvas, no maroon major grid, `#415266` inactive sub-tabs, etc.) — see the wood-canyon polish entry under §11 for the full list of intentional divergences before treating mockups as authoritative.
 
 ## 14. When to update this file
 

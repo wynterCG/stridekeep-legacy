@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight, tapMedium, success } from '../lib/haptics';
 import ColorCell from './ColorCell';
+import { RarityName } from './RarityName';
+import { colorRarity, type Rarity } from '../data/colors';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { CaseTier } from '../types';
 
@@ -252,7 +254,18 @@ export default function CaseRevealModal(): React.JSX.Element | null {
     setPendingCaseReveal(null);
   }
 
-  const tierLabel = useMemo(() => rolledTier.toUpperCase(), [rolledTier]);
+  // Rarity drives the displayed label (COMMON / UNCOMMON / RARE /
+  // EPIC / LEGENDARY) and its tint. tier still drives modal pacing
+  // (TIER_TIMINGS) and the existing rare-flash gate (isRareFine);
+  // rarity is purely a *display* concept layered on top.
+  const rarity: Rarity = useMemo(
+    () =>
+      reveal && seasonPalette
+        ? colorRarity(seasonPalette, reveal.colorId)
+        : 'common',
+    [reveal, seasonPalette],
+  );
+  const rarityLabel = useMemo(() => rarity.toUpperCase(), [rarity]);
 
   if (reveal === null) return null;
 
@@ -309,10 +322,16 @@ export default function CaseRevealModal(): React.JSX.Element | null {
                 },
               ]}
             >
-              <Text style={styles.colorName}>
-                {colorDef ? colorDef.name : reveal.colorId}
-              </Text>
-              <Text style={styles.tierLabel}>{tierLabel}</Text>
+              <RarityName
+                name={colorDef ? colorDef.name : reveal.colorId}
+                rarity={rarity}
+                style={styles.colorName}
+              />
+              <RarityName
+                name={rarityLabel}
+                rarity={rarity}
+                style={styles.tierLabel}
+              />
             </Animated.View>
           </View>
 

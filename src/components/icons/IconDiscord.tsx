@@ -9,8 +9,8 @@ interface Props {
 // Official Discord brand logo (Simple Icons #discord). 24x24 viewBox,
 // monochrome path. Default colour is Discord's official blurple
 // `#5865F2`. Visual-only placeholder in v1 + flagged "coming soon" via
-// the SocialIconRow's dashed border treatment — wire to invite URL in
-// a follow-up pass once the official Discord exists.
+// the TopHeader's `discordSlot` 50% opacity treatment — wire to invite
+// URL in a follow-up pass once the official Discord exists.
 export default function IconDiscord({ size = 18, color = '#5865F2' }: Props): React.JSX.Element {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
