@@ -332,9 +332,13 @@ export default function CaseRevealModal(): React.JSX.Element | null {
 }
 
 const styles = StyleSheet.create({
+  // Wood-canyon: warmer near-black with a subtle brass undertone
+  // (vs the previous flat slate). The radial brass glow is layered
+  // visually by the swatch's box shadow + the rare-fine flash; the
+  // backdrop just provides the dark canvas.
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 18, 22, 0.95)',
+    backgroundColor: 'rgba(10, 6, 2, 0.96)',
   },
   safe: {
     flex: 1,
@@ -349,10 +353,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   skipText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 12,
-    color: colors.text.muted,
+    fontFamily: fonts.outfitBold,
+    fontSize: 11,
+    color: 'rgba(255, 248, 224, 0.55)',
     letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   center: {
     flex: 1,
@@ -383,34 +388,44 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   colorName: {
-    fontFamily: fonts.outfitBold,
-    fontSize: 28,
-    color: colors.text.cream,
-    letterSpacing: 1,
+    fontFamily: fonts.outfitBlack,
+    fontSize: 30,
+    color: colors.text.lightCream,
+    letterSpacing: 1.5,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
   },
   tierLabel: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 16,
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 11,
     color: colors.accent.brassLight,
-    letterSpacing: 3,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
   },
   continueWrap: {
-    alignItems: 'stretch',
+    alignItems: 'center',
   },
   continueBtn: {
-    backgroundColor: colors.accent.brass,
+    backgroundColor: colors.accent.brassLight,
+    borderWidth: 1.5,
+    borderColor: colors.banner.edge,
     borderRadius: radii.button,
-    paddingVertical: spacing.md,
+    paddingVertical: 13,
+    paddingHorizontal: 60,
     alignItems: 'center',
+    minWidth: 240,
   },
   continueBtnDisabled: {
     backgroundColor: colors.ui.buttonDisabled,
+    borderColor: colors.ui.border,
   },
   continueText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 16,
-    color: colors.bg.primary,
-    letterSpacing: 2,
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 14,
+    color: colors.text.cream,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
 });

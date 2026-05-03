@@ -79,11 +79,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.65)',
   },
   codeText: {
-    fontFamily: fonts.bebasNeue,
-    fontSize: 11,
-    color: colors.text.cream,
-    letterSpacing: 1,
-    lineHeight: 13,
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 9,
+    // Light cream (NOT colors.text.cream which is dark ink) — these sit
+    // on a dark backdrop pill so they need light foreground for legibility
+    // regardless of the swatch hex.
+    color: colors.text.lightCream,
+    letterSpacing: 0.5,
+    lineHeight: 11,
   },
   qtyBadge: {
     position: 'absolute',
@@ -98,9 +101,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   qtyText: {
-    fontFamily: fonts.outfitBold,
+    fontFamily: fonts.outfitExtraBold,
     fontSize: 10,
-    color: colors.text.cream,
+    color: colors.text.lightCream,
     lineHeight: 12,
   },
 });

@@ -53,7 +53,10 @@ export default function CeremonyMiniCanvas({
         fill = palette[targetColorId].hex;
         opacity = 0.15;
       } else {
-        fill = colors.bg.primary;
+        // Wood-canyon: empty cells show as canvas ocean-blue (matching
+        // the main CanvasView), not parchment. Keeps the ceremony's
+        // mini-canvases visually consistent with the live mural.
+        fill = colors.canvas.mid;
         opacity = 1;
       }
 
@@ -83,10 +86,10 @@ export default function CeremonyMiniCanvas({
 
 const styles = StyleSheet.create({
   frame: {
-    backgroundColor: colors.bg.primary,
+    backgroundColor: colors.canvas.mid,
     borderRadius: radii.button,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.ui.border,
+    borderWidth: 2,
+    borderColor: colors.banner.edge,
   },
 });

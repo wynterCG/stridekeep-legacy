@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import TopHeader from '../components/TopHeader';
 import SeasonCard from '../components/SeasonCard';
-import SubTabs from '../components/SubTabs';
+import SubTabs, { type TabSpec } from '../components/SubTabs';
+import IconColors from '../components/icons/IconColors';
+import IconMixing from '../components/icons/IconMixing';
 import ColorsPanel from './inventory/ColorsPanel';
 import MixingPanel from './inventory/MixingPanel';
 import { useGameStore } from '../store/gameStore';
@@ -10,7 +12,10 @@ import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
 import { colors } from '../theme';
 
-const TABS = ['COLORS', 'MIXING'] as const;
+const TABS: TabSpec[] = [
+  { label: 'Colors', Icon: IconColors },
+  { label: 'Mixing', Icon: IconMixing },
+];
 
 // Phase-4 redesign Inventory shell. Two sub-tabs (COLORS / MIXING) over
 // the same shared SeasonCard banner that Home uses. The COLORS sub-tab
@@ -39,7 +44,7 @@ export default function InventoryScreen(): React.JSX.Element {
     <View style={styles.root}>
       <TopHeader />
       <SeasonCard />
-      <SubTabs tabs={[...TABS]} activeIndex={tab} onChange={setTab} />
+      <SubTabs tabs={TABS} activeIndex={tab} onChange={setTab} />
       <View style={styles.panel}>
         {tab === 0 && (
           <ColorsPanel

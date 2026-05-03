@@ -11,7 +11,7 @@ import type { CaseTier } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { CASES } from '../data/cases';
 import { tapLight } from '../lib/haptics';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, radii } from '../theme';
 
 interface Props {
   tier: CaseTier;
@@ -23,17 +23,17 @@ function fmtSteps(n: number): string {
   return `${Math.round(n / 1000)}K`;
 }
 
-// Compact case row: medallion + steps progress + OPEN/IDLE pill.
+// Wood-canyon case card (2026-05-03 redesign). Parchment surface with
+// a tier-coloured left accent stripe, tinted medallion, dark progress
+// bar with tier-coloured fill, and a brass OPEN pill (or muted IDLE
+// pill when no opens are pending).
 //
-// As of the polish pass, the reveal is owned by <CaseRevealModal />,
-// not the card itself. handleOpen rolls the color (which mints it
-// directly to inventory inside the openCase action) and dispatches to
-// gameStore.pendingCaseReveal. The root-mounted modal picks up the
-// dispatch and runs the full-screen ceremony — that surface has the
-// real estate to make a tier-3 fine drop feel like a moment, which a
-// 48px swatch in the card row never could. The medallion squash on
-// press is the only animation left here; it acknowledges the tap
-// before the modal mounts.
+// The card row is purely a step-progress + OPEN button. The reveal
+// celebration is owned by <CaseRevealModal /> mounted at App.tsx root —
+// handleOpen rolls the color (gameStore.openCase), then dispatches
+// pendingCaseReveal so the root-mounted modal picks it up. The
+// medallion squash on press acknowledges the tap before the modal
+// mounts. See CaseRevealModal for the tier-aware celebration timing.
 export default function CaseCard({ tier }: Props): React.JSX.Element {
   const caseData = CASES[tier];
   const caseState = useGameStore((s) => s.caseState[tier]);
@@ -74,48 +74,46 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
 
   return (
     <View style={[styles.card, { borderLeftColor: tierAccent.accent }]}>
-      <View style={styles.row}>
-        <Animated.View
-          style={[
-            styles.medallion,
-            { backgroundColor: tierAccent.medallionBg, borderColor: tierAccent.accent },
-            { transform: [{ scale: medallionScale }] },
-          ]}
-        >
-          <Text style={styles.medallionEmoji}>{caseData.emoji}</Text>
-        </Animated.View>
+      <Animated.View
+        style={[
+          styles.medallion,
+          { backgroundColor: tierAccent.medallionBg, borderColor: tierAccent.accent },
+          { transform: [{ scale: medallionScale }] },
+        ]}
+      >
+        <Text style={styles.medallionEmoji}>{caseData.emoji}</Text>
+      </Animated.View>
 
-        <View style={styles.meta}>
-          <Text style={styles.name} numberOfLines={1}>
-            {caseData.name.toUpperCase()}
+      <View style={styles.meta}>
+        <Text style={styles.name} numberOfLines={1}>
+          {caseData.name.toUpperCase()}
+        </Text>
+        <View style={styles.progressLine}>
+          <View style={styles.barTrack}>
+            <View
+              style={[
+                styles.barFill,
+                { width: `${progressFraction * 100}%`, backgroundColor: tierAccent.accent },
+              ]}
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {pending > 0
+              ? `${pending} PENDING`
+              : `${fmtSteps(progress)} / ${fmtSteps(required)}`}
           </Text>
-          <View style={styles.progressLine}>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  { width: `${progressFraction * 100}%`, backgroundColor: tierAccent.accent },
-                ]}
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {pending > 0
-                ? `${pending} PENDING`
-                : `${fmtSteps(progress)} / ${fmtSteps(required)}`}
-            </Text>
-          </View>
         </View>
-
-        {pending > 0 ? (
-          <TouchableOpacity onPress={handleOpen} style={styles.openPill}>
-            <Text style={styles.openPillText}>OPEN</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.idlePill}>
-            <Text style={styles.idlePillText}>{`${fmtSteps(stepsLeft)} LEFT`}</Text>
-          </View>
-        )}
       </View>
+
+      {pending > 0 ? (
+        <TouchableOpacity onPress={handleOpen} style={styles.openPill}>
+          <Text style={styles.openPillText}>OPEN</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.idlePill}>
+          <Text style={styles.idlePillText}>{`${fmtSteps(stepsLeft)} LEFT`}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -125,56 +123,60 @@ interface TierAccent {
   medallionBg: string;
 }
 
+// Tier-coloured accents used across the card: left stripe, medallion
+// border, medallion fill (tinted), and progress-bar fill all share the
+// tier's hue. Distinct from team red/blue and brass — case tier is its
+// own visual axis. Colors come from the tier.* token namespace added in
+// the wood-canyon redesign.
 const TIER_STYLE: Record<CaseTier, TierAccent> = {
   starter: {
-    accent: colors.accent.brass,
-    medallionBg: 'rgba(199,156,74,0.18)',
+    accent: colors.tier.starter,
+    medallionBg: 'rgba(199, 156, 74, 0.30)',
   },
   quality: {
-    accent: '#7a9fd4',
-    medallionBg: 'rgba(122,159,212,0.20)',
+    accent: colors.tier.quality,
+    medallionBg: 'rgba(122, 159, 212, 0.32)',
   },
   fine: {
-    accent: colors.accent.brassLight,
-    medallionBg: 'rgba(240,208,145,0.25)',
+    accent: colors.tier.fine,
+    medallionBg: 'rgba(240, 200, 120, 0.36)',
   },
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.bg.card,
-    borderRadius: radii.card,
-    borderLeftWidth: 3,
-    marginBottom: spacing.sm,
-    paddingVertical: 9,
-    paddingLeft: 9,
-    paddingRight: 10,
-  },
-  row: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.bg.card, // parchment-hi
+    borderWidth: 1.5,
+    borderColor: colors.banner.edge,
+    borderLeftWidth: 5, // tier accent overrides via inline style
+    borderRadius: radii.card,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    gap: 10,
   },
   medallion: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
   },
   medallionEmoji: {
-    fontSize: 18,
+    fontSize: 20,
   },
   meta: {
     flex: 1,
   },
   name: {
-    fontFamily: fonts.bebasNeue,
+    fontFamily: fonts.outfitExtraBold,
     fontSize: 13,
-    color: colors.text.cream,
-    letterSpacing: 1.5,
-    marginBottom: 4,
+    color: colors.text.cream, // dark ink
+    letterSpacing: 1.2,
+    marginBottom: 5,
   },
   progressLine: {
     flexDirection: 'row',
@@ -183,45 +185,46 @@ const styles = StyleSheet.create({
   },
   barTrack: {
     flex: 1,
-    height: 3,
-    backgroundColor: colors.bg.overlay,
+    height: 4,
+    backgroundColor: colors.ui.progressBg,
     borderRadius: 2,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
+    borderRadius: 2,
   },
   progressText: {
     fontFamily: fonts.outfitBold,
-    fontSize: 9,
-    color: colors.text.muted,
+    fontSize: 9.5,
+    color: colors.text.secondary,
     letterSpacing: 0.5,
-    minWidth: 56,
+    minWidth: 60,
     textAlign: 'right',
   },
   openPill: {
-    marginLeft: spacing.sm,
-    backgroundColor: colors.accent.brass,
-    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: colors.accent.brassLight,
+    borderWidth: 1.5,
+    borderColor: colors.banner.edge,
+    borderRadius: radii.pill,
   },
   openPillText: {
-    fontFamily: fonts.bebasNeue,
+    fontFamily: fonts.outfitExtraBold,
     fontSize: 11,
-    color: colors.bg.primary,
-    letterSpacing: 1.2,
+    color: colors.text.cream,
+    letterSpacing: 1.5,
   },
   idlePill: {
-    marginLeft: spacing.sm,
-    paddingHorizontal: 9,
     paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
+    paddingHorizontal: 11,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.text.muted,
   },
   idlePillText: {
-    fontFamily: fonts.bebasNeue,
+    fontFamily: fonts.outfitBold,
     fontSize: 10,
     color: colors.text.muted,
     letterSpacing: 1.2,

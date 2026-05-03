@@ -1,91 +1,111 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { tapLight } from '../lib/haptics';
-import { colors, fonts } from '../theme';
+import { colors, fonts, radii } from '../theme';
+
+export interface TabSpec {
+  label: string;
+  // Icon component reference (e.g. `IconMural`). Optional — if omitted,
+  // the tab renders text-only. Receives `color` so the active/inactive
+  // state can recolor the icon.
+  Icon?: React.ComponentType<{ size?: number; color?: string }>;
+}
 
 interface Props {
-  tabs: string[];
+  tabs: TabSpec[];
   activeIndex: number;
   onChange: (index: number) => void;
 }
 
-// Generic horizontal segmented control. Used inside Home (CANVAS / CASES /
-// PROFILE) and Inventory (COLORS / MIXING). Hard-edged pixel-art chrome
-// per the locked redesign — active tab gets brass background + slate text
-// + a brass-deep bottom inset bar; inactive tabs get a subtle dither
-// stripe + muted label. Light haptic on tap matches the existing
-// SimulateWalk / TilePicker affordance.
+// Wood-canyon folder-tab strip (2026-05-03 redesign) — replaces the
+// prior brass-flat segmented control. Sits on a banner-blue band with
+// each tab as a parchment "folder" that lifts when active. Each tab can
+// optionally render an icon before its label (the home variant uses
+// mural/cases/person; the inventory variant uses palette/mixing).
 //
-// Renders on top of the bg.overlay; the parent screen's container provides
-// the surrounding padding.
+// The icon-color contract: the Icon component receives `color` matching
+// the active state so the same icon component works on both states. The
+// icon's default `color` prop fallback is kept on the icon itself.
 export default function SubTabs({ tabs, activeIndex, onChange }: Props): React.JSX.Element {
   return (
-    <View style={styles.row}>
-      {tabs.map((label, idx) => {
-        const isActive = idx === activeIndex;
-        const isLast = idx === tabs.length - 1;
-        return (
-          <Pressable
-            key={label}
-            style={[
-              styles.tab,
-              !isLast && styles.tabBorderRight,
-              isActive ? styles.tabActive : styles.tabInactive,
-            ]}
-            onPress={() => {
-              if (isActive) return;
-              tapLight();
-              onChange(idx);
-            }}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-            accessibilityLabel={label}
-          >
-            <Text style={[styles.label, isActive && styles.labelActive]}>{label}</Text>
-          </Pressable>
-        );
-      })}
+    <View style={styles.band}>
+      <View style={styles.row}>
+        {tabs.map((tab, idx) => {
+          const isActive = idx === activeIndex;
+          const Icon = tab.Icon;
+          return (
+            <Pressable
+              key={tab.label}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => {
+                if (isActive) return;
+                tapLight();
+                onChange(idx);
+              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={tab.label}
+            >
+              {Icon !== undefined && (
+                <Icon
+                  size={14}
+                  color={isActive ? colors.text.cream : colors.text.lightCream}
+                />
+              )}
+              <Text style={[styles.label, !isActive && styles.labelInactive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Banner-blue band that sits behind the folder tabs. The tabs poke
+  // up out of it with rounded top corners.
+  band: {
+    backgroundColor: colors.banner.lo,
+    paddingTop: 5,
+    paddingHorizontal: 10,
+  },
   row: {
     flexDirection: 'row',
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: colors.ui.border,
-    backgroundColor: colors.bg.overlay,
-    marginTop: 10,
   },
   tab: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-  },
-  tabBorderRight: {
-    borderRightWidth: 2,
-    borderRightColor: colors.ui.border,
-  },
-  tabInactive: {
-    backgroundColor: colors.bg.overlay,
+    gap: 6,
+    paddingTop: 8,
+    paddingBottom: 10,
+    backgroundColor: '#415266', // recessed inactive — slate-blue
+    borderTopLeftRadius: radii.card + 6,
+    borderTopRightRadius: radii.card + 6,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.banner.edge,
+    marginHorizontal: 3,
   },
   tabActive: {
-    backgroundColor: colors.accent.brass,
-    // Inset shadow approximation via borderBottom — gives the
-    // pixel-button "pressed-in" silhouette without a real inset shadow
-    // (RN's shadow* props don't render on Android).
-    borderBottomWidth: 3,
-    borderBottomColor: colors.accent.brassDeep,
+    backgroundColor: colors.bg.cardHi, // brightest parchment
+    paddingTop: 9,
+    paddingBottom: 11,
+    // Lift effect: the active tab sits 1px above the inactive tabs so
+    // it reads as the "front" folder.
+    marginTop: -1,
+    zIndex: 3,
   },
   label: {
-    fontFamily: fonts.pressStart,
-    fontSize: 8,
-    color: colors.text.muted,
-    letterSpacing: 1.5,
+    fontFamily: fonts.outfitBold,
+    fontSize: 13,
+    color: colors.text.cream,
   },
-  labelActive: {
-    color: colors.bg.primary,
+  labelInactive: {
+    color: colors.text.lightCream,
   },
 });

@@ -71,11 +71,10 @@ export default function CanvasPanel(): React.JSX.Element {
         ? colors.team.blue
         : colors.accent.brassLight;
 
-  // Compute a target canvas size that fits inside the frame (outer
-  // wood + matte). The panel padding eats ~32px of width; the frame
-  // itself eats wood*2 + matte*2 = ~40px. So canvas can be up to
-  // (screen - 32 - 40) wide, capped at 320 for layout sanity.
-  const maxCanvasPx = Math.min(screenWidth - 80, 320);
+  // Cap at 230 so all 3 RECENT_FEED_ROWS fit above the bottom tab bar
+  // on a ~915dp-tall screen without scrolling. Earlier 280 left the
+  // third feed row clipped beneath the nav.
+  const maxCanvasPx = Math.min(screenWidth - 80, 230);
 
   const completion = teamsCanvasProgress[team ?? 'red'] ?? 0;
   const totalPixels = CANVAS_W * CANVAS_H;
@@ -118,8 +117,12 @@ export default function CanvasPanel(): React.JSX.Element {
         </Text>
       </View>
 
-      <Text style={styles.recentLabel}>RECENT</Text>
-      <View style={styles.recentList}>
+      {/* Single live-feed card: label + rows in one parchment surface so
+          the section reads as a unit. The previous split (bare label
+          above a separate card) lost the empty state behind layout
+          margins and made the feed feel stranded under the canvas. */}
+      <View style={styles.feedCard}>
+        <Text style={styles.feedTitle}>LIVE STRIDE FEED</Text>
         {recent.length === 0 ? (
           <Text style={styles.recentEmpty}>No activity yet.</Text>
         ) : (
@@ -188,13 +191,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     alignItems: 'center',
     backgroundColor: colors.bg.card,
-    borderWidth: 2,
-    borderColor: colors.ui.border,
+    borderWidth: 1.5,
+    borderColor: colors.banner.edge,
     gap: spacing.sm,
   },
   placeholderText: {
-    fontFamily: fonts.pressStart,
-    fontSize: 9,
+    fontFamily: fonts.outfitBold,
+    fontSize: 11,
     color: colors.text.muted,
     letterSpacing: 1.5,
   },
@@ -202,40 +205,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completionText: {
-    fontFamily: fonts.pressStart,
-    fontSize: 9,
-    color: colors.accent.brassLight,
-    letterSpacing: 2,
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 10.5,
+    color: colors.text.cream,
+    letterSpacing: 1.3,
   },
   completionSep: {
-    color: colors.text.dim,
+    color: colors.text.muted,
   },
-  recentLabel: {
-    fontFamily: fonts.pressStart,
-    fontSize: 8,
-    color: colors.accent.brass,
+  // Wood-canyon live feed card — single parchment surface holds title
+  // + 3 most-recent rows. Replaces the prior bare-label-above-card
+  // split that lost the empty state under layout margins.
+  feedCard: {
+    backgroundColor: colors.bg.card,
+    borderWidth: 1,
+    borderColor: colors.banner.edge,
+    borderRadius: 5,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  feedTitle: {
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 11,
     letterSpacing: 2,
+    color: colors.text.cream,
+    textTransform: 'uppercase',
     marginBottom: 4,
-    textAlign: 'center',
-  },
-  recentList: {
-    gap: 4,
   },
   recentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: 4,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.bg.overlay,
-    borderWidth: 1,
-    borderColor: colors.ui.border,
+    paddingLeft: 10,
+    position: 'relative',
   },
+  // Brass-deep bullet replacing the prior background-card-per-row look.
+  // Drawn as a left-padded row + an absolute dot pseudo-element via an
+  // empty View. Cleaner than per-row card chrome on parchment.
   swatch: {
     width: 10,
     height: 10,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: colors.banner.edge,
+    borderRadius: 1,
   },
   recentText: {
     flex: 1,
@@ -252,7 +266,7 @@ const styles = StyleSheet.create({
   recentTime: {
     fontFamily: fonts.outfitRegular,
     fontSize: 10,
-    color: colors.text.dim,
+    color: colors.text.muted,
   },
   recentEmpty: {
     fontFamily: fonts.outfitRegular,

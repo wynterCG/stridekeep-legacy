@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import TopHeader from '../components/TopHeader';
 import SeasonCard from '../components/SeasonCard';
-import SubTabs from '../components/SubTabs';
+import SubTabs, { type TabSpec } from '../components/SubTabs';
+import IconMural from '../components/icons/IconMural';
+import IconCases from '../components/icons/IconCases';
+import IconPerson from '../components/icons/IconPerson';
 import CanvasPanel from './home/CanvasPanel';
 import CasesPanel from './home/CasesPanel';
 import ProfilePanel from './home/ProfilePanel';
@@ -10,7 +13,15 @@ import { useTeamsLiveSync } from '../hooks/useTeamsLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
 import { colors } from '../theme';
 
-const TABS = ['CANVAS', 'CASES', 'PROFILE'] as const;
+// Wood-canyon tab labels: 'CANVAS' renamed to 'Mural' to match the
+// locked mockup spec. The CanvasPanel component itself is unchanged
+// (it still renders the mural canvas + recent feed); only the tab
+// label flipped.
+const TABS: TabSpec[] = [
+  { label: 'Mural', Icon: IconMural },
+  { label: 'Cases', Icon: IconCases },
+  { label: 'Profile', Icon: IconPerson },
+];
 
 // Phase-4 redesign Home shell. Three sub-tabs (CANVAS / CASES / PROFILE)
 // share the same persistent SeasonCard banner up top — switching between
@@ -29,7 +40,7 @@ export default function HomeScreen(): React.JSX.Element {
     <View style={styles.root}>
       <TopHeader />
       <SeasonCard />
-      <SubTabs tabs={[...TABS]} activeIndex={tab} onChange={setTab} />
+      <SubTabs tabs={TABS} activeIndex={tab} onChange={setTab} />
       <View style={styles.panel}>
         {tab === 0 && <CanvasPanel />}
         {tab === 1 && <CasesPanel />}

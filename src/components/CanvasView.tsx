@@ -7,7 +7,7 @@ import {
   Pressable,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Rect, Line } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { tapHeavy } from '../lib/haptics';
@@ -63,6 +63,25 @@ export default function CanvasView({
   const canvasPx = size ?? Math.min(screenWidth - 32, 360);
   const cellPx = canvasPx / width;
 
+  // Per-cell minor grid only. The previous "major every 5 cells" maroon
+  // accent was designed for the old ocean-blue canvas; it reads as
+  // distracting red boxes on the new dark-slate backing, so it's been
+  // removed. Minor lines stay for pixel-art tile boundaries.
+  const gridLines = useMemo(() => {
+    const out: React.ReactNode[] = [];
+    const minor = colors.canvas.gridMinor;
+    const totalPx = canvasPx;
+    for (let c = 1; c < width; c += 1) {
+      const x = c * cellPx;
+      out.push(<Line key={`mv${c}`} x1={x} y1={0} x2={x} y2={totalPx} stroke={minor} strokeWidth={0.5} />);
+    }
+    for (let r = 1; r < height; r += 1) {
+      const y = r * cellPx;
+      out.push(<Line key={`mh${r}`} x1={0} y1={y} x2={totalPx} y2={y} stroke={minor} strokeWidth={0.5} />);
+    }
+    return out;
+  }, [width, height, cellPx, canvasPx]);
+
   const rects = useMemo(() => {
     const total = width * height;
     const out: React.ReactNode[] = new Array(total);
@@ -81,10 +100,15 @@ export default function CanvasView({
         fill = palette[placedColorId].hex;
         opacity = 1;
       } else if (targetColorId && palette[targetColorId]) {
+        // Unfilled paint-by-numbers preview: dim target colour over the
+        // dark slate backing. 0.35 keeps each pixel's hue readable but
+        // pushes the unfilled half of the mural well into shadow so
+        // placed tiles (full opacity) read as bright glowing dots.
         fill = palette[targetColorId].hex;
-        opacity = 0.18;
+        opacity = 0.35;
       } else {
-        fill = colors.bg.primary;
+        // No target colour → dark slate slot.
+        fill = colors.bg.overlay;
         opacity = 1;
       }
 
@@ -177,7 +201,10 @@ export default function CanvasView({
     <View
       style={[styles.frame, { width: canvasPx, height: canvasPx }]}
     >
-      <Svg width={canvasPx} height={canvasPx}>{rects}</Svg>
+      <Svg width={canvasPx} height={canvasPx}>
+        {rects}
+        {gridLines}
+      </Svg>
       {pulses.map((p) => (
         <Pulse
           key={p.key}
@@ -317,7 +344,10 @@ const styles = StyleSheet.create({
   frame: {
     alignSelf: 'center',
     overflow: 'hidden',
-    backgroundColor: colors.bg.primary,
+    // Dark slate base so dimmed unfilled tiles recede into shadow and
+    // placed (full-opacity) tiles read as bright pixels. The SVG rect
+    // fallback for no-target cells matches this exactly.
+    backgroundColor: colors.bg.overlay,
   },
   pulse: {
     position: 'absolute',

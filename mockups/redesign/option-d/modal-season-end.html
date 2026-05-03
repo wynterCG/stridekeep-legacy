@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Modal · Season End — Stridekeep Wood/Canyon</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* Full-screen ceremony backdrop — dramatic radial wash with brass
+     undertones, NOT the flat dark of the case reveal. */
+  .ceremony-backdrop {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 30%, rgba(200, 130, 60, 0.35) 0%, transparent 70%),
+      radial-gradient(ellipse 100% 80% at 50% 60%, rgba(40, 25, 15, 0.85) 30%, rgba(10, 6, 2, 0.97) 90%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 18px 18px;
+    overflow-y: auto;
+    color: #fff8e0;
+  }
+
+  .ceremony-skip {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255, 248, 224, 0.55);
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .ceremony-headline {
+    text-align: center;
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+  .ceremony-season-tag {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--brass);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(212, 164, 74, 0.5);
+  }
+  .ceremony-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 30px;
+    color: var(--brass-rim);
+    letter-spacing: 4px;
+    text-shadow:
+      0 2px 0 rgba(0,0,0,0.5),
+      0 0 22px rgba(255, 220, 140, 0.7);
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+  .ceremony-sub {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    color: rgba(255, 248, 224, 0.65);
+    font-style: italic;
+    padding: 0 16px;
+    line-height: 1.4;
+  }
+
+  /* Side-by-side mini canvases */
+  .canvas-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 16px;
+    margin: 8px 0 14px;
+  }
+  .team-block {
+    text-align: center;
+  }
+  .team-canvas-wrap {
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .team-canvas-glow {
+    position: absolute;
+    inset: -6px;
+    border: 3px solid var(--brass-light);
+    border-radius: 6px;
+    box-shadow:
+      0 0 24px rgba(255, 220, 140, 0.8),
+      inset 0 0 12px rgba(255, 220, 140, 0.4);
+    pointer-events: none;
+  }
+  .team-canvas {
+    width: 110px; height: 110px;
+    background: linear-gradient(180deg, var(--canvas-hi) 0%, var(--canvas-mid) 50%, var(--canvas-lo) 100%);
+    border: 2px solid var(--banner-edge);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .team-canvas::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, var(--canvas-grid-minor) 1px, transparent 1px),
+      linear-gradient(90deg, var(--canvas-grid-minor) 1px, transparent 1px);
+    background-size: 7px 7px;
+  }
+  .team-canvas::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, var(--canvas-grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--canvas-grid-major) 1px, transparent 1px);
+    background-size: 35px 35px;
+    pointer-events: none;
+  }
+  /* Add some "filled" pixel dots so it doesn't look empty */
+  .team-canvas .pixels {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 14% 22%, #c4543a 2px, transparent 2.5px),
+      radial-gradient(circle at 38% 18%, #d8884a 2px, transparent 2.5px),
+      radial-gradient(circle at 62% 30%, #c4543a 2px, transparent 2.5px),
+      radial-gradient(circle at 22% 48%, #e8b86a 2px, transparent 2.5px),
+      radial-gradient(circle at 50% 55%, #6b3e1c 2px, transparent 2.5px),
+      radial-gradient(circle at 75% 65%, #c4543a 2px, transparent 2.5px),
+      radial-gradient(circle at 30% 75%, #d8884a 2px, transparent 2.5px),
+      radial-gradient(circle at 60% 82%, #c4543a 2px, transparent 2.5px);
+  }
+  .team-canvas.blue .pixels {
+    background-image:
+      radial-gradient(circle at 12% 18%, #4a8cba 2px, transparent 2.5px),
+      radial-gradient(circle at 35% 25%, #2c5c80 2px, transparent 2.5px),
+      radial-gradient(circle at 58% 22%, #4a8cba 2px, transparent 2.5px),
+      radial-gradient(circle at 78% 38%, #6da5cf 2px, transparent 2.5px),
+      radial-gradient(circle at 28% 48%, #2c5c80 2px, transparent 2.5px),
+      radial-gradient(circle at 50% 58%, #4a8cba 2px, transparent 2.5px),
+      radial-gradient(circle at 72% 72%, #2c5c80 2px, transparent 2.5px);
+  }
+  .team-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+  .team-block.red .team-label { color: var(--team-red); }
+  .team-block.blue .team-label { color: var(--team-blue); }
+  .team-pct {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: #fff8e0;
+    margin-top: 1px;
+  }
+
+  /* Contribution */
+  .contrib {
+    text-align: center;
+    margin: 10px 0 14px;
+    padding: 10px 14px;
+    background: rgba(20, 12, 4, 0.5);
+    border: 1px solid rgba(212, 164, 74, 0.35);
+    border-radius: 4px;
+  }
+  .contrib-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(240, 208, 136, 0.75);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .contrib-value {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: var(--brass-rim);
+    letter-spacing: 1px;
+    line-height: 1;
+    text-shadow: 0 0 16px rgba(255, 220, 140, 0.5);
+  }
+  .contrib-unit {
+    font-size: 13px;
+    color: rgba(255, 248, 224, 0.7);
+    letter-spacing: 2.5px;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+
+  /* Badge dock (winner only) */
+  .badge-dock {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, var(--parchment-hi) 0%, var(--parchment) 100%);
+    border: 2px solid var(--brass);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      0 0 14px rgba(212, 164, 74, 0.35);
+  }
+  .badge-img {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--canvas-mid) 0%, var(--canvas-lo) 100%);
+    border: 2px solid var(--brass-deep);
+    border-radius: 3px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .badge-img::after {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, rgba(0,0,0,0.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.25) 1px, transparent 1px);
+    background-size: 7px 7px;
+    opacity: 0.55;
+  }
+  .badge-meta {
+    flex: 1;
+  }
+  .badge-meta-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--ink);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .badge-meta-sub {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  /* Preview */
+  .preview {
+    padding: 10px 12px;
+    background: linear-gradient(180deg,
+      rgba(236, 213, 164, 0.92) 0%,
+      rgba(200, 168, 120, 0.92) 100%);
+    border: 1.5px solid var(--brass-deep);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .preview-label {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--brass-deep);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .preview-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .preview-canvas {
+    width: 56px; height: 56px;
+    background: linear-gradient(180deg, #6da5cf 0%, #386c98 100%);
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 2px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .preview-canvas::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(0deg, rgba(140, 30, 30, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140, 30, 30, 0.5) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  .preview-meta {
+    flex: 1;
+  }
+  .preview-season-num {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 9.5px;
+    letter-spacing: 2px;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .preview-name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--ink);
+    margin-top: 1px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Continue button */
+  .ceremony-continue {
+    width: 100%;
+    padding: 14px 0;
+    background: linear-gradient(180deg, var(--brass-light) 0%, var(--brass) 100%);
+    border: 1.5px solid var(--banner-edge);
+    border-radius: 4px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -2px 3px rgba(80, 50, 10, 0.30),
+      0 4px 14px rgba(240, 200, 120, 0.40);
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+<div class="phone"><div class="screen">
+
+  <div class="ceremony-backdrop">
+    <div class="ceremony-skip">SKIP →</div>
+
+    <div class="ceremony-headline">
+      <div class="ceremony-season-tag">SEASON 1</div>
+      <div class="ceremony-title">YOUR TEAM<br>WON</div>
+      <div class="ceremony-sub">You painted into history.<br>The canyon will remember.</div>
+    </div>
+
+    <div class="canvas-row">
+      <!-- Red team (winner) -->
+      <div class="team-block red">
+        <div class="team-canvas-wrap">
+          <div class="team-canvas-glow"></div>
+          <div class="team-canvas">
+            <div class="pixels"></div>
+          </div>
+        </div>
+        <div class="team-label">RED</div>
+        <div class="team-pct">62%</div>
+      </div>
+      <!-- Blue team -->
+      <div class="team-block blue">
+        <div class="team-canvas-wrap">
+          <div class="team-canvas blue">
+            <div class="pixels"></div>
+          </div>
+        </div>
+        <div class="team-label">BLUE</div>
+        <div class="team-pct">48%</div>
+      </div>
+    </div>
+
+    <div class="contrib">
+      <div class="contrib-label">YOU PLACED</div>
+      <div class="contrib-value">847<span class="contrib-unit">PIXELS</span></div>
+    </div>
+
+    <!-- Badge dock (winner) -->
+    <div class="badge-dock">
+      <div class="badge-img"></div>
+      <div class="badge-meta">
+        <div class="badge-meta-title">BADGE EARNED</div>
+        <div class="badge-meta-sub">Season 1 — Canyon</div>
+      </div>
+    </div>
+
+    <!-- Next up preview -->
+    <div class="preview">
+      <div class="preview-label">NEXT UP →</div>
+      <div class="preview-row">
+        <div class="preview-canvas"></div>
+        <div class="preview-meta">
+          <div class="preview-season-num">SEASON 2</div>
+          <div class="preview-name">RIVER BEND</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="ceremony-continue">CONTINUE</button>
+  </div>
+
+</div></div>
+</body>
+</html>

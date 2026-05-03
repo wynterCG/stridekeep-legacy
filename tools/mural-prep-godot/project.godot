@@ -29,6 +29,10 @@ window/size/window_height_override=900
 window/size/window_minimum_width=1280
 window/size/window_minimum_height=720
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
