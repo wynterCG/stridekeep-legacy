@@ -55,17 +55,42 @@ interface Props {
 // Exposed via forwardRef so CanvasPanel can resolve the screen-relative
 // rect of an arbitrary cell index. Used by the place-tile fly-to
 // animation: the FlightOverlay needs the cell's window-coords to
-// translate the centered tile to the correct landing spot. Returns
+// translate the centered tile to the correct landing spot. The zoom-
+// in companion (CanvasPanel.handleCommit) also calls
+// getCanvasWindowRect to convert that cell's window coords into
+// canvas-local coords for the scale-around-anchor transform. Returns
 // null when the wrapper view isn't mounted (defensive — a rapidly-
 // toggled picker could call this against a stale ref).
 export interface CanvasViewHandle {
   getCellWindowRect: (
     idx: number,
   ) => Promise<{ x: number; y: number; size: number } | null>;
+  // Returns the canvas wrapper's own window rect plus the canvas's
+  // edge length in dp. Used to derive a zoom anchor (cell window pos
+  // minus canvas window pos = cell canvas-local pos).
+  getCanvasWindowRect: () => Promise<{
+    x: number;
+    y: number;
+    size: number;
+  } | null>;
 }
 
 const PULSE_DURATION_MS = 600;
 const SELF_PULSE_DURATION_MS = 800;
+// Self-only glow halo lifecycle. Runs in parallel with the existing
+// self-pulse but lasts longer — the cell-pulse fades by 800 ms; the
+// halo lingers for ~2 s as a "settle and admire" beat after the
+// fly-to lands. Teammate placements get no halo (would be visually
+// noisy on a busy canvas).
+const SELF_GLOW_DURATION_MS = 2000;
+const SELF_GLOW_PEAK_MS = 400;
+const SELF_GLOW_PEAK_OPACITY = 0.55;
+// Halo edge multiplier — the inner glow ring is `cellPx * SELF_GLOW_INNER_MULT`,
+// outer ring is `* SELF_GLOW_OUTER_MULT`. Stacked rings give a layered
+// soft-glow look without needing actual blur (RN can't blur on Android
+// without external libs).
+const SELF_GLOW_INNER_MULT = 2.4;
+const SELF_GLOW_OUTER_MULT = 4.2;
 const MAX_CONCURRENT_PULSES = 5;
 // A release with total movement under TAP_TOLERANCE counts as a tap;
 // anything beyond is at least a wiggle. Keeps a steady finger from
@@ -152,6 +177,27 @@ function CanvasView(
               y: wy + row * latestCellPx,
               size: latestCellPx,
             });
+          });
+        }),
+      getCanvasWindowRect: () =>
+        new Promise((resolve) => {
+          const node = wrapperRef.current;
+          if (!node) {
+            resolve(null);
+            return;
+          }
+          const { cellPx: latestCellPx, width: latestWidth } = geomRef.current;
+          const totalSize = latestCellPx * latestWidth;
+          node.measureInWindow((wx, wy) => {
+            if (
+              !Number.isFinite(wx) ||
+              !Number.isFinite(wy) ||
+              !Number.isFinite(totalSize)
+            ) {
+              resolve(null);
+              return;
+            }
+            resolve({ x: wx, y: wy, size: totalSize });
           });
         }),
     }),
@@ -443,6 +489,12 @@ interface PulseProps {
 function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps): React.JSX.Element {
   const scale = useRef(new Animated.Value(isSelf ? 0.4 : 0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  // Self-only halo. Two stacked rings (inner brighter, outer fainter)
+  // share the same opacity Animated.Value — peaks ~400 ms after spawn,
+  // then decays over the remaining ~1600 ms. Teammate pulses leave
+  // this at 0 throughout (the halo View is gated on `isSelf` at
+  // render time anyway).
+  const glowOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isSelf) {
@@ -472,6 +524,23 @@ function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps
           Animated.timing(opacity, {
             toValue: 0,
             duration: SELF_PULSE_DURATION_MS - 220,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        // Halo ramp: 0 → peak over 400 ms (matches the cell-pulse's
+        // landing window so the glow rises with the punch), then
+        // decays to 0 over the remaining ~1.6 s.
+        Animated.sequence([
+          Animated.timing(glowOpacity, {
+            toValue: SELF_GLOW_PEAK_OPACITY,
+            duration: SELF_GLOW_PEAK_MS,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowOpacity, {
+            toValue: 0,
+            duration: SELF_GLOW_DURATION_MS - SELF_GLOW_PEAK_MS,
             easing: Easing.in(Easing.cubic),
             useNativeDriver: true,
           }),
@@ -518,22 +587,80 @@ function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps
   const left = col * cellPx;
   const top = row * cellPx;
 
+  // Halo geometry: two concentric rings centered on the cell. Inner
+  // ring is brighter and smaller; outer ring is fainter and wider.
+  // Render order in the fragment is halo-outer → halo-inner →
+  // cell-pulse, so the cell-pulse reads on top of both halo rings.
+  // The SVG <Rect> cell-fill (in CanvasView's main return) sits
+  // BEHIND this entire pulse stack — its visual reads through once
+  // the cell-pulse's opacity decays past ~0.3, which is why the
+  // halo's tail (still ~0.3 alpha at t=1.5s) is visible OVER the
+  // filled cell during the late glow phase.
+  const innerHaloSize = cellPx * SELF_GLOW_INNER_MULT;
+  const outerHaloSize = cellPx * SELF_GLOW_OUTER_MULT;
+  const cellCenterX = left + cellPx / 2;
+  const cellCenterY = top + cellPx / 2;
+  // Outer halo opacity is half the inner — the same Animated.Value is
+  // used for both to keep their lifecycles locked. Static multiplier
+  // applied via wrapping View opacity (compatible with native driver
+  // since the Animated.Value drives only `opacity` on the inner glow).
+  const outerOpacity = glowOpacity.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.45],
+  });
+
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.pulse,
-        {
-          left,
-          top,
-          width: cellPx,
-          height: cellPx,
-          backgroundColor: hex,
-          opacity,
-          transform: [{ scale }],
-        },
-      ]}
-    />
+    <>
+      {isSelf && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.glow,
+              {
+                left: cellCenterX - outerHaloSize / 2,
+                top: cellCenterY - outerHaloSize / 2,
+                width: outerHaloSize,
+                height: outerHaloSize,
+                borderRadius: outerHaloSize / 2,
+                backgroundColor: hex,
+                opacity: outerOpacity,
+              },
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.glow,
+              {
+                left: cellCenterX - innerHaloSize / 2,
+                top: cellCenterY - innerHaloSize / 2,
+                width: innerHaloSize,
+                height: innerHaloSize,
+                borderRadius: innerHaloSize / 2,
+                backgroundColor: hex,
+                opacity: glowOpacity,
+              },
+            ]}
+          />
+        </>
+      )}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.pulse,
+          {
+            left,
+            top,
+            width: cellPx,
+            height: cellPx,
+            backgroundColor: hex,
+            opacity,
+            transform: [{ scale }],
+          },
+        ]}
+      />
+    </>
   );
 }
 
@@ -549,5 +676,11 @@ const styles = StyleSheet.create({
   pulse: {
     position: 'absolute',
     borderRadius: 2,
+  },
+  // Self-placement halo. Same colour as the placed tile, stacked
+  // under the pulse so the realtime echo + cell-pulse read on top.
+  // Opacity is driven by Animated, not declared here.
+  glow: {
+    position: 'absolute',
   },
 });

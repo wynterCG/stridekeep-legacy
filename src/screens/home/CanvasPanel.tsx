@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -27,6 +27,14 @@ const CANVAS_W = 32;
 const CANVAS_H = 32;
 const RECENT_FEED_ROWS = 3;
 const EMPTY_FILLED: Readonly<Record<number, string>> = Object.freeze({});
+
+// Camera-zoom peak scale during the place-tile fly-to. Drives both the
+// `toValue` of the zoom-in timing AND the per-flight anchor displacement
+// math via the interpolation outputRange (the `[1, 2]` inputRange is
+// peak-agnostic — the slope `(1 - scale)` is the same at any scale, so
+// changing this value here only changes how much the canvas grows; it
+// does NOT need a matching change in the JSX interpolation).
+const ZOOM_PEAK = 1.6;
 
 // CANVAS sub-tab body. Hosts the framed mural canvas + 3-row inline
 // "RECENT" feed underneath. Owns its own canvas-related local state
@@ -118,6 +126,81 @@ export default function CanvasPanel(): React.JSX.Element {
   // effect lazily resolves the target rect once layout has settled).
   const canvasRef = useRef<CanvasViewHandle>(null);
 
+  // Camera zoom that fires alongside the fly-to animation. Anchored
+  // on the destination cell (not canvas center) so the cell stays at
+  // the same SCREEN position while the canvas around it scales up,
+  // creating a focus-on-the-landing-spot beat. zoomScale drives both
+  // scale and (via interpolation) a translation that keeps the
+  // anchor pinned. Static `dx`/`dy` per flight = displacement of the
+  // cell center from the canvas center, in canvas-local coords. At
+  // scale=1, translate=0; at scale=ZOOM_PEAK, translate=dx*(1-PEAK).
+  const zoomScale = useRef(new Animated.Value(1)).current;
+  const [zoomAnchor, setZoomAnchor] = useState<{ dx: number; dy: number } | null>(null);
+  // Tracks the currently-running zoom CompositeAnimation so a fresh
+  // commit can `.stop()` it before starting a new one. Without this,
+  // back-to-back commits leave the prior animation's queued steps
+  // interleaving with the new sequence — visible as a mid-zoom anchor
+  // jump and out-of-order completion callbacks.
+  const zoomAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const triggerZoom = useCallback(
+    async (target: { x: number; y: number; size: number }) => {
+      const canvasRect = await canvasRef.current?.getCanvasWindowRect();
+      if (!canvasRect) return;
+      // Cell center in canvas-local coords (translate window-coords
+      // by the canvas's own window origin).
+      const cx = target.x - canvasRect.x + target.size / 2;
+      const cy = target.y - canvasRect.y + target.size / 2;
+      // Displacement from canvas-local center to cell center. The
+      // scale-around-anchor math reduces to translate=dx*(1-scale)
+      // (same for y) so the anchor point stays fixed on screen.
+      const dx = cx - canvasRect.size / 2;
+      const dy = cy - canvasRect.size / 2;
+      // Cancel any in-flight zoom and snap back to scale=1 before
+      // re-anchoring. Otherwise the new anchor displacement renders
+      // against a non-1 scale (e.g., scale=1.4 mid-decay) and the
+      // canvas appears to teleport. Snapping to 1 produces a brief
+      // "reset" frame that's visually preferable to the teleport.
+      zoomAnimationRef.current?.stop();
+      zoomScale.setValue(1);
+      setZoomAnchor({ dx, dy });
+      // 380 ms zoom-in (matches FLIGHT_MS in TileFlightOverlay so the
+      // tile lands at the moment the zoom hits peak), 600 ms hold
+      // (cell glow halo peaks during this window), 400 ms zoom-out.
+      const seq = Animated.sequence([
+        Animated.timing(zoomScale, {
+          toValue: ZOOM_PEAK,
+          duration: 380,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.delay(600),
+        Animated.timing(zoomScale, {
+          toValue: 1.0,
+          duration: 400,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+      zoomAnimationRef.current = seq;
+      seq.start(({ finished }) => {
+        // Always clear the anchor on sequence end. On natural
+        // completion (finished:true) the canvas is back at scale=1
+        // so dropping the transform array is correct. On interruption
+        // (finished:false from a newer commit's .stop()), the new
+        // commit has already set its own anchor + started its own
+        // sequence — clearing here would race that. Guard via the
+        // animation-ref identity check: only clear if WE'RE still
+        // the active sequence at the moment our callback fires.
+        if (zoomAnimationRef.current === seq) {
+          zoomAnimationRef.current = null;
+          if (finished) setZoomAnchor(null);
+        }
+      });
+    },
+    [zoomScale],
+  );
+
   const handleCommit = async () => {
     const idx = pickerPixel;
     const colorId = targetColorId;
@@ -130,6 +213,10 @@ export default function CanvasPanel(): React.JSX.Element {
     // entry points should buzz on commit. Removed from TilePicker
     // when the await/timeout went away; lives here now.
     tapLight();
+    // Camera zoom fires in parallel with the flight tile's animation.
+    // Awaited only for the canvas-rect fetch; the timing chain runs
+    // unawaited so handleCommit can continue to the RPC.
+    void triggerZoom(targetRect);
     // Fire-and-forget. placeTile handles optimistic deduct + rollback;
     // we surface server failures here because the picker has already
     // closed and there's no in-modal status line to update.
@@ -164,10 +251,14 @@ export default function CanvasPanel(): React.JSX.Element {
           return;
         }
         setPendingTileFlight({ ...current, target: rect });
+        // Inventory hand-off path: kick off the camera zoom alongside
+        // the flight that's about to start. Same timing chain as
+        // handleCommit; uses the same canvas-rect-anchored math.
+        void triggerZoom(rect);
       });
     });
     return () => cancelAnimationFrame(raf);
-  }, [pendingTileFlight, setPendingTileFlight]);
+  }, [pendingTileFlight, setPendingTileFlight, triggerZoom]);
 
   // Frame accent + completion both follow the VIEWING team, not the
   // player's own team — so when the user swipes to the enemy canvas
@@ -283,24 +374,56 @@ export default function CanvasPanel(): React.JSX.Element {
       {team && viewingTeam && palette ? (
         <Animated.View style={{ transform: [{ translateX }] }}>
           <PixelFrame accentColor={teamAccent}>
-            {/* Passing `size` explicitly so CanvasView matches the
-                wrapper exactly — without it CanvasView's self-computed
-                size (screenWidth - 32) overflows the matte on devices
-                wider than ~352dp, breaking the picture-frame illusion
-                AND mis-aligning the tap-target Pressable. */}
-            <CanvasView
-              ref={canvasRef}
-              team={viewingTeam}
-              width={CANVAS_W}
-              height={CANVAS_H}
-              targetPixels={targetPixels}
-              filled={filled}
-              palette={palette}
-              onPixelTap={isOwnView ? handlePixelTap : undefined}
-              onPanMove={enemyTeam ? handlePanMove : undefined}
-              onPanEnd={enemyTeam ? handlePanEnd : undefined}
-              size={maxCanvasPx}
-            />
+            {/* Zoom wrapper around CanvasView. Inactive (transform=[])
+                when no flight is in progress so the layout has zero
+                overhead in the common case. When active, a single
+                `zoomScale` Animated.Value drives both scale and the
+                translation that keeps the anchored cell pinned to
+                its on-screen position (scale-around-anchor reduces
+                to translate=anchorDelta*(1-scale)). All transforms
+                are useNativeDriver-safe. */}
+            <Animated.View
+              style={
+                zoomAnchor
+                  ? {
+                      transform: [
+                        {
+                          translateX: zoomScale.interpolate({
+                            inputRange: [1, 2],
+                            outputRange: [0, -zoomAnchor.dx],
+                          }),
+                        },
+                        {
+                          translateY: zoomScale.interpolate({
+                            inputRange: [1, 2],
+                            outputRange: [0, -zoomAnchor.dy],
+                          }),
+                        },
+                        { scale: zoomScale },
+                      ],
+                    }
+                  : undefined
+              }
+            >
+              {/* Passing `size` explicitly so CanvasView matches the
+                  wrapper exactly — without it CanvasView's self-computed
+                  size (screenWidth - 32) overflows the matte on devices
+                  wider than ~352dp, breaking the picture-frame illusion
+                  AND mis-aligning the tap-target Pressable. */}
+              <CanvasView
+                ref={canvasRef}
+                team={viewingTeam}
+                width={CANVAS_W}
+                height={CANVAS_H}
+                targetPixels={targetPixels}
+                filled={filled}
+                palette={palette}
+                onPixelTap={isOwnView ? handlePixelTap : undefined}
+                onPanMove={enemyTeam ? handlePanMove : undefined}
+                onPanEnd={enemyTeam ? handlePanEnd : undefined}
+                size={maxCanvasPx}
+              />
+            </Animated.View>
           </PixelFrame>
         </Animated.View>
       ) : (
