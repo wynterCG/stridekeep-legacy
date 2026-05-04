@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Animated,
   Easing,
@@ -44,6 +52,18 @@ interface Props {
   size?: number;
 }
 
+// Exposed via forwardRef so CanvasPanel can resolve the screen-relative
+// rect of an arbitrary cell index. Used by the place-tile fly-to
+// animation: the FlightOverlay needs the cell's window-coords to
+// translate the centered tile to the correct landing spot. Returns
+// null when the wrapper view isn't mounted (defensive — a rapidly-
+// toggled picker could call this against a stale ref).
+export interface CanvasViewHandle {
+  getCellWindowRect: (
+    idx: number,
+  ) => Promise<{ x: number; y: number; size: number } | null>;
+}
+
 const PULSE_DURATION_MS = 600;
 const SELF_PULSE_DURATION_MS = 800;
 const MAX_CONCURRENT_PULSES = 5;
@@ -73,21 +93,70 @@ const PAN_LATCH_PX = 6;
 // react-native-health-connect@3.5.0 doesn't yet support); v3 misbehaves
 // silently on Expo SDK 54 / old-arch. Built-in Animated is less
 // performant but fully reliable across architectures.
-export default function CanvasView({
-  team,
-  width,
-  height,
-  targetPixels,
-  filled,
-  palette,
-  onPixelTap,
-  onPanMove,
-  onPanEnd,
-  size,
-}: Props): React.JSX.Element {
+function CanvasView(
+  {
+    team,
+    width,
+    height,
+    targetPixels,
+    filled,
+    palette,
+    onPixelTap,
+    onPanMove,
+    onPanEnd,
+    size,
+  }: Props,
+  ref: React.Ref<CanvasViewHandle>,
+): React.JSX.Element {
   const { width: screenWidth } = useWindowDimensions();
   const canvasPx = size ?? Math.min(screenWidth - 32, 360);
   const cellPx = canvasPx / width;
+
+  // Wrapper ref drives both the layout root <View> below AND the
+  // imperative handle the parent calls into for cell-rect lookup.
+  // measureInWindow is async (callback-based) on Android, so the
+  // imperative method wraps it in a Promise resolving to the cell's
+  // window-coords (or null when unmounted).
+  const wrapperRef = useRef<View>(null);
+  // Cellpx geometry needs to read the LATEST cell size at call time,
+  // not whatever was captured when useImperativeHandle ran. Stash in a
+  // ref so the imperative method always sees the current canvas
+  // dimensions even if the parent caches the handle across re-renders.
+  const geomRef = useRef({ cellPx, width });
+  geomRef.current = { cellPx, width };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getCellWindowRect: (idx: number) =>
+        new Promise((resolve) => {
+          const node = wrapperRef.current;
+          if (!node) {
+            resolve(null);
+            return;
+          }
+          const { cellPx: latestCellPx, width: latestWidth } = geomRef.current;
+          node.measureInWindow((wx, wy) => {
+            if (
+              !Number.isFinite(wx) ||
+              !Number.isFinite(wy) ||
+              !Number.isFinite(latestCellPx)
+            ) {
+              resolve(null);
+              return;
+            }
+            const col = idx % latestWidth;
+            const row = Math.floor(idx / latestWidth);
+            resolve({
+              x: wx + col * latestCellPx,
+              y: wy + row * latestCellPx,
+              size: latestCellPx,
+            });
+          });
+        }),
+    }),
+    [],
+  );
 
   // Per-cell minor grid only. The previous "major every 5 cells" maroon
   // accent was designed for the old ocean-blue canvas; it reads as
@@ -325,6 +394,7 @@ export default function CanvasView({
 
   return (
     <View
+      ref={wrapperRef}
       {...panResponder.panHandlers}
       style={[styles.frame, { width: canvasPx, height: canvasPx }]}
     >
@@ -347,6 +417,12 @@ export default function CanvasView({
     </View>
   );
 }
+
+// forwardRef wraps the inner CanvasView function so CanvasPanel can
+// pass a ref through and call the imperative handle for cell-rect
+// measurements. The default export keeps the same name so existing
+// importers don't need to change.
+export default forwardRef<CanvasViewHandle, Props>(CanvasView);
 
 interface PulseProps {
   pulseKey: number;

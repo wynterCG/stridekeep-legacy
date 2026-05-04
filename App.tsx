@@ -17,6 +17,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import RootTabs from './src/navigation/RootTabs';
 import SeasonEndCeremony from './src/components/SeasonEndCeremony';
 import CaseRevealModal from './src/components/CaseRevealModal';
+import TileFlightOverlay from './src/components/TileFlightOverlay';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
@@ -182,6 +183,14 @@ export default function App(): React.JSX.Element | null {
               Mounted at root so the dimmed backdrop covers the entire
               UI including bottom nav, not just the case card row. */}
           <CaseRevealModal />
+          {/* TileFlightOverlay renders the place-tile fly-to
+              animation (big-in-center → cell). Driven by
+              gameStore.pendingTileFlight; both place-tile call sites
+              (canvas TilePicker + inventory PLACE ON CANVAS) set the
+              field, the overlay handles the animation, the existing
+              realtime cell-fill + self-pulse continue the visual on
+              landing. */}
+          <TileFlightOverlay />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

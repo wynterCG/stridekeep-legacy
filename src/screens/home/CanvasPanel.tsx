@@ -1,12 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Animated,
+  Easing,
+  View,
+  Text,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import { useCanvasLiveSync } from '../../hooks/useCanvasLiveSync';
 import { useTownFeed } from '../../hooks/useTownFeed';
-import CanvasView from '../../components/CanvasView';
+import CanvasView, { type CanvasViewHandle } from '../../components/CanvasView';
 import TilePicker from '../../components/TilePicker';
 import EmptyStateIcon from '../../components/EmptyStateIcon';
 import PixelFrame from '../../components/PixelFrame';
+import { placeErrorMessage } from '../../lib/placeErrors';
+import { tapLight } from '../../lib/haptics';
 import { relativeTime } from '../../hooks/useTownFeed';
 import { colorHex, colorName, colorRarity, type Rarity } from '../../data/colors';
 import { RarityName } from '../../components/RarityName';
@@ -34,6 +44,9 @@ export default function CanvasPanel(): React.JSX.Element {
   const targetPixels = useGameStore((s) => s.canvasTargetPixels);
   const palette = useGameStore((s) => s.seasonPalette);
   const teamsCanvasProgress = useGameStore((s) => s.teamsCanvasProgress);
+  const placeTile = useGameStore((s) => s.placeTile);
+  const setPendingTileFlight = useGameStore((s) => s.setPendingTileFlight);
+  const pendingTileFlight = useGameStore((s) => s.pendingTileFlight);
   // Pulled out of SeasonCard's stats row and paired with "% FILLED" so
   // the line under the mural reads as a single contribution summary
   // ("3 TILES · 8% FILLED") instead of two stats living in two places.
@@ -97,6 +110,64 @@ export default function CanvasPanel(): React.JSX.Element {
     if (!targetPixels[idx]) return;
     setPickerPixel(idx);
   };
+
+  // Imperative handle on CanvasView so we can resolve any cell's
+  // window-coords for the fly-to animation. Used by handleCommit
+  // (canvas TilePicker → flight) AND the inventory hand-off effect
+  // (CanvasPanel mounts with pendingTileFlight already set; this
+  // effect lazily resolves the target rect once layout has settled).
+  const canvasRef = useRef<CanvasViewHandle>(null);
+
+  const handleCommit = async () => {
+    const idx = pickerPixel;
+    const colorId = targetColorId;
+    if (idx === null || colorId === null) return;
+    const targetRect = await canvasRef.current?.getCellWindowRect(idx);
+    setPickerPixel(null);
+    if (!targetRect) return;
+    setPendingTileFlight({ colorId, pixelIdx: idx, target: targetRect });
+    // Confirmation haptic mirrors the inventory branch — both PLACE
+    // entry points should buzz on commit. Removed from TilePicker
+    // when the await/timeout went away; lives here now.
+    tapLight();
+    // Fire-and-forget. placeTile handles optimistic deduct + rollback;
+    // we surface server failures here because the picker has already
+    // closed and there's no in-modal status line to update.
+    const result = await placeTile(colorId, idx);
+    if (!result.ok) {
+      // Clear the in-flight tile so the user doesn't see it land on a
+      // cell the server rejected. Mirrors the inventory branch's
+      // failure path. No-op if the flight already completed.
+      setPendingTileFlight(null);
+      Alert.alert('Could not place tile', placeErrorMessage(result, palette));
+    }
+  };
+
+  // Inventory hand-off resolver. ColorsPanel sets pendingTileFlight
+  // with target=null before navigating Home; once we mount and have a
+  // canvasRef, measure the destination cell and update the store so
+  // FlightOverlay starts the animation. requestAnimationFrame gives
+  // the layout one frame to settle (CanvasView wraps in an
+  // Animated.View for the swipe-translate, so its measureInWindow
+  // result on the very first commit can be off otherwise).
+  useEffect(() => {
+    if (!pendingTileFlight) return;
+    if (pendingTileFlight.target !== null) return;
+    const idx = pendingTileFlight.pixelIdx;
+    const raf = requestAnimationFrame(() => {
+      void canvasRef.current?.getCellWindowRect(idx).then((rect) => {
+        if (!rect) return;
+        // Re-read from store to confirm the user hasn't navigated
+        // away or this flight hasn't been superseded by another.
+        const current = useGameStore.getState().pendingTileFlight;
+        if (!current || current.pixelIdx !== idx || current.target !== null) {
+          return;
+        }
+        setPendingTileFlight({ ...current, target: rect });
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pendingTileFlight, setPendingTileFlight]);
 
   // Frame accent + completion both follow the VIEWING team, not the
   // player's own team — so when the user swipes to the enemy canvas
@@ -218,6 +289,7 @@ export default function CanvasPanel(): React.JSX.Element {
                 wider than ~352dp, breaking the picture-frame illusion
                 AND mis-aligning the tap-target Pressable. */}
             <CanvasView
+              ref={canvasRef}
               team={viewingTeam}
               width={CANVAS_W}
               height={CANVAS_H}
@@ -311,6 +383,7 @@ export default function CanvasPanel(): React.JSX.Element {
           pixelIdx={pickerPixel}
           targetColorId={targetColorId}
           onClose={() => setPickerPixel(null)}
+          onCommit={handleCommit}
         />
       )}
     </View>

@@ -56,6 +56,7 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   const sellHistory = useGameStore((s) => s.sellHistory);
   const sellTile = useGameStore((s) => s.sellTile);
   const placeTile = useGameStore((s) => s.placeTile);
+  const setPendingTileFlight = useGameStore((s) => s.setPendingTileFlight);
   const team = useGameStore((s) => s.team);
   const canvasTargetPixels = useGameStore((s) => s.canvasTargetPixels);
   const teamFilled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
@@ -204,7 +205,7 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
 
               <Pressable
                 style={styles.sheetAction}
-                onPress={async () => {
+                onPress={() => {
                   const colorId = actionFor.id;
                   if (!canvasTargetPixels) {
                     Alert.alert('Canvas not ready', 'Try again in a moment.');
@@ -227,14 +228,33 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
                     );
                     return;
                   }
-                  closeSheet();
-                  const result = await placeTile(colorId, targetIdx);
-                  if (!result.ok) {
-                    Alert.alert('Place failed', placeErrorMessage(result, seasonPalette));
-                    return;
-                  }
+                  // Stage the flight tile at screen center BEFORE
+                  // closing the sheet + navigating Home. CanvasPanel's
+                  // hand-off effect resolves the target rect once the
+                  // canvas mounts, then FlightOverlay animates the
+                  // tile to the auto-chosen cell.
+                  setPendingTileFlight({
+                    colorId,
+                    pixelIdx: targetIdx,
+                    target: null,
+                  });
                   tapLight();
+                  closeSheet();
                   setPendingHomeNav(true);
+                  // Fire-and-forget so the flight beat starts
+                  // immediately. placeTile owns optimistic deduct +
+                  // rollback; on RPC failure we surface an Alert and
+                  // clear the dangling centered tile so the user
+                  // doesn't see a stuck overlay.
+                  void placeTile(colorId, targetIdx).then((result) => {
+                    if (!result.ok) {
+                      setPendingTileFlight(null);
+                      Alert.alert(
+                        'Place failed',
+                        placeErrorMessage(result, seasonPalette),
+                      );
+                    }
+                  });
                 }}
               >
                 <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>

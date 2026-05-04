@@ -104,6 +104,21 @@ interface GameState {
   // tier the user opened) and `rolledTier` (which may differ under a
   // pity-clamp upgrade) so the modal can render the right tier label.
   pendingCaseReveal: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null;
+  // Transient. Drives <TileFlightOverlay /> at App root. Set by both
+  // place-tile call sites (CanvasPanel for the canvas TilePicker, and
+  // ColorsPanel for the inventory PLACE ON CANVAS shortcut). The
+  // overlay renders a 140 dp tile in the center of the screen and
+  // animates it down to the destination cell. `target === null` is the
+  // inventory hand-off state — the canvas isn't mounted yet, so the
+  // tile sits centered until CanvasPanel mounts and resolves the cell
+  // rect. Cleared when the flight animation completes (or on RPC
+  // failure for the inventory branch where there's no in-canvas
+  // animation context to fall back to).
+  pendingTileFlight: {
+    colorId: string;
+    pixelIdx: number;
+    target: { x: number; y: number; size: number } | null;
+  } | null;
   // Transient. Map of pixel_idx → epoch ms when the local player
   // initiated a placement. Set by `placeTile` before the optimistic
   // deduction; cleared either by the realtime echo (applyPlacedPixel)
@@ -190,6 +205,13 @@ interface GameActions {
   setPendingCaseReveal: (
     payload: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null,
   ) => void;
+  setPendingTileFlight: (
+    payload: {
+      colorId: string;
+      pixelIdx: number;
+      target: { x: number; y: number; size: number } | null;
+    } | null,
+  ) => void;
   // Mark / clear a self-placement (B2 polish). markSelfPlacementWithTtl
   // schedules an automatic clear after 10s as a safety net for
   // realtime-never-arrived; the action returns nothing because
@@ -253,6 +275,7 @@ const initialState: GameState = {
   pendingSeasonEnd: null,
   lastShownCeremonySeason: null,
   pendingCaseReveal: null,
+  pendingTileFlight: null,
   selfPlacementMarks: {},
   lifetimeStats: {
     steps_lifetime: 0,
@@ -661,6 +684,8 @@ export const useGameStore = create<GameStore>()(
 
       setPendingCaseReveal: (payload) => set({ pendingCaseReveal: payload }),
 
+      setPendingTileFlight: (payload) => set({ pendingTileFlight: payload }),
+
       markSelfPlacement: (pixelIdx: number) =>
         set((s) => ({
           selfPlacementMarks: { ...s.selfPlacementMarks, [pixelIdx]: Date.now() },
@@ -743,6 +768,7 @@ export const useGameStore = create<GameStore>()(
           teamsCanvasProgress: _tp,
           pendingSeasonEnd: _pse,
           pendingCaseReveal: _pcr,
+          pendingTileFlight: _ptf,
           selfPlacementMarks: _spm,
           ...rest
         } = state;

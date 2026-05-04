@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { useGameStore } from '../store/gameStore';
-import { placeErrorMessage } from '../lib/placeErrors';
-import { tapLight } from '../lib/haptics';
 import ColorCell from './ColorCell';
 import { RarityName } from './RarityName';
 import { colorRarity } from '../data/colors';
@@ -12,14 +10,20 @@ interface Props {
   pixelIdx: number;
   targetColorId: string;
   onClose: () => void;
+  // Called the instant PLACE is pressed. CanvasPanel orchestrates
+  // the close + the fly-to animation + the placeTile RPC; this
+  // component just signals intent and disables the button so the
+  // user can't double-fire.
+  onCommit: () => void;
 }
 
 // Modal that opens when an unfilled canvas pixel is tapped. Shows the
 // pixel's target color, the player's owned-tile count, and a PLACE
-// button. PLACE delegates to gameStore.placeTile which owns the
-// optimistic-deduction + RPC-call + rollback flow; this component
-// just routes the discriminated PlaceResult into a status line so the
-// player sees what happened.
+// button. PLACE hands off to CanvasPanel via `onCommit`, which sets
+// `pendingTileFlight` (driving the celebratory fly-to animation),
+// closes the picker, and fires `placeTile` concurrently. Error
+// surfacing moved to CanvasPanel (`Alert.alert` on RPC failure) since
+// this modal vanishes before the RPC resolves.
 //
 // Empty-inventory state: shows "You don't have this color yet" + a hint
 // to open more cases. Cross-screen navigation links (CRAFT / SHOP /
@@ -28,35 +32,28 @@ export default function TilePicker({
   pixelIdx,
   targetColorId,
   onClose,
+  onCommit,
 }: Props): React.JSX.Element {
   const palette = useGameStore((s) => s.seasonPalette);
   const inventoryQty = useGameStore((s) => s.inventory[targetColorId] ?? 0);
-  const placeTile = useGameStore((s) => s.placeTile);
 
-  const [status, setStatus] = useState<{ kind: 'idle' | 'pending' | 'done'; message?: string }>({
-    kind: 'idle',
-  });
+  const [pending, setPending] = useState(false);
 
   const targetDef = palette?.[targetColorId];
 
-  const handlePlace = async () => {
-    if (status.kind !== 'idle' || inventoryQty <= 0) return;
-    setStatus({ kind: 'pending' });
-    const result = await placeTile(targetColorId, pixelIdx);
-    if (result.ok) {
-      tapLight();
-      setStatus({ kind: 'done', message: 'Placed.' });
-      // Close shortly after a successful placement so realtime can
-      // animate the new pixel in. 600ms is long enough to register the
-      // success copy without holding up the next tap.
-      setTimeout(onClose, 600);
-      return;
-    }
-    setStatus({ kind: 'done', message: placeErrorMessage(result, palette) });
+  const handlePlace = () => {
+    if (pending || inventoryQty <= 0) return;
+    setPending(true);
+    onCommit();
   };
 
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <Text style={styles.kicker}>{`PIXEL #${pixelIdx}`}</Text>
@@ -86,25 +83,19 @@ export default function TilePicker({
           <Pressable
             style={[
               styles.placeBtn,
-              (inventoryQty <= 0 || status.kind !== 'idle') && styles.placeBtnDisabled,
+              (inventoryQty <= 0 || pending) && styles.placeBtnDisabled,
             ]}
             onPress={handlePlace}
-            disabled={inventoryQty <= 0 || status.kind !== 'idle'}
+            disabled={inventoryQty <= 0 || pending}
           >
-            <Text style={styles.placeBtnText}>
-              {status.kind === 'pending' ? 'PLACING…' : 'PLACE'}
-            </Text>
+            <Text style={styles.placeBtnText}>PLACE</Text>
           </Pressable>
 
-          {status.message && (
-            <Text style={styles.statusLine}>{status.message}</Text>
-          )}
-
-          {inventoryQty <= 0 && status.kind === 'idle' && (
+          {inventoryQty <= 0 && !pending && (
             <Text style={styles.hint}>Open more cases to roll this color.</Text>
           )}
 
-          <Pressable style={styles.closeBtn} onPress={onClose}>
+          <Pressable style={styles.closeBtn} onPress={onClose} disabled={pending}>
             <Text style={styles.closeBtnText}>CLOSE</Text>
           </Pressable>
         </View>
@@ -194,13 +185,6 @@ const styles = StyleSheet.create({
     color: colors.text.cream,
     letterSpacing: 2,
     textTransform: 'uppercase',
-  },
-  statusLine: {
-    fontFamily: fonts.outfitRegular,
-    fontSize: 13,
-    color: colors.text.cream,
-    marginTop: spacing.xs,
-    textAlign: 'center',
   },
   hint: {
     fontFamily: fonts.outfitRegular,
