@@ -20,7 +20,7 @@ If you have any question about this policy or about how your data is handled, em
 
 ### Health and fitness data
 
-- **Daily step count**, read once per app session via Android Health Connect (or Apple HealthKit on iOS, when available).
+- **Daily step count**, read once per app session via Android Health Connect (or Apple HealthKit if iOS support is added in the future).
   We never read any other Health Connect data type — not heart rate, not workouts, not sleep, not weight. Only steps.
   We never write to Health Connect.
   Steps are read in real time and converted into in-game progress; we do not retain a step-by-step history on our servers — only an aggregate "lifetime steps" counter is stored against your user identifier.
@@ -41,7 +41,8 @@ If you have any question about this policy or about how your data is handled, em
 
 ### Diagnostic / device data
 
-We do not collect any device identifiers, advertising IDs, IP addresses (beyond what's needed for normal HTTP traffic to our backend), location data, contacts, or any other information not listed above.
+We do not collect any device identifiers, advertising IDs, location data, contacts, or any other information not listed above.
+As with any web service, our backend (Supabase, see §5) sees your **IP address** at the network edge as part of standard HTTP request handling. Supabase retains these edge logs short-term and uses them for abuse prevention, rate-limiting, and basic operational diagnostics; we do not join them to your in-game data, and we do not store IP addresses in our own database.
 We do not use any third-party analytics, advertising SDKs, or behavioural tracking.
 
 ## 3. Legal basis for processing
@@ -61,7 +62,7 @@ We use the information above only to:
 - Run the game (assign you to a team, count your steps toward case progress, place your tiles on your team's canvas, show you the live feed of community activity).
 - Let you recover your progress on a different device (if you choose to link an account).
 - Display your in-game actions to teammates and opponents on the live feed.
-- Improve the app by aggregating anonymous, non-personal play patterns (e.g. how often a season completes before its 14-day cap).
+- Improve the app by aggregating anonymised, non-personal play patterns (e.g. how often a season completes before its 14-day cap).
 
 We do **not** sell your data, share it with advertisers, or use it for any purpose unrelated to running the game.
 
@@ -78,7 +79,7 @@ The information below is **shared with third-party processors** (acting on our b
 
 - **Supabase Inc.** — our authentication and database processor. Supabase stores your account row, your tile placements, and your lifetime stats. The Supabase platform is operated by a US company; data for our project is stored in the European Union (Ireland, region `eu-west-1`). Where any data transfer outside the EEA occurs (for example, when Supabase support staff access our project from outside the EEA), the transfer is covered by Standard Contractual Clauses (SCCs) under Supabase's [Data Processing Addendum](https://supabase.com/legal/dpa) and its [Privacy Policy](https://supabase.com/privacy).
 - **Expo / EAS** — our build, distribution, and update sub-processor. Expo is a US company. They do not receive any of your gameplay data — only standard build metadata required to deliver the app and any over-the-air updates. Any incidental data transfer is covered by SCCs under Expo's [Privacy Policy](https://expo.dev/privacy).
-- **Google Health Connect** (or Apple HealthKit on iOS, when available) is the source of your step data. We read from it; we do not share data with it. Health Connect itself is governed by Google's own privacy terms.
+- **Google Health Connect** (or Apple HealthKit if iOS support is added in the future) is the source of your step data. We read from it; we do not share data with it. Health Connect itself is governed by Google's own privacy terms.
 
 We do not share your data with anyone else.
 
@@ -93,7 +94,7 @@ We do not share your data with anyone else.
 ## 7. How long we keep your data
 
 - We keep your account data, tile placements, and live feed events (case openings, sells, crafts, shop purchases) for as long as your account exists — they form the game record visible to other players on the live feed.
-- If you request deletion (see §8) we delete your account and all data tied to it within 30 days.
+- **In-app self-serve deletion** (Settings → Privacy → DELETE MY ACCOUNT, see §8) is processed **immediately**. **Deletion requests sent by email or via the web form** are processed **within 30 days**.
 - Aggregated, anonymised statistics that no longer identify you may be retained indefinitely for game-balance purposes.
 
 ## 8. Your rights and choices
