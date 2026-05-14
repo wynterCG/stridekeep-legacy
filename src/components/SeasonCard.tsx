@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useGameStore } from '../store/gameStore';
-import { dayOfSeason, fmtCountdown, msLeftInSeason } from '../data/season';
+import {
+  dayOfSeason,
+  fmtCountdown,
+  isSeasonCapExtended,
+  msLeftInSeason,
+} from '../data/season';
 import { colors, fonts } from '../theme';
 
 // Wood-canyon stats card (2026-05-03 redesign) — replaces the prior
@@ -46,6 +51,7 @@ export default function SeasonCard(): React.JSX.Element | null {
   }, [seasonStartedAt, seasonSoftCapAt, subHour]);
 
   const day = dayOfSeason(seasonStartedAt);
+  const capExtended = isSeasonCapExtended(seasonStartedAt, seasonSoftCapAt);
   if (seasonNumber === null) return null;
 
   const red = teamsCanvasProgress.red;
@@ -68,6 +74,15 @@ export default function SeasonCard(): React.JSX.Element | null {
           </>
         )}
       </Text>
+
+      {/* Surfaces the cap_no_queue server branch (migration 0014): the
+          original 14-day cap was reached with no queued mural to promote,
+          so the server extended the cap by 7 days and left the season
+          active. Without this line the extension is invisible — players
+          read it as "the timer reset" and assume a bug. */}
+      {capExtended && (
+        <Text style={styles.extendedLine}>EXTENDED · NEXT MURAL PENDING</Text>
+      )}
 
       <View style={styles.statRow}>
         <View style={styles.stat}>
@@ -168,6 +183,17 @@ const styles = StyleSheet.create({
   dayCountdown: {
     color: colors.accent.brassLight,
     fontFamily: fonts.outfitBold,
+  },
+  extendedLine: {
+    textAlign: 'center',
+    fontFamily: fonts.outfitBold,
+    fontSize: 9,
+    color: colors.accent.brass,
+    letterSpacing: 1.8,
+    marginTop: -4,
+    marginBottom: 6,
+    fontStyle: 'italic',
+    opacity: 0.85,
   },
   statRow: {
     flexDirection: 'row',

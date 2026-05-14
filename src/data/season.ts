@@ -51,6 +51,29 @@ export function msLeftInSeason(
   return Math.max(0, end.getTime() - now.getTime());
 }
 
+// True when the server-side rollover RPC has pushed `soft_cap_at` past
+// the season's original `started_at + softCapDays` window. This happens
+// in the `cap_no_queue` branch of rollover_season (migration 0014):
+// when the cap fires but there's no queued mural to promote into AND
+// the canvas isn't complete, the RPC extends the cap by 7 days and
+// leaves the season active so players can keep painting. There's no
+// dedicated server column for "is extended" — we derive it from the
+// timestamps. A 60-second slack absorbs clock skew and the
+// (microscopic) drift between the server's two `now()` calls.
+export function isSeasonCapExtended(
+  startedAt: string | Date | null,
+  softCapAt: string | Date | null,
+): boolean {
+  if (startedAt === null || softCapAt === null) return false;
+  const startMs =
+    startedAt instanceof Date ? startedAt.getTime() : Date.parse(startedAt);
+  const capMs =
+    softCapAt instanceof Date ? softCapAt.getTime() : Date.parse(softCapAt);
+  if (!Number.isFinite(startMs) || !Number.isFinite(capMs)) return false;
+  const originalCapMs = startMs + BALANCE.season.softCapDays * MS_PER_DAY;
+  return capMs > originalCapMs + 60 * 1000;
+}
+
 // Countdown formatter — switches granularity as the round closes in so
 // urgency increases without becoming noisy when there's still days left.
 export function fmtCountdown(ms: number): string {
