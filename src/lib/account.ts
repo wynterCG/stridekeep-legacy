@@ -137,3 +137,45 @@ export async function getAccountStatus(): Promise<AccountStatus> {
   if (user.is_anonymous === true) return { kind: 'anon' };
   return { kind: 'linked', email: user.email ?? '(pending)' };
 }
+
+export type SetNicknameResult =
+  | { ok: true; nickname: string }
+  | {
+      ok: false;
+      error: 'too_short' | 'too_long' | 'network_error' | 'unknown';
+      message: string;
+    };
+
+// Wraps the `set_my_nickname(text)` RPC ([0006_nicknames.sql:41]). The
+// RPC trims + validates length 3..20 and raises on out-of-range. We
+// duplicate the bound check client-side so the UI can disable submit
+// before a round-trip; this branch handles the case where someone
+// bypasses the disabled state OR the server's bounds drift in the
+// future. The RPC returns the cleaned (trimmed) nickname on success —
+// callers should use THAT, not the original input, when persisting.
+export async function setMyNickname(nickname: string): Promise<SetNicknameResult> {
+  const { data, error } = await supabase.rpc('set_my_nickname', {
+    p_nickname: nickname,
+  });
+  if (error) {
+    const msg = error.message ?? '';
+    // Server raises 'nickname must be 3..20 chars' for both bounds.
+    // Use the trimmed-input length to discriminate which bound fired.
+    if (msg.includes('3..20') || msg.toLowerCase().includes('length')) {
+      const trimmedLen = nickname.trim().length;
+      return {
+        ok: false,
+        error: trimmedLen < 3 ? 'too_short' : 'too_long',
+        message: msg,
+      };
+    }
+    // PGRST/HTTP errors carry a code; missing code typically means a
+    // network/transport failure (no response, fetch threw, etc.).
+    if (!error.code) return { ok: false, error: 'network_error', message: msg };
+    return { ok: false, error: 'unknown', message: msg };
+  }
+  return {
+    ok: true,
+    nickname: typeof data === 'string' && data.length > 0 ? data : nickname.trim(),
+  };
+}

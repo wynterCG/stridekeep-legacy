@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight } from '../lib/haptics';
-import AccountModal from './AccountModal';
+import SettingsModal from './SettingsModal';
 import IconShield from './icons/IconShield';
 import IconGlobe from './icons/IconGlobe';
 import IconGear from './icons/IconGear';
@@ -22,13 +22,14 @@ import { colors, fonts, spacing } from '../theme';
 // live here are dropped from the banner per the locked design — they'll
 // resurface in a Profile sub-tab section in a future pass. Globe + gear
 // stay because globe is the website link (high discoverability) and the
-// gear opens AccountModal (the only way into auth/account management).
+// gear opens SettingsModal (drill-in list: Account / Privacy /
+// Notifications / About).
 //
-// AccountModal still mounts here because the gear toggles its
+// SettingsModal still mounts here because the gear toggles its
 // visibility — keeping the modal local to the header lets every screen
 // share the same TopHeader without each having to manage its own state.
 export default function TopHeader(): React.JSX.Element {
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const seasonMuralName = useGameStore((s) => s.seasonMuralName);
 
@@ -62,7 +63,7 @@ export default function TopHeader(): React.JSX.Element {
           <Pressable
             onPress={() => {
               tapLight();
-              setAccountOpen(true);
+              setSettingsOpen(true);
             }}
             hitSlop={8}
             accessibilityRole="button"
@@ -73,7 +74,7 @@ export default function TopHeader(): React.JSX.Element {
         </View>
       </View>
 
-      <AccountModal visible={accountOpen} onClose={() => setAccountOpen(false)} />
+      <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </SafeAreaView>
   );
 }

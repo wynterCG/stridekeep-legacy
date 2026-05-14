@@ -1,80 +1,74 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TextInput,
-  ScrollView,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore } from '../../store/gameStore';
 import {
   linkEmailPassword,
   signInWithEmailPassword,
   signOutAccount,
   getAccountStatus,
+  setMyNickname,
   type AccountStatus,
   type LinkResult,
   type SignInResult,
-} from '../lib/account';
-import { bootstrapAuthAndSeason } from '../lib/bootstrap';
-import { success } from '../lib/haptics';
-import { colors, fonts, radii, spacing } from '../theme';
+} from '../../lib/account';
+import { bootstrapAuthAndSeason } from '../../lib/bootstrap';
+import { success } from '../../lib/haptics';
+import { colors, fonts, radii, spacing } from '../../theme';
 
-interface Props {
-  visible: boolean;
-  onClose: () => void;
-}
+const MIN_PASSWORD = 8;
+const MIN_NICKNAME = 3;
+const MAX_NICKNAME = 20;
 
-type ModalView =
+// Hidden until monetization ships — nickname rename will be a paid
+// (or otherwise gated) action so players have skin in the game when
+// picking what shows up on the live feed. Flip to `true` once the
+// gate UX is wired (purchase / cosmetic unlock / etc.). The
+// NicknameSubsection component below is preserved as-is so the flip
+// is a one-line change. First-launch onboarding (mandatory pick) is
+// untouched — that's a separate flow in NicknameOnboardingModal.
+const ALLOW_NICKNAME_RENAME = false;
+
+type ViewKind =
   | { kind: 'status' }
   | { kind: 'link-form' }
   | { kind: 'signin-form' };
 
-const MIN_PASSWORD = 8;
-
-// Optional-account-upgrade modal. Shows the player's current sign-in
-// state (anon vs linked email) and offers explicit actions to upgrade,
-// recover, or sign out. Anon stays the default cold-start behaviour;
-// nothing in this modal runs unless the user opens it.
-//
-// Forms validate locally (email contains '@', password length) before
-// hitting Supabase. Server errors map to a single inline line so the
-// player can retry without losing input.
-//
-// On successful sign-in OR sign-out, we wipe the local Zustand store
-// and call bootstrapAuthAndSeason() to re-populate from whichever UUID
-// is now active. Linking does NOT trigger a reset — the UUID is
-// preserved and all data carries through.
-export default function AccountModal({ visible, onClose }: Props): React.JSX.Element {
+// Account section of the SettingsModal. Lifts the link / sign-in /
+// sign-out logic that previously lived in AccountModal — chrome
+// (Modal/SafeAreaView/header/close) is now owned by SettingsModal so
+// this component renders pure content. Adds a nickname rename
+// subsection at the bottom (CHANGE NICKNAME → TextInput → CONFIRM
+// flow against the existing setMyNickname RPC).
+export default function AccountSection(): React.JSX.Element {
   const [status, setStatus] = useState<AccountStatus | null>(null);
-  const [view, setView] = useState<ModalView>({ kind: 'status' });
+  const [view, setView] = useState<ViewKind>({ kind: 'status' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Refresh status every time the modal opens. Cheap (one local
-  // getSession() call) and avoids stale-state UI when the player
-  // signs out elsewhere or session expiry shifts the discriminant.
+  // Refresh status on mount. Cheap (one local getSession()) and
+  // covers the case where the player navigated away from Settings,
+  // signed out elsewhere (e.g., session-expiry), and came back —
+  // status would otherwise be stale.
   useEffect(() => {
-    if (!visible) return;
-    setView({ kind: 'status' });
-    setEmail('');
-    setPassword('');
-    setError(null);
-    void getAccountStatus().then(setStatus).catch(() => setStatus({ kind: 'anon' }));
-  }, [visible]);
+    void getAccountStatus()
+      .then(setStatus)
+      .catch(() => setStatus({ kind: 'anon' }));
+  }, []);
 
   const validateForm = (): string | null => {
-    // Cheap client-side gate; server is the real validator.
     if (!email.includes('@')) return 'Enter a valid email.';
-    if (password.length < MIN_PASSWORD) return `Password must be at least ${MIN_PASSWORD} characters.`;
+    if (password.length < MIN_PASSWORD) {
+      return `Password must be at least ${MIN_PASSWORD} characters.`;
+    }
     return null;
   };
 
@@ -105,10 +99,17 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
       setError(linkErrorMessage(result));
       return;
     }
-    // Same UUID — no store reset needed. Just refresh the status view.
+    const trimmedEmail = email.trim();
+    // Supabase's session cache doesn't refresh immediately after
+    // updateUser, so subsequent getSession() reads can still return
+    // is_anonymous=true with no email. Write the form-input email to
+    // the store directly — that's the source of truth for "what email
+    // did the player just link" regardless of when the session
+    // refreshes.
     useGameStore.getState().setAccountLinked(true);
+    useGameStore.getState().setAccountEmail(trimmedEmail);
     success();
-    setStatus({ kind: 'linked', email: email.trim() });
+    setStatus({ kind: 'linked', email: trimmedEmail });
     setView({ kind: 'status' });
     setPassword('');
   };
@@ -127,10 +128,6 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
       setError(signInErrorMessage(result));
       return;
     }
-    // Different UUID now active — clear persisted blob, reset in-memory
-    // store, then re-bootstrap so the new account's data loads. The
-    // bootstrap re-hydrates `accountLinked` via getAccountStatus, so we
-    // don't need to setAccountLinked here.
     await swapSession();
     setBusy(false);
     success();
@@ -166,71 +163,50 @@ export default function AccountModal({ visible, onClose }: Props): React.JSX.Ele
     );
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      // While an auth call is in flight (sign-in / sign-out), an Android
-      // back gesture would otherwise dismiss the modal mid-network. Block
-      // the dismiss so the busy state remains tied to the modal lifecycle
-      // and busy can't survive an unmount-remount.
-      onRequestClose={busy ? () => {} : onClose}
-    >
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            <View style={styles.headerRow}>
-              <Text style={styles.header}>ACCOUNT</Text>
-              <Pressable onPress={onClose} disabled={busy}>
-                <Text style={styles.closeBtn}>CLOSE</Text>
-              </Pressable>
-            </View>
+  if (status === null) {
+    return <Text style={styles.dim}>Loading…</Text>;
+  }
 
-            {status === null ? (
-              <Text style={styles.dim}>Loading…</Text>
-            ) : view.kind === 'status' ? (
-              <StatusView
-                status={status}
-                onLink={() => {
-                  setError(null);
-                  setEmail('');
-                  setPassword('');
-                  setView({ kind: 'link-form' });
-                }}
-                onSignIn={() => {
-                  setError(null);
-                  setEmail('');
-                  setPassword('');
-                  setView({ kind: 'signin-form' });
-                }}
-                onSignOut={handleSignOut}
-                busy={busy}
-              />
-            ) : (
-              <FormView
-                kind={view.kind}
-                email={email}
-                password={password}
-                error={error}
-                busy={busy}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onSubmit={view.kind === 'link-form' ? handleLink : handleSignIn}
-                onCancel={() => {
-                  setView({ kind: 'status' });
-                  setError(null);
-                  setEmail('');
-                  setPassword('');
-                }}
-              />
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+  return (
+    <View>
+      {view.kind === 'status' ? (
+        <StatusView
+          status={status}
+          onLink={() => {
+            setError(null);
+            setEmail('');
+            setPassword('');
+            setView({ kind: 'link-form' });
+          }}
+          onSignIn={() => {
+            setError(null);
+            setEmail('');
+            setPassword('');
+            setView({ kind: 'signin-form' });
+          }}
+          onSignOut={handleSignOut}
+          busy={busy}
+        />
+      ) : (
+        <FormView
+          kind={view.kind}
+          email={email}
+          password={password}
+          error={error}
+          busy={busy}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={view.kind === 'link-form' ? handleLink : handleSignIn}
+          onCancel={() => {
+            setView({ kind: 'status' });
+            setError(null);
+            setEmail('');
+            setPassword('');
+          }}
+        />
+      )}
+      {view.kind === 'status' && ALLOW_NICKNAME_RENAME && <NicknameSubsection />}
+    </View>
   );
 }
 
@@ -358,7 +334,7 @@ function FormView({
         placeholderTextColor={colors.text.dim}
         editable={!busy}
       />
-      {error && <Text style={styles.errorLine}>{error}</Text>}
+      {error !== null && <Text style={styles.errorLine}>{error}</Text>}
       <Pressable
         style={[styles.primaryBtn, busy && styles.btnDisabled]}
         onPress={onSubmit}
@@ -375,6 +351,110 @@ function FormView({
       >
         <Text style={styles.secondaryBtnText}>BACK</Text>
       </Pressable>
+    </View>
+  );
+}
+
+// Nickname rename subsection. Read-only display by default; tap
+// CHANGE NICKNAME to flip into edit mode (TextInput + CONFIRM).
+// Reuses the existing `setMyNickname` helper that NicknameOnboardingModal
+// already drives. Server enforces 3-20 char + trim — we mirror the
+// length check client-side to disable submit before the round-trip.
+function NicknameSubsection(): React.JSX.Element {
+  const nickname = useGameStore((s) => s.nickname);
+  const setNickname = useGameStore((s) => s.setNickname);
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const startEdit = () => {
+    setInput(nickname ?? '');
+    setErrorMsg(null);
+    setEditing(true);
+  };
+
+  const trimmedLen = input.trim().length;
+  const validLen = trimmedLen >= MIN_NICKNAME && trimmedLen <= MAX_NICKNAME;
+  const submitDisabled = busy || !validLen || input.trim() === nickname;
+
+  const handleSubmit = async () => {
+    if (submitDisabled) return;
+    setBusy(true);
+    setErrorMsg(null);
+    const result = await setMyNickname(input);
+    setBusy(false);
+    if (result.ok) {
+      success();
+      setNickname(result.nickname);
+      setEditing(false);
+      return;
+    }
+    if (result.error === 'too_short') {
+      setErrorMsg(`At least ${MIN_NICKNAME} characters, please.`);
+    } else if (result.error === 'too_long') {
+      setErrorMsg(`At most ${MAX_NICKNAME} characters.`);
+    } else if (result.error === 'network_error') {
+      setErrorMsg('Network error. Try again in a moment.');
+    } else {
+      setErrorMsg('Could not save nickname. Try again.');
+    }
+  };
+
+  return (
+    <View style={styles.nicknameBlock}>
+      <Text style={styles.kicker}>NICKNAME</Text>
+      {editing ? (
+        <View>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={(t) => {
+              setInput(t);
+              if (errorMsg) setErrorMsg(null);
+            }}
+            maxLength={MAX_NICKNAME}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+            placeholder="3-20 characters"
+            placeholderTextColor={colors.text.muted}
+            editable={!busy}
+          />
+          <Text style={[styles.counter, validLen && styles.counterOk]}>
+            {`${trimmedLen}/${MAX_NICKNAME}`}
+          </Text>
+          {errorMsg !== null && <Text style={styles.errorLine}>{errorMsg}</Text>}
+          <Pressable
+            style={[styles.primaryBtn, submitDisabled && styles.btnDisabled]}
+            onPress={handleSubmit}
+            disabled={submitDisabled}
+          >
+            <Text style={styles.primaryBtnText}>
+              {busy ? 'WORKING…' : 'CONFIRM'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.secondaryBtn, busy && styles.btnDisabled]}
+            onPress={() => {
+              setEditing(false);
+              setErrorMsg(null);
+            }}
+            disabled={busy}
+          >
+            <Text style={styles.secondaryBtnText}>CANCEL</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.email}>{nickname ?? '—'}</Text>
+          <Pressable style={styles.secondaryBtn} onPress={startEdit}>
+            <Text style={styles.secondaryBtnText}>CHANGE NICKNAME</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -408,32 +488,6 @@ function signInErrorMessage(r: Extract<SignInResult, { ok: false }>): string {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safe: { flex: 1, backgroundColor: colors.bg.primary },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    flexGrow: 1,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  header: {
-    fontFamily: fonts.outfitBlack,
-    fontSize: 26,
-    color: colors.text.cream, // dark ink on parchment
-    letterSpacing: 0.5,
-  },
-  closeBtn: {
-    fontFamily: fonts.outfitBold,
-    fontSize: 12,
-    color: colors.text.muted,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
   kicker: {
     fontFamily: fonts.outfitExtraBold,
     fontSize: 11,
@@ -445,7 +499,7 @@ const styles = StyleSheet.create({
   email: {
     fontFamily: fonts.outfitBlack,
     fontSize: 20,
-    color: colors.text.cream, // dark ink on parchment
+    color: colors.text.cream,
     letterSpacing: 0.5,
     marginBottom: spacing.md,
   },
@@ -484,9 +538,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontFamily: fonts.outfitRegular,
     fontSize: 16,
-    color: colors.text.cream, // dark ink — readable on parchment input bg
+    color: colors.text.cream,
     borderWidth: 1.5,
     borderColor: colors.banner.edge,
+  },
+  counter: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 11,
+    color: colors.text.muted,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  counterOk: {
+    color: colors.accent.brassDeep,
+    fontFamily: fonts.outfitExtraBold,
   },
   errorLine: {
     fontFamily: fonts.outfitBold,
@@ -506,7 +571,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: fonts.outfitExtraBold,
     fontSize: 14,
-    color: colors.text.cream, // dark ink on brass — high contrast
+    color: colors.text.cream,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -527,7 +592,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   dangerBtn: {
-    backgroundColor: colors.team.redSoft, // deeper red for visibility
+    backgroundColor: colors.team.redSoft,
     borderRadius: radii.button,
     paddingVertical: 12,
     alignItems: 'center',
@@ -536,11 +601,17 @@ const styles = StyleSheet.create({
   dangerBtnText: {
     fontFamily: fonts.outfitExtraBold,
     fontSize: 13,
-    color: colors.text.lightCream, // light cream on red — readable
+    color: colors.text.lightCream,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   btnDisabled: {
     opacity: 0.5,
+  },
+  nicknameBlock: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.banner.edge,
   },
 });

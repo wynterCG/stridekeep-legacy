@@ -1,5 +1,5 @@
 import { useGameStore } from '../store/gameStore';
-import { ensureSignedIn, fetchMyTeam } from './auth';
+import { ensureSignedIn, fetchMyProfile } from './auth';
 import { getAccountStatus } from './account';
 import { loadActiveSeason, serverRolloverSeason } from './teams';
 import { loadSeasonPalette, loadSeasonCraftRecipes } from '../data/colors';
@@ -178,8 +178,9 @@ export async function bootstrapAuthAndSeason(): Promise<void> {
   try {
     try {
       await ensureSignedIn();
-      const team = await fetchMyTeam();
-      useGameStore.getState().setTeam(team);
+      const profile = await fetchMyProfile();
+      useGameStore.getState().setTeam(profile.team);
+      useGameStore.getState().setNickname(profile.nickname);
     } catch (err) {
       console.warn('[stridekeep] auth bootstrap failed:', err);
       return;
@@ -190,6 +191,9 @@ export async function bootstrapAuthAndSeason(): Promise<void> {
     try {
       const status = await getAccountStatus();
       useGameStore.getState().setAccountLinked(status.kind === 'linked');
+      useGameStore
+        .getState()
+        .setAccountEmail(status.kind === 'linked' ? status.email : null);
     } catch (err) {
       console.warn('[stridekeep] getAccountStatus failed:', err);
     }

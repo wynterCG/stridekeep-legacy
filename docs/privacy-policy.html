@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>Privacy Policy · Stridekeep</title>
+<style>
+  :root {
+    --bg: #fdfaf3;
+    --fg: #1d1610;
+    --muted: #6b5d4a;
+    --accent: #8a6028;
+    --rule: #d8c7a8;
+    --link: #2e6e9a;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 32px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-size: 22px;
+    line-height: 1.3;
+    margin: 40px 0 12px;
+    color: var(--accent);
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 17px;
+    line-height: 1.3;
+    margin: 24px 0 8px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  p, ul, ol { margin: 0 0 16px; }
+  ul, ol { padding-left: 24px; }
+  li { margin-bottom: 8px; }
+  li > p { margin: 0; }
+  a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  a:hover { text-decoration: none; }
+  strong { color: var(--fg); font-weight: 600; }
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 40px 0;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 4px 0 32px;
+  }
+  .meta strong { color: var(--muted); }
+  .closing {
+    font-style: italic;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  code {
+    background: rgba(138, 96, 40, 0.08);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: "SF Mono", Consolas, "Courier New", monospace;
+    font-size: 14px;
+  }
+  @media (max-width: 480px) {
+    body { font-size: 16px; }
+    main { padding: 32px 20px 64px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; }
+  }
+  @media print {
+    body { background: white; color: black; }
+    main { max-width: 100%; padding: 0; }
+    h2, h3 { color: black; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Stridekeep Privacy Policy</h1>
+<p class="meta">
+  <strong>Effective date:</strong> May 4, 2026.<br>
+  <strong>Last updated:</strong> May 4, 2026.
+</p>
+
+<p>
+  This is the privacy policy for <strong>Stridekeep</strong>, a mobile game in which your real-world step count contributes to a shared pixel-art mural. We take your privacy seriously and want to be specific about what data we collect, why, the legal basis for collecting it, and how it&rsquo;s stored.
+</p>
+
+<h2>1. Who we are</h2>
+
+<p>
+  Stridekeep is operated by <strong>Daniel Louren&ccedil;o Costa Inverno</strong>, an independent solo developer based in the Netherlands. For the purposes of GDPR, Daniel Louren&ccedil;o Costa Inverno is the <strong>data controller</strong>.
+</p>
+
+<p>
+  Contact email: <strong><a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a></strong><br>
+  Postal address: <strong>Van Valckensteinstraat, 3342 VP Hendrik-Ido-Ambacht, Netherlands</strong>
+</p>
+
+<p>
+  If you have any question about this policy or about how your data is handled, email <a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a> and we will respond within 30 days.
+</p>
+
+<h2>2. Information we collect</h2>
+
+<h3>Health and fitness data</h3>
+
+<ul>
+  <li>
+    <strong>Daily step count</strong>, read once per app session via Android Health Connect (or Apple HealthKit on iOS, when available).
+    We never read any other Health Connect data type &mdash; not heart rate, not workouts, not sleep, not weight. Only steps.
+    We never write to Health Connect.
+    Steps are read in real time and converted into in-game progress; we do not retain a step-by-step history on our servers &mdash; only an aggregate &ldquo;lifetime steps&rdquo; counter is stored against your user identifier.
+  </li>
+</ul>
+
+<h3>Account information</h3>
+
+<ul>
+  <li><strong>Pseudonymous user identifier (UUID)</strong>: assigned automatically the first time you open the app, before you sign in or create an account. This UUID is a stable identifier that links your tile placements and progress to your device across sessions &mdash; under GDPR this is <em>pseudonymous</em> data, not anonymous, because it can be tied back to you when combined with the email you optionally link.</li>
+  <li><strong>Email and password</strong> (optional): only stored if you choose to &ldquo;link&rdquo; your account so that you can recover it on another device. We never see your password &mdash; Supabase (our authentication processor) hashes it before storage.</li>
+  <li><strong>Nickname</strong>: a 3-to-20-character display name you choose on first launch. Your nickname appears on the in-game live feed alongside actions you take (tile placements, case openings, etc.) and is visible to other players. Default nicknames look like <code>Stridekeeper-abc123</code>, where the suffix is derived from your UUID and is therefore itself a pseudonymous identifier visible to other players until you choose a custom nickname.</li>
+</ul>
+
+<h3>In-app activity</h3>
+
+<ul>
+  <li><strong>Team assignment</strong> (Red or Blue), assigned randomly the first time you open the app.</li>
+  <li><strong>Tile placements</strong> on the canvas &mdash; which colour you placed on which pixel, and when.</li>
+  <li><strong>Case openings, sells, crafts, and shop purchases</strong> (in-game economy actions only &mdash; no real money).</li>
+  <li><strong>Lifetime statistics</strong>: aggregate counters such as total steps walked, total tiles placed, total cases opened.</li>
+  <li><strong>Notification preferences</strong> (toggles you set in the app&rsquo;s Settings screen).</li>
+</ul>
+
+<h3>Diagnostic / device data</h3>
+
+<p>
+  We do not collect any device identifiers, advertising IDs, IP addresses (beyond what&rsquo;s needed for normal HTTP traffic to our backend), location data, contacts, or any other information not listed above.
+  We do not use any third-party analytics, advertising SDKs, or behavioural tracking.
+</p>
+
+<h2>3. Legal basis for processing</h2>
+
+<p>
+  Under the EU General Data Protection Regulation (GDPR) and the Dutch UAVG, we rely on the following lawful bases for processing your data:
+</p>
+
+<ul>
+  <li><strong>Step count from Health Connect</strong> &mdash; explicit consent under Article 9(2)(a) GDPR. Step data is treated as health data and falls under the special-category provisions of Article 9. You grant this consent via the Health Connect (or HealthKit) permission prompt at the operating-system level. You can withdraw this consent at any time via your device&rsquo;s Health Connect settings; doing so prevents further reads but does not delete progress already earned.</li>
+  <li><strong>Account, tile placements, nickname, and live feed activity</strong> &mdash; performance of a contract under Article 6(1)(b) GDPR. Processing these data points is necessary to provide the game you&rsquo;ve chosen to play.</li>
+  <li><strong>Aggregated, anonymised statistics used to balance the game economy across seasons</strong> &mdash; legitimate interests under Article 6(1)(f) GDPR. Our legitimate interest is maintaining a fair and functional game; we balance this against your privacy by ensuring this data is fully de-identified before use.</li>
+</ul>
+
+<p>
+  We do <strong>not</strong> engage in automated decision-making with legal or similarly significant effects within the meaning of Article 22 GDPR.
+</p>
+
+<h2>4. How we use your information</h2>
+
+<p>We use the information above only to:</p>
+
+<ul>
+  <li>Run the game (assign you to a team, count your steps toward case progress, place your tiles on your team&rsquo;s canvas, show you the live feed of community activity).</li>
+  <li>Let you recover your progress on a different device (if you choose to link an account).</li>
+  <li>Display your in-game actions to teammates and opponents on the live feed.</li>
+  <li>Improve the app by aggregating anonymous, non-personal play patterns (e.g. how often a season completes before its 14-day cap).</li>
+</ul>
+
+<p>
+  We do <strong>not</strong> sell your data, share it with advertisers, or use it for any purpose unrelated to running the game.
+</p>
+
+<h2>5. How we share your information</h2>
+
+<p>
+  The information below is <strong>shared with other players</strong> by design &mdash; it&rsquo;s how the game works:
+</p>
+
+<ul>
+  <li>Your nickname.</li>
+  <li>Your team (Red or Blue).</li>
+  <li>Your tile placements (other players see them on the canvas and in the live feed).</li>
+  <li>Your case-opening, sell, craft, and shop events (visible on the live feed).</li>
+</ul>
+
+<p>
+  The information below is <strong>shared with third-party processors</strong> (acting on our behalf under Article 28 GDPR) so the app can run:
+</p>
+
+<ul>
+  <li><strong>Supabase Inc.</strong> &mdash; our authentication and database processor. Supabase stores your account row, your tile placements, and your lifetime stats. The Supabase platform is operated by a US company; data for our project is stored in the European Union (Ireland, region <code>eu-west-1</code>). Where any data transfer outside the EEA occurs (for example, when Supabase support staff access our project from outside the EEA), the transfer is covered by Standard Contractual Clauses (SCCs) under Supabase&rsquo;s <a href="https://supabase.com/legal/dpa" target="_blank" rel="noopener noreferrer">Data Processing Addendum</a> and its <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</li>
+  <li><strong>Expo / EAS</strong> &mdash; our build, distribution, and update sub-processor. Expo is a US company. They do not receive any of your gameplay data &mdash; only standard build metadata required to deliver the app and any over-the-air updates. Any incidental data transfer is covered by SCCs under Expo&rsquo;s <a href="https://expo.dev/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</li>
+  <li><strong>Google Health Connect</strong> (or Apple HealthKit on iOS, when available) is the source of your step data. We read from it; we do not share data with it. Health Connect itself is governed by Google&rsquo;s own privacy terms.</li>
+</ul>
+
+<p>We do not share your data with anyone else.</p>
+
+<h2>6. How we store and protect your data</h2>
+
+<ul>
+  <li>All gameplay data is stored on Supabase servers in the European Union (specifically the <code>eu-west-1</code> region, in Ireland).</li>
+  <li>Connections between the app and our backend are encrypted in transit (HTTPS / TLS).</li>
+  <li>Passwords are hashed by Supabase before storage; we never see them in plaintext.</li>
+  <li>We do not store your step count&rsquo;s per-day history on our servers &mdash; only an aggregate counter.</li>
+  <li><strong>International transfers</strong>: as noted in &sect;5, where data is accessed from outside the EEA by our processors (Supabase, Expo), such transfers are covered by EU Standard Contractual Clauses.</li>
+</ul>
+
+<h2>7. How long we keep your data</h2>
+
+<ul>
+  <li>We keep your account data, tile placements, and live feed events (case openings, sells, crafts, shop purchases) for as long as your account exists &mdash; they form the game record visible to other players on the live feed.</li>
+  <li>If you request deletion (see &sect;8) we delete your account and all data tied to it within 30 days.</li>
+  <li>Aggregated, anonymised statistics that no longer identify you may be retained indefinitely for game-balance purposes.</li>
+</ul>
+
+<h2>8. Your rights and choices</h2>
+
+<p>You have the right to:</p>
+
+<ul>
+  <li><strong>Access</strong> the data we hold about you.</li>
+  <li><strong>Correct</strong> inaccurate data (e.g. your nickname).</li>
+  <li><strong>Delete</strong> your data and your account.</li>
+  <li><strong>Restrict</strong> or <strong>object</strong> to certain processing.</li>
+  <li><strong>Data portability</strong> &mdash; receive your data in a structured, machine-readable format.</li>
+  <li><strong>Withdraw consent</strong> to Health Connect access (Article 9(2)(a) GDPR consent) at any time, via your device&rsquo;s Health Connect settings. Doing so does not delete in-game progress already earned.</li>
+</ul>
+
+<p>
+  To exercise any of these rights, email <strong><a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a></strong> with the user identifier shown in the in-app Settings &rarr; Privacy &rarr; Request data deletion screen, OR tap that screen to compose a pre-filled deletion email. <strong>Self-serve in-app deletion and a web-based deletion form are coming in a future update.</strong>
+</p>
+
+<h3>If you are in the EU / EEA</h3>
+
+<p>
+  You have the right to <strong>lodge a complaint with your supervisory authority</strong>. In the Netherlands this is the <strong>Autoriteit Persoonsgegevens</strong> (<a href="https://autoriteitpersoonsgegevens.nl" target="_blank" rel="noopener noreferrer">autoriteitpersoonsgegevens.nl</a>). If you live in another EU/EEA country, you may complain to your local authority instead.
+</p>
+
+<h3>If you are in California</h3>
+
+<p>
+  You have the rights granted by the CCPA &mdash; right to know, right to delete, right to correct, right to limit the use of sensitive personal information, and the right to non-discrimination for exercising these rights. <strong>We do not sell or share personal information as defined by the CCPA</strong>, so no opt-out is required. To exercise any other CCPA right, contact us at <a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a>.
+</p>
+
+<h2>9. Children</h2>
+
+<p>
+  Stridekeep is rated for ages 13 and older worldwide. However, under the Dutch UAVG (and most EU member states&rsquo; implementations of GDPR Article 8), children <strong>under 16</strong> in the European Economic Area cannot validly consent to the processing of their personal data without their parent&rsquo;s or guardian&rsquo;s authorisation.
+</p>
+
+<ul>
+  <li><strong>If you are in the EU/EEA and under 16</strong>: Stridekeep is not intended for you. Do not create an account.</li>
+  <li><strong>If you are outside the EU/EEA and at least 13</strong>: you may use Stridekeep.</li>
+  <li><strong>If you are under 13</strong> anywhere in the world: Stridekeep is not intended for you.</li>
+</ul>
+
+<p>
+  We do not knowingly collect personal information from children for whom parental consent would be required and has not been obtained. If you believe such a child has provided us with personal information, contact <a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a> and we will delete it.
+</p>
+
+<h2>10. Changes to this policy</h2>
+
+<p>
+  We may update this policy from time to time. Material changes will be announced inside the app via a banner or modal before they take effect. The &ldquo;last updated&rdquo; date at the top of this policy will always reflect the most recent revision.
+</p>
+
+<h2>11. Contact</h2>
+
+<p>Questions, concerns, or requests:</p>
+
+<ul>
+  <li><strong><a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a></strong> (preferred for data-related requests)</li>
+  <li><strong><a href="mailto:support@stridekeep.app">support@stridekeep.app</a></strong> (everything else)</li>
+</ul>
+
+<hr>
+
+<p class="closing">
+  Stridekeep is a small, independent project. We try to match the way we handle your data to the way we hope a small, independent operator would handle ours: minimally, transparently, and with a real human on the other end of the email address.
+</p>
+
+</main>
+</body>
+</html>

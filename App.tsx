@@ -18,6 +18,7 @@ import RootTabs from './src/navigation/RootTabs';
 import SeasonEndCeremony from './src/components/SeasonEndCeremony';
 import CaseRevealModal from './src/components/CaseRevealModal';
 import TileFlightOverlay from './src/components/TileFlightOverlay';
+import NicknameOnboardingModal from './src/components/NicknameOnboardingModal';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
@@ -191,6 +192,13 @@ export default function App(): React.JSX.Element | null {
               realtime cell-fill + self-pulse continue the visual on
               landing. */}
           <TileFlightOverlay />
+          {/* NicknameOnboardingModal blocks first-launch UX until the
+              player picks a nickname. Self-gates on
+              gameStore.nickname matching the auto-default pattern
+              (Stridekeeper-XXXXXX); renders nothing once a custom
+              nickname is set. Sign-out → fresh anon → new
+              auto-default re-triggers the prompt. */}
+          <NicknameOnboardingModal />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

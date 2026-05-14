@@ -21,6 +21,17 @@ import { logFeedEvent } from '../lib/feedEvents';
 
 interface GameState {
   team: Team | null;
+  // Player's display nickname. Loaded by bootstrap from the user row;
+  // server assigns a `Stridekeeper-XXXXXX` default on signup
+  // (handle_new_user trigger, migration 0006). Persisted so cold-start
+  // can render without an extra round-trip; bootstrap re-syncs on
+  // foreground. Null only on first launch before bootstrap completes
+  // OR after resetSessionState (sign-out path); subsequent bootstraps
+  // populate it via fetchMyProfile.
+  //
+  // NicknameOnboardingModal at App root format-checks this against
+  // the auto-default pattern — a match prompts the player to pick one.
+  nickname: string | null;
   steps: number;
   lastSyncedTotal: number | null;
   lastSyncedDate: string | null;
@@ -85,6 +96,15 @@ interface GameState {
   // AccountModal callbacks. Drives the TopHeader AccountChip's brass-fill
   // vs dim-outline state without needing a render-time getSession().
   accountLinked: boolean;
+  // Email of the linked account, when accountLinked is true. Stored
+  // separately from `accountLinked` because Supabase's getSession()
+  // cache doesn't refresh immediately after updateUser — relying on
+  // it for the display email surfaced "Anonymous" briefly after a
+  // successful link. AccountSection writes the form-input email
+  // here directly on link success; bootstrap re-syncs from
+  // getAccountStatus on every cold-start. Null when anon. Persisted
+  // so SettingsModal can render the snippet without an async fetch.
+  accountEmail: string | null;
   // Transient. Set by bootstrap.ts when a rollover is detected (boot or
   // realtime); read by App.tsx to render <SeasonEndCeremony />. Not
   // persisted — recomputed on every detection so a CONTINUE-less quit
@@ -134,6 +154,18 @@ interface GameState {
   // best_season_* updated by recordSeasonBest before
   // applySeasonReset.
   lifetimeStats: LifetimeStats;
+  // Persisted. UI preferences for push notifications. Backend
+  // wiring (Expo Notifications) ships in Phase 5; the toggles
+  // persist now so prefs are ready when push lands. All true by
+  // default — opt-out, not opt-in (per the locked design philosophy
+  // of "respect the player's time" — they expect a daily-cadence
+  // walking app to remind them; granular opt-out is the right
+  // ergonomic).
+  notificationPrefs: {
+    dailyWalkReminder: boolean;
+    seasonEndingSoon: boolean;
+    teamActivity: boolean;
+  };
 }
 
 interface GameActions {
@@ -178,6 +210,7 @@ interface GameActions {
   setSeasonTimes: (startedAt: string | null, softCapAt: string | null) => void;
   setSeasonMuralName: (name: string | null) => void;
   setTeam: (team: Team) => void;
+  setNickname: (nickname: string | null) => void;
   setTeamTotals: (totals: { red: number; blue: number }) => void;
   setTeamTotal: (color: 'red' | 'blue', total: number) => void;
   setSeasonPalette: (palette: Record<string, ColorDef> | null) => void;
@@ -191,6 +224,7 @@ interface GameActions {
   applyPlacedPixel: (team: Team, pixelIdx: number, colorId: string) => void;
   setTeamsCanvasProgress: (progress: { red: number; blue: number }) => void;
   setAccountLinked: (linked: boolean) => void;
+  setAccountEmail: (email: string | null) => void;
   // Set by bootstrap.ts after loadSeasonEndSnapshot resolves on rollover
   // detection. Pass null to clear (called by SeasonEndCeremony on
   // CONTINUE before applySeasonReset runs).
@@ -226,6 +260,10 @@ interface GameActions {
   // stored best (ties prefer the older record so a re-fire of the
   // ceremony for the same season doesn't bump number unnecessarily).
   recordSeasonBest: (seasonNumber: number, contribution: number) => void;
+  setNotificationPref: (
+    key: keyof GameState['notificationPrefs'],
+    value: boolean,
+  ) => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
@@ -251,6 +289,7 @@ const defaultCaseState: CaseState = {
 // detects a stale Phase-3 persisted blob (see persist config below).
 const initialState: GameState = {
   team: null,
+  nickname: null,
   steps: 0,
   lastSyncedTotal: null,
   lastSyncedDate: null,
@@ -272,6 +311,7 @@ const initialState: GameState = {
   sellHistory: { date: todayKey(), counts: {} },
   lastSimulateAt: 0,
   accountLinked: false,
+  accountEmail: null,
   pendingSeasonEnd: null,
   lastShownCeremonySeason: null,
   pendingCaseReveal: null,
@@ -283,6 +323,11 @@ const initialState: GameState = {
     tiles_placed_lifetime: 0,
     best_season_contribution: 0,
     best_season_number: null,
+  },
+  notificationPrefs: {
+    dailyWalkReminder: true,
+    seasonEndingSoon: true,
+    teamActivity: true,
   },
 };
 
@@ -629,6 +674,8 @@ export const useGameStore = create<GameStore>()(
 
       setTeam: (team: Team) => set({ team }),
 
+      setNickname: (nickname: string | null) => set({ nickname }),
+
       setTeamTotals: (totals: { red: number; blue: number }) =>
         set({ teamTotals: totals }),
 
@@ -672,6 +719,8 @@ export const useGameStore = create<GameStore>()(
 
       setAccountLinked: (linked: boolean) => set({ accountLinked: linked }),
 
+      setAccountEmail: (email: string | null) => set({ accountEmail: email }),
+
       setPendingSeasonEnd: (snap: SeasonEndSnapshot | null) =>
         set({ pendingSeasonEnd: snap }),
 
@@ -713,6 +762,11 @@ export const useGameStore = create<GameStore>()(
             },
           };
         }),
+
+      setNotificationPref: (key, value) =>
+        set((s) => ({
+          notificationPrefs: { ...s.notificationPrefs, [key]: value },
+        })),
 
       devGrantOneOfEach: () =>
         set((s) => {
