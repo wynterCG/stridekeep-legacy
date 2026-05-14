@@ -107,7 +107,9 @@ You have the right to:
 - **Data portability** — receive your data in a structured, machine-readable format.
 - **Withdraw consent** to Health Connect access (Article 9(2)(a) GDPR consent) at any time, via your device's Health Connect settings. Doing so does not delete in-game progress already earned.
 
-To exercise any of these rights, email **privacy@stridekeep.app** with the user identifier shown in the in-app Settings → Privacy → Request data deletion screen, OR tap that screen to compose a pre-filled deletion email. **Self-serve in-app deletion and a web-based deletion form are coming in a future update.**
+To exercise any of these rights, email **privacy@stridekeep.app** with the user identifier shown in the in-app Settings → Privacy → Request data deletion screen, OR tap that screen to compose a pre-filled deletion email.
+
+**Self-serve account deletion** is available inside the app: open Settings → Privacy → DELETE MY ACCOUNT, confirm twice, and your account and all data tied to it are removed immediately. If you have already uninstalled the app, you can still request deletion via the web form at [stridekeep.app/delete-account.html](https://stridekeep.app/delete-account.html).
 
 ### If you are in the EU / EEA
 

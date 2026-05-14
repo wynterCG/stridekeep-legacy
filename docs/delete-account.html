@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>Delete your account · Stridekeep</title>
+<style>
+  :root {
+    --bg: #fdfaf3;
+    --fg: #1d1610;
+    --muted: #6b5d4a;
+    --accent: #8a6028;
+    --rule: #d8c7a8;
+    --link: #2e6e9a;
+    --danger: #7a1c14;
+    --card: #f3ead8;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 30px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-size: 20px;
+    line-height: 1.3;
+    margin: 40px 0 12px;
+    color: var(--accent);
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 16px; }
+  ol { padding-left: 24px; margin: 0 0 16px; }
+  ol li { margin-bottom: 8px; }
+  a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  a:hover { text-decoration: none; }
+  strong { color: var(--fg); font-weight: 600; }
+  .meta {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 4px 0 32px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .card h2 {
+    margin-top: 0;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 16px 0 6px;
+  }
+  input, textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--fg);
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 10px 12px;
+    line-height: 1.4;
+  }
+  textarea { min-height: 100px; resize: vertical; }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .help {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 6px 0 0;
+  }
+  .btn-row { margin-top: 24px; }
+  button {
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  button:hover { opacity: 0.92; }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .fineprint {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 32px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Delete your Stridekeep account</h1>
+  <p class="meta">Last updated: May 4, 2026.</p>
+
+  <p>
+    Stridekeep gives you two ways to delete your account and the data tied to it.
+    The in-app path is instant and self-serve; this web page is for players who
+    have already uninstalled the app and can no longer reach the in-app button.
+  </p>
+
+  <div class="card">
+    <h2>If you still have the app installed</h2>
+    <p>Use the in-app self-serve deletion — it's instant and irreversible:</p>
+    <ol>
+      <li>Open Stridekeep.</li>
+      <li>Tap the <strong>gear icon</strong> at the top of any screen.</li>
+      <li>Tap <strong>Privacy</strong>.</li>
+      <li>Tap <strong>DELETE MY ACCOUNT</strong> and confirm twice.</li>
+    </ol>
+    <p>
+      That deletes your account, badges, lifetime stats, and links your tile
+      placements to a NULL author so they remain on the canvas anonymously.
+      You'll be returned to a fresh anonymous player on the same device.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>If you've already uninstalled</h2>
+    <p>
+      Fill the form below. Submitting opens your mail app with a pre-filled
+      message to <strong>privacy@stridekeep.app</strong>. Your request will be
+      processed within 30 days, in line with our
+      <a href="/privacy.html">Privacy Policy</a>.
+    </p>
+
+    <form id="delete-form" onsubmit="return submitDeletion(event);">
+      <label for="email">Email on your linked account (if any)</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+      >
+      <p class="help">
+        Required if you linked an account in-app. Leave blank if you never linked
+        and only have a player ID.
+      </p>
+
+      <label for="user-id">Player ID (if you have it written down)</label>
+      <input
+        type="text"
+        id="user-id"
+        name="user-id"
+        placeholder="e.g. 6d3b1c2a-f0e8-4a..."
+      >
+      <p class="help">
+        Optional. The app shows this in <em>Settings → Privacy → REQUEST DATA
+        DELETION</em>. We only need it if you didn't link an email.
+      </p>
+
+      <label for="note">Anything else?</label>
+      <textarea
+        id="note"
+        name="note"
+        placeholder="(Optional) Add anything that would help us find your account."
+      ></textarea>
+
+      <div class="btn-row">
+        <button type="submit" id="submit-btn">Request deletion by email</button>
+      </div>
+    </form>
+  </div>
+
+  <p class="fineprint">
+    If neither path works for you, email
+    <a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a> directly
+    with whatever you remember about your account and we'll do our best to find
+    and remove it.
+  </p>
+</main>
+
+<script>
+  function submitDeletion(event) {
+    event.preventDefault();
+    var email = document.getElementById('email').value.trim();
+    var userId = document.getElementById('user-id').value.trim();
+    var note = document.getElementById('note').value.trim();
+    if (!email && !userId) {
+      alert(
+        'Please provide either your account email OR your player ID so we can find your account.'
+      );
+      return false;
+    }
+    var subject = 'Data deletion request';
+    var bodyLines = [
+      'Hello,',
+      '',
+      'Please delete the Stridekeep account associated with the details below, ' +
+        'along with all data tied to it, in line with your privacy policy.',
+      '',
+    ];
+    if (email) bodyLines.push('Account email: ' + email);
+    if (userId) bodyLines.push('Player ID: ' + userId);
+    if (note) {
+      bodyLines.push('');
+      bodyLines.push('Additional notes:');
+      bodyLines.push(note);
+    }
+    bodyLines.push('');
+    bodyLines.push('Thank you.');
+    var mailto =
+      'mailto:privacy@stridekeep.app' +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(bodyLines.join('\n'));
+    window.location.href = mailto;
+    return false;
+  }
+</script>
+</body>
+</html>

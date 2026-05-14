@@ -179,3 +179,36 @@ export async function setMyNickname(nickname: string): Promise<SetNicknameResult
     nickname: typeof data === 'string' && data.length > 0 ? data : nickname.trim(),
   };
 }
+
+export type DeleteAccountResult =
+  | { ok: true }
+  | { ok: false; error: 'not_authenticated' | 'network_error' | 'unknown'; message: string };
+
+// Calls the `delete_my_account()` RPC ([0020_delete_my_account.sql:34]),
+// which cascade-deletes the caller's auth.users row + every FK'd public.*
+// row. The local JWT now refers to a non-existent user, so we follow up
+// with signOut() to clear AsyncStorage. Caller is expected to re-bootstrap
+// (clearStorage + resetSessionState + bootstrapAuthAndSeason) so the app
+// lands on a fresh anonymous account.
+//
+// Returns `{ ok: true }` even if signOut() throws — at that point the
+// server-side deletion already succeeded, and a stale-but-orphaned local
+// session is the recoverable failure mode (next launch's getSession()
+// will fail-and-reauth into a new anon).
+export async function deleteMyAccount(): Promise<DeleteAccountResult> {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) {
+    const msg = error.message ?? '';
+    if (msg.toLowerCase().includes('not authenticated')) {
+      return { ok: false, error: 'not_authenticated', message: msg };
+    }
+    if (!error.code) return { ok: false, error: 'network_error', message: msg };
+    return { ok: false, error: 'unknown', message: msg };
+  }
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('[stridekeep] post-delete signOut failed (non-fatal):', err);
+  }
+  return { ok: true };
+}
