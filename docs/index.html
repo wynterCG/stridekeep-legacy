@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>Stridekeep — Walk. Earn. Paint together.</title>
+<meta name="description" content="Stridekeep is a mobile game where your real-world step count earns coloured tiles you place on a shared pixel-art mural alongside your team. Free, pseudonymous by default, no real-money purchases.">
+<meta property="og:title" content="Stridekeep">
+<meta property="og:description" content="A team-based walking game. Your steps paint a shared pixel-art mural.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://stridekeep.app/">
+<style>
+  :root {
+    --bg: #fdfaf3;
+    --bg-alt: #f3ead8;
+    --fg: #1d1610;
+    --muted: #6b5d4a;
+    --accent: #8a6028;
+    --accent-soft: #b88a47;
+    --rule: #d8c7a8;
+    --link: #2e6e9a;
+    --red: #7a1c14;
+    --blue: #1a3a6b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* HERO */
+  .hero {
+    padding: 72px 0 56px;
+    text-align: center;
+    border-bottom: 1px solid var(--rule);
+  }
+  .wordmark {
+    font-size: 56px;
+    line-height: 1;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    color: var(--fg);
+  }
+  .wordmark .dot-r { color: var(--red); }
+  .wordmark .dot-b { color: var(--blue); }
+  .tagline {
+    font-size: 20px;
+    color: var(--muted);
+    margin: 0 0 28px;
+    line-height: 1.35;
+  }
+  .pill {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--bg-alt);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* CANVAS PREVIEW (pure-SVG, no asset deps) */
+  .canvas-art {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 28px;
+    border: 4px solid var(--accent);
+    border-radius: 4px;
+    background: #2e353f;
+    padding: 6px;
+    box-shadow: 0 6px 20px rgba(138, 96, 40, 0.18);
+  }
+  .canvas-art svg { display: block; width: 100%; height: 100%; }
+
+  /* SECTIONS */
+  section {
+    padding: 56px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  h2 {
+    font-size: 26px;
+    margin: 0 0 32px;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+    text-align: center;
+  }
+  h2 small {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  p { margin: 0 0 16px; }
+
+  /* HOW IT WORKS — 3-step grid */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .step {
+    background: var(--bg-alt);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .step-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--fg);
+  }
+  .step p {
+    font-size: 15px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* FEATURES list */
+  .features {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .features li {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .features li:last-child { border-bottom: none; }
+  .features .marker {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    min-width: 92px;
+    padding-top: 2px;
+  }
+  .features .body {
+    flex: 1;
+    color: var(--fg);
+    line-height: 1.55;
+  }
+  .features .body strong { font-weight: 600; }
+
+  /* PRIVACY / LEGAL section */
+  #privacy h2 small { color: var(--accent); }
+  .legal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .legal-card {
+    background: var(--bg-alt);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: var(--fg);
+    display: block;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+  .legal-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .legal-card h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .legal-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+  .legal-note {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .legal-note a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .legal-note a:hover { text-decoration: none; }
+
+  /* FOOTER */
+  footer {
+    padding: 36px 0 56px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  footer a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  footer a:hover { text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    .wordmark { font-size: 40px; }
+    .tagline { font-size: 17px; }
+    .hero { padding: 48px 0 40px; }
+    .steps { grid-template-columns: 1fr; gap: 14px; }
+    .legal-grid { grid-template-columns: 1fr; }
+    .features li { flex-direction: column; gap: 4px; }
+    .features .marker { min-width: 0; }
+    section { padding: 40px 0; }
+    h2 { font-size: 22px; margin-bottom: 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header class="hero">
+  <div class="canvas-art" aria-hidden="true">
+    <!-- Tiny suggestive pixel grid. Not a real screenshot — just a
+         visual hook that hints at the canvas mechanic. -->
+    <svg viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="8" height="8" fill="#2e353f"/>
+      <rect x="1" y="1" width="1" height="1" fill="#7a1c14"/>
+      <rect x="2" y="1" width="1" height="1" fill="#b88a47"/>
+      <rect x="3" y="1" width="1" height="1" fill="#7a1c14"/>
+      <rect x="5" y="2" width="1" height="1" fill="#1a3a6b"/>
+      <rect x="6" y="2" width="1" height="1" fill="#1a3a6b"/>
+      <rect x="2" y="3" width="1" height="1" fill="#d4a44a"/>
+      <rect x="3" y="3" width="1" height="1" fill="#7a1c14"/>
+      <rect x="4" y="3" width="1" height="1" fill="#b88a47"/>
+      <rect x="5" y="4" width="1" height="1" fill="#1a3a6b"/>
+      <rect x="6" y="4" width="1" height="1" fill="#3a6ba8"/>
+      <rect x="1" y="5" width="1" height="1" fill="#7a1c14"/>
+      <rect x="3" y="5" width="1" height="1" fill="#d4a44a"/>
+      <rect x="5" y="5" width="1" height="1" fill="#1a3a6b"/>
+      <rect x="2" y="6" width="1" height="1" fill="#b88a47"/>
+      <rect x="6" y="6" width="1" height="1" fill="#3a6ba8"/>
+    </svg>
+  </div>
+  <h1 class="wordmark">Stride<span class="dot-r">.</span>keep<span class="dot-b">.</span></h1>
+  <p class="tagline">Walk in the real world. Paint a shared mural together.</p>
+  <span class="pill">Coming soon to Android</span>
+</header>
+
+<section id="what">
+  <h2><small>What it is</small>A walking game with a shared canvas.</h2>
+  <div class="features">
+    <p style="text-align: center;">
+      Every season, two teams &mdash; <strong style="color: var(--red);">Red</strong> and <strong style="color: var(--blue);">Blue</strong> &mdash;
+      paint the same pixel-art mural in parallel. Your real-world step count earns coloured tiles. You place tiles on
+      your team's canvas. The first team to fill the mural wins the season and a permanent badge.
+    </p>
+    <p style="text-align: center;">
+      No subscriptions. No real-money purchases. No advertising. Just walking, slowly turning into art.
+    </p>
+  </div>
+</section>
+
+<section id="how">
+  <h2><small>How it works</small>Three steps, one season at a time.</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">Step 1</div>
+      <h3 class="step-title">Walk</h3>
+      <p>Stridekeep reads your daily steps from Google Health Connect. The more you walk, the more pigment pouches you earn.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 2</div>
+      <h3 class="step-title">Earn tiles</h3>
+      <p>Open pouches to roll coloured tiles from this season's palette. Common, rare, and legendary colours mix into the mural.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 3</div>
+      <h3 class="step-title">Paint together</h3>
+      <p>Place tiles on your team's canvas to match the target pixel. Fill the mural before the other team to claim the season.</p>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <h2><small>What makes it different</small>Built for people who actually walk.</h2>
+  <div class="features">
+    <ul>
+      <li>
+        <span class="marker">Activity-only</span>
+        <span class="body"><strong>The only way to progress is to walk.</strong> No daily logins, no stamina timers, no XP shortcuts. Your steps are the currency.</span>
+      </li>
+      <li>
+        <span class="marker">No spending</span>
+        <span class="body"><strong>No real-money purchases.</strong> Every colour, every badge, every progress beat is earned. The game does not sell power.</span>
+      </li>
+      <li>
+        <span class="marker">Pseudonymous</span>
+        <span class="body"><strong>Play without an account.</strong> A stable player ID is all you need. Email and password are optional &mdash; only for backup across devices.</span>
+      </li>
+      <li>
+        <span class="marker">Steps-only</span>
+        <span class="body"><strong>We only read step counts.</strong> Not heart rate, not workouts, not sleep, not weight. The Health Connect permission is one toggle, scoped narrowly.</span>
+      </li>
+      <li>
+        <span class="marker">Permanent record</span>
+        <span class="body"><strong>Each season's mural lives on.</strong> Past murals are preserved as a collective artwork; your contribution becomes a badge that travels with your account.</span>
+      </li>
+      <li>
+        <span class="marker">Independent</span>
+        <span class="body"><strong>Made by one person.</strong> Stridekeep is built by a solo developer in the Netherlands. No publisher, no ad networks, no third-party trackers.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section id="privacy">
+  <h2><small>Privacy &amp; legal</small>Read the policies before you install.</h2>
+  <div class="legal-grid">
+    <a class="legal-card" href="/privacy.html">
+      <h3>Privacy Policy</h3>
+      <p>What we collect, why, who processes it, and how long we keep it. Plain language and GDPR-aligned.</p>
+    </a>
+    <a class="legal-card" href="/terms.html">
+      <h3>Terms of Service</h3>
+      <p>The agreement between you and us. Eligibility, account rules, acceptable use, governing law.</p>
+    </a>
+    <a class="legal-card" href="/delete-account.html">
+      <h3>Delete your account</h3>
+      <p>In-app self-serve, or a web form if you&rsquo;ve already uninstalled. Deletion is permanent.</p>
+    </a>
+  </div>
+  <p class="legal-note">
+    Stridekeep is operated by Daniel Lourenço Costa Inverno, an independent developer based in the Netherlands.
+    For privacy and data questions, email <a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a>.
+    For everything else, <a href="mailto:support@stridekeep.app">support@stridekeep.app</a>.
+  </p>
+</section>
+
+<footer>
+  &copy; 2026 Daniel Lourenço Costa Inverno &middot; Made independently in the Netherlands<br>
+  <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a> &middot; <a href="/delete-account.html">Delete account</a> &middot; <a href="mailto:support@stridekeep.app">Contact</a>
+</footer>
+
+</main>
+</body>
+</html>
