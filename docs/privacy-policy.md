@@ -12,9 +12,8 @@ This policy is a starting draft and not legal advice. Before publishing, have a 
 Stridekeep is operated by **Daniel Lourenço Costa Inverno**, an independent solo developer based in the Netherlands. For the purposes of GDPR, Daniel Lourenço Costa Inverno is the **data controller**.
 
 Contact email: **privacy@stridekeep.app**
-Postal address: **Van Valckensteinstraat, 3342 VP Hendrik-Ido-Ambacht, Netherlands**
 
-If you have any question about this policy or about how your data is handled, email privacy@stridekeep.app and we will respond within 30 days.
+If you have any question about this policy or about how your data is handled, email privacy@stridekeep.app and we will respond within 30 days. If you require our postal address (for example, to lodge a formal complaint), email us and we will provide it on request.
 
 ## 2. Information we collect
 

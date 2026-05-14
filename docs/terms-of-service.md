@@ -12,7 +12,8 @@ This is a starting draft and not legal advice. Before publishing, have a lawyer 
 Stridekeep is operated by **Daniel Lourenço Costa Inverno**, an independent solo developer based in the Netherlands.
 
 Contact email: **support@stridekeep.app** (general) · **privacy@stridekeep.app** (data requests)
-Postal address: **Van Valckensteinstraat, 3342 VP Hendrik-Ido-Ambacht, Netherlands**
+
+Our postal address is available on request — email us at the address above.
 
 ## 2. Your acceptance of these Terms
 
