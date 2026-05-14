@@ -1,0 +1,25 @@
+{
+  // Cloudflare Worker config for serving the static site at
+  // stridekeep.app. The app itself is a React Native / Expo project —
+  // this file is unrelated to the mobile build. It only tells the
+  // Cloudflare deploy step to publish the contents of `docs/` as
+  // static assets under the `stridekeep` worker name.
+  //
+  // The Cloudflare dashboard's auto-detection treats this repo as a
+  // Static / Expo project and tries `npx expo export -p web`, which
+  // fails because we don't ship a web target. Committing this config
+  // pins the deploy to a no-build static-assets path instead.
+  //
+  // To deploy locally: `npx wrangler deploy` from the repo root.
+  // CI deploy command in the Cloudflare project should be the same
+  // (or left empty — Wrangler picks up this file automatically).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stridekeep",
+  "compatibility_date": "2026-05-14",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./docs"
+  }
+}
