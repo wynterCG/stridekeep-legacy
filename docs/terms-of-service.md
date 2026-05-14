@@ -45,7 +45,7 @@ To keep the game fair and pleasant for everyone, you agree **not** to:
 
 - **Automate your step count.** Stridekeep reads step data from Android Health Connect (or Apple HealthKit, if iOS support is added in the future); spoofing that data via mock-location apps, automation tools, or other means is grounds for account suspension or termination.
 - **Exploit bugs.** If you find a bug that lets you grant yourself tiles, cases, or purse you didn't earn, please report it to **support@stridekeep.app** instead of using it. We may reverse exploited progress.
-- **Pick abusive nicknames.** Don't impersonate other players or public figures; don't use slurs, harassment, or content that targets a protected class. We may rename or remove offending nicknames at our discretion.
+- **Pick abusive nicknames.** Don't impersonate other players or public figures; don't use slurs, harassment, or content that targets a protected class. We may rename or remove offending nicknames at our discretion, and will notify you in-app when we do so.
 - **Interfere with the service.** Don't attempt to overload the backend, scrape the live feed at high rates, or otherwise disrupt other players' experience.
 - **Reverse-engineer or redistribute the app** except where this restriction is prohibited by mandatory local law (e.g. EU software-directive interoperability rights).
 
@@ -85,7 +85,7 @@ Nothing in these Terms limits or excludes liability for (a) fraud or fraudulent 
 
 These Terms are governed by the laws of **the Netherlands**, without regard to its conflict-of-laws rules.
 
-If you are a **consumer in the EU/EEA**, this does not deprive you of the protection of mandatory consumer-protection rules of the country in which you live; you can also bring a claim in the courts of your country of residence. EU consumers can also use the European Commission's [Online Dispute Resolution platform](https://ec.europa.eu/consumers/odr/).
+If you are a **consumer in the EU/EEA**, this does not deprive you of the protection of mandatory consumer-protection rules of the country in which you live; you can also bring a claim in the courts of your country of residence. EU consumers may also seek out-of-court resolution through the national consumer ADR body in their country of residence — the list of approved bodies is maintained by the European Commission at [consumer-redress.ec.europa.eu](https://consumer-redress.ec.europa.eu/dispute-resolution-bodies).
 
 Any other disputes will be brought before the competent courts in the Netherlands.
 

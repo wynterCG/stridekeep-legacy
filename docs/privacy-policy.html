@@ -175,6 +175,7 @@
   <li><strong>Step count from Health Connect</strong> &mdash; explicit consent under Article 9(2)(a) GDPR. Step data is treated as health data and falls under the special-category provisions of Article 9. You grant this consent via the Health Connect (or HealthKit) permission prompt at the operating-system level. You can withdraw this consent at any time via your device&rsquo;s Health Connect settings; doing so prevents further reads but does not delete progress already earned.</li>
   <li><strong>Account, tile placements, nickname, and live feed activity</strong> &mdash; performance of a contract under Article 6(1)(b) GDPR. Processing these data points is necessary to provide the game you&rsquo;ve chosen to play.</li>
   <li><strong>Aggregated, anonymised statistics used to balance the game economy across seasons</strong> &mdash; legitimate interests under Article 6(1)(f) GDPR. Our legitimate interest is maintaining a fair and functional game; we balance this against your privacy by ensuring this data is fully de-identified before use.</li>
+  <li><strong>Pseudonymised tile placements retained after account deletion</strong> &mdash; legitimate interests under Article 6(1)(f) GDPR. Each season&rsquo;s mural is a collective artwork composed of many players&rsquo; placements; removing every deleted player&rsquo;s tiles would degrade the canvas for the players who remain and falsify the historical record. Our legitimate interest in preserving past seasons&rsquo; murals is balanced against your privacy by severing the link between you and your tiles on deletion (see &sect;7) &mdash; once severed, the tiles continue to exist on the canvas but no longer reference your account or identifier.</li>
 </ul>
 
 <p>
@@ -236,6 +237,7 @@
 <ul>
   <li>We keep your account data, tile placements, and live feed events (case openings, sells, crafts, shop purchases) for as long as your account exists &mdash; they form the game record visible to other players on the live feed.</li>
   <li><strong>In-app self-serve deletion</strong> (Settings &rarr; Privacy &rarr; DELETE MY ACCOUNT, see &sect;8) is processed <strong>immediately</strong>. <strong>Deletion requests sent by email or via the web form</strong> are processed <strong>within 30 days</strong>.</li>
+  <li><strong>Your tile placements form part of the persistent game record.</strong> When you delete your account, we <strong>remove the link between you and your tiles</strong> (the author field on each tile is set to NULL) &mdash; the tiles remain visible on the canvas but no longer reference your account or identifier. The tiles themselves are <strong>not removed</strong>, in line with our legitimate interest in preserving the integrity of past seasons&rsquo; murals (see &sect;3). This is <strong>pseudonymisation, not full anonymisation</strong>, because the operator could in principle correlate orphaned tile timestamps with the live-feed activity log during the short window before that log self-trims &mdash; we disclose it here as a deliberate retention rather than overclaim anonymisation. The link severance itself is irreversible.</li>
   <li>Aggregated, anonymised statistics that no longer identify you may be retained indefinitely for game-balance purposes.</li>
 </ul>
 
@@ -253,7 +255,7 @@
 </ul>
 
 <p>
-  To exercise any of these rights, email <strong><a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a></strong> with the user identifier shown in the in-app Settings &rarr; Privacy &rarr; Request data deletion screen, OR tap that screen to compose a pre-filled deletion email.
+  To exercise any of these rights, email <strong><a href="mailto:privacy@stridekeep.app">privacy@stridekeep.app</a></strong> &mdash; or, inside the app, tap <strong>Settings &rarr; Privacy &rarr; EMAIL PRIVACY TEAM</strong> to compose an email that pre-fills your player ID for us.
 </p>
 <p>
   <strong>Self-serve account deletion</strong> is available inside the app: open Settings &rarr; Privacy &rarr; DELETE MY ACCOUNT, confirm twice, and your account and all data tied to it are removed immediately. If you have already uninstalled the app, you can still request deletion via the web form at <a href="https://stridekeep.app/delete-account.html">https://stridekeep.app/delete-account.html</a>.

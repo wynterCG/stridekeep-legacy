@@ -19,10 +19,12 @@ const DELETION_REQUEST_EMAIL = 'privacy@stridekeep.app';
 // Privacy section of the SettingsModal. Four actions:
 //   1. TERMS OF SERVICE — opens the hosted ToS URL.
 //   2. PRIVACY POLICY — opens the hosted policy URL.
-//   3. REQUEST DATA DELETION — opens the OS mail composer to
-//      privacy@stridekeep.app, prefilled with the player's auth UUID.
-//      Kept as an escape hatch in case the in-app self-serve deletion
-//      below fails or the player wants a paper trail.
+//   3. EMAIL PRIVACY TEAM — opens the OS mail composer to
+//      privacy@stridekeep.app prefilled with the player's auth UUID,
+//      for support / paper-trail deletion / non-standard data requests.
+//      Renamed from REQUEST DATA DELETION because the row sat next to
+//      DELETE MY ACCOUNT and looked like a duplicate; this framing
+//      makes it clearly the contact-channel fallback.
 //   4. DELETE MY ACCOUNT — calls the delete_my_account() RPC after a
 //      two-step confirm. Required by Google Play's 2024 policy. The
 //      RPC cascade-deletes auth.users → public.users / user_badges
@@ -61,7 +63,7 @@ export default function PrivacySection(): React.JSX.Element {
   const handleOpenTerms = () =>
     openExternal(TERMS_OF_SERVICE_URL, 'the terms of service');
 
-  const handleRequestDeletion = async () => {
+  const handleEmailPrivacy = async () => {
     setLinkError(null);
     // Look up the player's auth UUID at tap time. Reading directly
     // from supabase (rather than caching in the store) keeps the
@@ -69,10 +71,11 @@ export default function PrivacySection(): React.JSX.Element {
     // Settings was open.
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id ?? 'unknown';
-    const subject = `Data deletion request for ${uid}`;
+    const subject = `Stridekeep support — player ${uid}`;
     const body =
-      'Please delete all data associated with my account. ' +
-      `My user ID is ${uid}.`;
+      'Hi Stridekeep team,\n\n' +
+      `My player ID is ${uid}.\n\n` +
+      '(Describe your question or request below.)';
     const mailto = `mailto:${DELETION_REQUEST_EMAIL}?subject=${encodeURIComponent(
       subject,
     )}&body=${encodeURIComponent(body)}`;
@@ -201,10 +204,12 @@ export default function PrivacySection(): React.JSX.Element {
         <Text style={styles.chevron}>{'›'}</Text>
       </Pressable>
 
-      <Pressable style={styles.row} onPress={handleRequestDeletion}>
+      <Pressable style={styles.row} onPress={handleEmailPrivacy}>
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>REQUEST DATA DELETION</Text>
-          <Text style={styles.rowSub}>{`Email ${DELETION_REQUEST_EMAIL}`}</Text>
+          <Text style={styles.rowLabel}>EMAIL PRIVACY TEAM</Text>
+          <Text style={styles.rowSub}>
+            Questions, support, or backup deletion path
+          </Text>
         </View>
         <Text style={styles.chevron}>{'›'}</Text>
       </Pressable>
