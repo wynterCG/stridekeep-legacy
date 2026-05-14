@@ -7,21 +7,23 @@ import { useGameStore } from '../../store/gameStore';
 import { supabase } from '../../lib/supabase';
 import { colors, fonts, radii, spacing } from '../../theme';
 
-// Live policy URL — file lives at docs/privacy-policy.md in the
-// repo, hosted at the URL below. Update both this constant AND the
-// hosted file together when material changes ship; the in-app
-// "Last updated" expectation is that they match.
+// Live URLs — files live at docs/privacy-policy.md and
+// docs/terms-of-service.md in the repo, hosted at the URLs below.
+// Update both the constants AND the hosted files together when material
+// changes ship; the in-app "Last updated" expectations are that they match.
 const PRIVACY_POLICY_URL: string | null = 'https://stridekeep.app/privacy.html';
+const TERMS_OF_SERVICE_URL: string | null = 'https://stridekeep.app/terms.html';
 
 const DELETION_REQUEST_EMAIL = 'privacy@stridekeep.app';
 
-// Privacy section of the SettingsModal. Three actions:
-//   1. PRIVACY POLICY — opens the hosted policy URL.
-//   2. REQUEST DATA DELETION — opens the OS mail composer to
+// Privacy section of the SettingsModal. Four actions:
+//   1. TERMS OF SERVICE — opens the hosted ToS URL.
+//   2. PRIVACY POLICY — opens the hosted policy URL.
+//   3. REQUEST DATA DELETION — opens the OS mail composer to
 //      privacy@stridekeep.app, prefilled with the player's auth UUID.
 //      Kept as an escape hatch in case the in-app self-serve deletion
 //      below fails or the player wants a paper trail.
-//   3. DELETE MY ACCOUNT — calls the delete_my_account() RPC after a
+//   4. DELETE MY ACCOUNT — calls the delete_my_account() RPC after a
 //      two-step confirm. Required by Google Play's 2024 policy. The
 //      RPC cascade-deletes auth.users → public.users / user_badges
 //      and sets canvas_pixels.placed_by to NULL.
@@ -30,21 +32,34 @@ export default function PrivacySection(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false);
 
   const policyAvailable = PRIVACY_POLICY_URL !== null;
+  const termsAvailable = TERMS_OF_SERVICE_URL !== null;
 
-  const handleOpenPolicy = async () => {
-    if (PRIVACY_POLICY_URL === null) return;
+  // Generic external-URL opener for the TOS / privacy-policy rows. The
+  // OS handles whether the URL renders in an in-app browser, the system
+  // browser, or via a deep-link handler; we only need to verify the
+  // platform can open it.
+  const openExternal = async (
+    url: string | null,
+    label: string,
+  ): Promise<void> => {
+    if (url === null) return;
     setLinkError(null);
     try {
-      const supported = await Linking.canOpenURL(PRIVACY_POLICY_URL);
+      const supported = await Linking.canOpenURL(url);
       if (!supported) {
-        setLinkError('Could not open the privacy policy. Please try again.');
+        setLinkError(`Could not open ${label}. Please try again.`);
         return;
       }
-      await Linking.openURL(PRIVACY_POLICY_URL);
+      await Linking.openURL(url);
     } catch {
-      setLinkError('Could not open the privacy policy. Please try again.');
+      setLinkError(`Could not open ${label}. Please try again.`);
     }
   };
+
+  const handleOpenPolicy = () =>
+    openExternal(PRIVACY_POLICY_URL, 'the privacy policy');
+  const handleOpenTerms = () =>
+    openExternal(TERMS_OF_SERVICE_URL, 'the terms of service');
 
   const handleRequestDeletion = async () => {
     setLinkError(null);
@@ -157,6 +172,20 @@ export default function PrivacySection(): React.JSX.Element {
         We collect step counts via Health Connect, your team and tile placements,
         and a nickname you chose. Read the full policy or request deletion below.
       </Text>
+
+      <Pressable
+        style={[styles.row, !termsAvailable && styles.rowDisabled]}
+        onPress={handleOpenTerms}
+        disabled={!termsAvailable}
+      >
+        <View style={styles.textBlock}>
+          <Text style={styles.rowLabel}>TERMS OF SERVICE</Text>
+          <Text style={styles.rowSub}>
+            {termsAvailable ? 'Open in browser' : 'Coming soon'}
+          </Text>
+        </View>
+        <Text style={styles.chevron}>{'›'}</Text>
+      </Pressable>
 
       <Pressable
         style={[styles.row, !policyAvailable && styles.rowDisabled]}

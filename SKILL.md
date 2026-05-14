@@ -652,6 +652,32 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 
 - **Operator pending**: upload [docs/delete-account.html](docs/delete-account.html) + the updated [docs/privacy-policy.html](docs/privacy-policy.html) to `stridekeep.app` (the in-app row links to `/delete-account.html` and will 404 until then). The `PRIVACY_POLICY_URL` constant already points at the live URL; only the file upload is pending.
 
+✅ **Terms of Service + Play Data Safety alignment shipped 2026-05-14 (continued, layered on top of the deletion work above).** Closes the last two reviewer items from the privacy-policy pass: the privacy policy's §3 "performance of a contract under Article 6(1)(b)" needs a contract to anchor to (the ToS), and the Play Console Data Safety form needs to match what the policy actually claims.
+
+- **`docs/terms-of-service.md` + matching `.html`.** One-page EULA covering: who we are (Daniel Lourenço Costa Inverno · Hendrik-Ido-Ambacht · privacy@stridekeep.app / support@stridekeep.app), acceptance, eligibility (13+/16+ split mirroring privacy §9), account rules (one per person, no sharing/transfer), acceptable use (no step-count automation, no exploits, no abusive nicknames, no scraping), virtual-items + economy (earned-only, no real-money purchases at this time, no cash-out value, reserve right to add cosmetic purchases later with separate disclosure), health/safety disclaimers (walk safely, not a medical app, "as-is"), termination (in-app DELETE MY ACCOUNT is the user's exit; we can suspend for violations), limitation of liability (capped at amount paid us → effectively zero), governing law (Netherlands, with EU consumer-protection rights preserved + ODR link), change notification, contact. Anchors the privacy policy's contract claim.
+
+- **In-app row.** [src/screens/settings/PrivacySection.tsx](src/screens/settings/PrivacySection.tsx) now shows TERMS OF SERVICE above PRIVACY POLICY (iOS Settings convention). New `TERMS_OF_SERVICE_URL` constant points at `https://stridekeep.app/terms.html`. Generic `openExternal(url, label)` helper consolidates the policy + terms open paths so there's no copy/paste of `Linking.canOpenURL` boilerplate.
+
+- **Google Play Data Safety form mapping (operator runbook).** Reviewers diff the form against the policy line-by-line. The form must declare, with **purpose = "App functionality"** in all cases unless noted:
+
+  | Data type | Collected? | Shared? | Processor | Notes |
+  | --- | --- | --- | --- | --- |
+  | **Health & fitness → other** (step count) | Yes | No | Health Connect (read-only) | Optional in form (user-grantable Android permission), declared as health data. Step *aggregates* persist on Supabase; per-day history does not. |
+  | **Personal info → User IDs** (UUID) | Yes | No | Supabase | Pseudonymous per privacy §2; required for the app to function. |
+  | **Personal info → Email address** | Yes | No | Supabase | **Optional** — only collected if the player chooses to LINK an account. |
+  | **Personal info → Name** (nickname) | Yes | Yes (with other players via live feed) | Supabase | Display name, not legal name. Sharing-with-other-users is a separate checkbox under "shared." |
+  | **App activity → In-app actions** (tile placements, case opens, sells, crafts, shop purchases) | Yes | No | Supabase | Drives the canvas + live feed. |
+  | **App info and performance → Crash logs / Diagnostics** | Yes | No | Expo (EAS Updates check-ins) | This is the **honesty point**. Even though we don't run Sentry/Crashlytics/analytics SDKs, EAS Updates sends standard build-metadata pings on launch. Play's auto-detector WILL flag this as telemetry; declaring it pre-empts a false-positive rejection. Purpose: "App functionality." |
+  | **Device or other IDs / Approximate location / Precise location / Contacts / Calendar / Photos / Files / SMS / Calendar / Audio / Web browsing** | No | — | — | Honestly absent. |
+  | **IP address** | Collected by Supabase at network edge (privacy §2) | No | Supabase | Form's IP-address question: declare **Yes, collected** for Supabase edge logs, purpose "Fraud prevention, security, and compliance" (matches Supabase's stated retention purpose); NOT collected for analytics. |
+
+- **The "no analytics" honesty point applies to the in-app copy too.** Privacy §2 says "We do not use any third-party analytics, advertising SDKs, or behavioural tracking" — that remains true. EAS Updates is operational telemetry, not analytics; the policy's framing distinguishes the two. If the Play reviewer rejects on this, the response is the same distinction + the Data Safety form's explicit Expo declaration.
+
+- **Operator pending (additive to the prior deletion-mechanism pending list):**
+  - Upload [docs/terms-of-service.html](docs/terms-of-service.html) to `stridekeep.app/terms.html` alongside the privacy + deletion HTML files. In-app row will 404 until then.
+  - Fill the Play Console Data Safety form per the table above. Cross-reference each row against the privacy policy before submitting; if the form claims something the policy doesn't (or vice versa), reconcile in the policy first.
+  - Lawyer / Iubenda / Termly pass before public beta — both the ToS and the privacy policy are starting drafts.
+
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
 - Privacy policy and store listing
