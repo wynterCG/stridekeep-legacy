@@ -7,18 +7,23 @@ class_name Quantize extends RefCounted
 
 const KMeansLib := preload("res://scripts/kmeans.gd")
 
-# Resize (nearest) source to out_w x out_h, then snap each pixel to the
-# closest palette color in LAB. Returns a new Image.
-static func quantize_to_palette(source: Image, palette: PackedColorArray, out_w: int = 32, out_h: int = 32) -> Image:
+# Resize source to out_w x out_h with the given interpolation filter,
+# then snap each pixel to the closest palette color in LAB. Returns a
+# new Image.
+#
+# Filter choice tradeoff:
+#  - INTERPOLATE_LANCZOS (default): each output cell averages the local
+#    source neighbourhood before the LAB snap. Best for detailed
+#    illustrations (foliage, water, gradients) — uses more of the palette.
+#  - INTERPOLATE_NEAREST: each output cell samples one source pixel.
+#    Crisper on already-pixelated input or hard-edge logos, but discards
+#    most detail on rendered art before quantization ever sees it.
+static func quantize_to_palette(source: Image, palette: PackedColorArray, out_w: int = 32, out_h: int = 32, filter: int = Image.INTERPOLATE_LANCZOS) -> Image:
 	assert(source != null, "Quantize: source image is null")
 	assert(palette.size() > 0, "Quantize: palette is empty")
 
-	# Step 1: resize down with LANCZOS so each output cell averages the
-	# surrounding source pixels before LAB-snap. NEAREST drops detail by
-	# sampling one source pixel per output cell, which underutilizes the
-	# palette on detailed illustrations (waterfalls, foliage, etc.).
 	var small := source.duplicate() as Image
-	small.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
+	small.resize(out_w, out_h, filter)
 
 	# Step 2: precompute LAB centroids for the palette.
 	var lab_palette: Array[Vector3] = []
@@ -43,10 +48,10 @@ static func quantize_to_palette(source: Image, palette: PackedColorArray, out_w:
 
 # For each pixel of the quantized output, return the palette index used.
 # Useful when generating target_pixels for seed_next_mural() in Slice 4.
-static func map_to_indices(source: Image, palette: PackedColorArray, out_w: int = 32, out_h: int = 32) -> PackedInt32Array:
+static func map_to_indices(source: Image, palette: PackedColorArray, out_w: int = 32, out_h: int = 32, filter: int = Image.INTERPOLATE_LANCZOS) -> PackedInt32Array:
 	assert(source != null and palette.size() > 0)
 	var small := source.duplicate() as Image
-	small.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
+	small.resize(out_w, out_h, filter)
 	var lab_palette: Array[Vector3] = []
 	lab_palette.resize(palette.size())
 	for i in palette.size():

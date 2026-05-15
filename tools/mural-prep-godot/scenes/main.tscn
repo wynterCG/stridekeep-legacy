@@ -233,6 +233,22 @@ min_value = 8.0
 max_value = 128.0
 value = 32.0
 
+[node name="ResizeRow" type="HBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResizeLabel" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/ResizeRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Downscale"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="ResizeFilter" type="OptionButton" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/ResizeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "LANCZOS averages neighbourhood detail before palette snap. NEAREST samples one source pixel per cell — crisper on pixel-art input, lossy on rendered illustrations."
+
 [node name="ColorsHeader" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
 layout_mode = 2
 text = "─── COLORS ────────────────────"

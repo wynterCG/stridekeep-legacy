@@ -21,6 +21,15 @@ const RecipeRowScene := preload("res://scenes/recipe_row.tscn")
 
 const DEFAULT_K := 12
 
+# Downscale filter options exposed in the ResizeFilter OptionButton.
+# Index order is the source of truth for both populate (in _ready) and
+# read-back (in _current_filter). LANCZOS is index 0 so it's the default
+# selection — matches quantize.gd's parameter default.
+const RESIZE_FILTER_OPTIONS := [
+	{"label": "LANCZOS (averaged)", "value": Image.INTERPOLATE_LANCZOS},
+	{"label": "NEAREST (single pixel)", "value": Image.INTERPOLATE_NEAREST},
+]
+
 enum AppState { IDLE, EXTRACTING, CURATING, VALIDATING, READY_TO_EXPORT }
 
 # ---- Node references ---------------------------------------------------------
@@ -48,6 +57,7 @@ enum AppState { IDLE, EXTRACTING, CURATING, VALIDATING, READY_TO_EXPORT }
 @onready var _season_spin: SpinBox = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/SeasonRow/SeasonNum
 @onready var _canvas_w_spin: SpinBox = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow/CanvasW
 @onready var _canvas_h_spin: SpinBox = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow/CanvasH
+@onready var _resize_filter_opt: OptionButton = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/ResizeRow/ResizeFilter
 
 @onready var _status_label: Label = $Root/StatusBar/StatusMargin/StatusLabel
 
@@ -80,6 +90,8 @@ func _ready() -> void:
 	_export_btn.pressed.connect(_on_export_json)
 	_upload_btn.pressed.connect(_on_generate_package)
 	_watch_list.item_activated.connect(_on_watch_item_activated)
+	_populate_resize_filter()
+	_resize_filter_opt.item_selected.connect(_on_resize_filter_changed)
 	_set_status("IDLE — Open a PNG to begin.")
 	_export_btn.tooltip_text = "Validate first; then JSON export will enable."
 	_upload_btn.tooltip_text = "Validate first; then package generation will enable."
@@ -345,8 +357,28 @@ func _show_quantized(source: Image, palette: PackedColorArray) -> void:
 		return
 	var w := int(_canvas_w_spin.value)
 	var h := int(_canvas_h_spin.value)
-	var quantized := QuantizeLib.quantize_to_palette(source, palette, w, h)
+	var quantized := QuantizeLib.quantize_to_palette(source, palette, w, h, _current_resize_filter())
 	_quant_preview.texture = ImageTexture.create_from_image(quantized)
+
+# Populate the OptionButton from RESIZE_FILTER_OPTIONS and force LANCZOS
+# (index 0) selected so the preview matches the export pipeline's default.
+func _populate_resize_filter() -> void:
+	_resize_filter_opt.clear()
+	for opt in RESIZE_FILTER_OPTIONS:
+		_resize_filter_opt.add_item(opt.label)
+	_resize_filter_opt.select(0)
+
+# Re-quantize the preview when the user flips the filter so they can A/B
+# without re-opening the source. No-op if nothing's been loaded yet.
+func _on_resize_filter_changed(_idx: int) -> void:
+	if _last_source_image != null and _last_palette.size() > 0:
+		_show_quantized(_last_source_image, _last_palette)
+
+func _current_resize_filter() -> int:
+	var idx := _resize_filter_opt.selected
+	if idx < 0 or idx >= RESIZE_FILTER_OPTIONS.size():
+		return Image.INTERPOLATE_LANCZOS
+	return RESIZE_FILTER_OPTIONS[idx].value
 
 # ---- Validation --------------------------------------------------------------
 
@@ -523,7 +555,9 @@ func _on_generate_package() -> void:
 		recipe_state.append(r.get_state())
 
 	# Build target_pixels by quantizing source -> palette indices -> color ids.
-	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height)
+	# Filter must match the on-screen preview so what the curator approved
+	# is what ships into the seed_next_mural() payload.
+	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height, _current_resize_filter())
 	var target_pixels := SeedSQLLib.build_target_pixels(palette_indices, season_num, palette_state)
 
 	# 1. SQL string -> clipboard.
@@ -542,7 +576,7 @@ func _save_quantized_png(season_num: int, width: int, height: int) -> String:
 	# writable both in editor (project dir) AND in an exported binary
 	# (where res:// is packed into a read-only .pck). The dialog displays
 	# the absolute path so the user can drag the PNG into Supabase Storage.
-	var quant := QuantizeLib.quantize_to_palette(_last_source_image, _last_palette, width, height)
+	var quant := QuantizeLib.quantize_to_palette(_last_source_image, _last_palette, width, height, _current_resize_filter())
 	var abs_dir := ProjectSettings.globalize_path("user://exports/")
 	if not DirAccess.dir_exists_absolute(abs_dir):
 		DirAccess.make_dir_recursive_absolute(abs_dir)
@@ -603,6 +637,6 @@ func _build_export_package() -> Dictionary:
 	var recipe_state: Array = []
 	for r in _recipe_rows:
 		recipe_state.append(r.get_state())
-	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height)
+	var palette_indices := QuantizeLib.map_to_indices(_last_source_image, _last_palette, width, height, _current_resize_filter())
 	var target_pixels := SeedSQLLib.build_target_pixels(palette_indices, season_num, palette_state)
 	return SeasonExportLib.build_package(season_num, mural_name, width, height, palette_state, recipe_state, target_pixels)
