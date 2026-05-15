@@ -13,6 +13,7 @@ import { useGameStore } from '../../store/gameStore';
 import ColorCell from '../../components/ColorCell';
 import EmptyStateIcon from '../../components/EmptyStateIcon';
 import { RarityFrame } from '../../components/RarityName';
+import TutorialTarget from '../../components/TutorialTarget';
 import { colorRarity, rawNextSellPrice, type Rarity } from '../../data/colors';
 import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
@@ -60,6 +61,8 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   const team = useGameStore((s) => s.team);
   const canvasTargetPixels = useGameStore((s) => s.canvasTargetPixels);
   const teamFilled = useGameStore((s) => (team ? s.canvasFilled[team] : EMPTY_FILLED));
+  const advanceFlowStep = useGameStore((s) => s.advanceFlowStep);
+  const setActiveSubTab = useGameStore((s) => s.setActiveSubTab);
   const navigation = useNavigation();
 
   const paletteEntries = useMemo(() => {
@@ -118,6 +121,10 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   const openSheet = (color: ColorDef) => {
     setPendingHomeNav(false);
     setActionFor(color);
+    // JIT first-case step 4: tapping the spotlit cell advances the flow.
+    // Safe to call unconditionally — store action guards on the expected
+    // key matching the current step.
+    advanceFlowStep(`inv-cell-${color.id}`);
   };
 
   return (
@@ -156,10 +163,17 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
                 </Text>
               </>
             );
+            // Interactive cells get wrapped in a TutorialTarget keyed by
+            // color so the JIT first-case flow's `inv-cell-${colorId}`
+            // step can spotlight only the just-opened tile. Self-gating
+            // means inactive cells incur no cost. The wrapper inherits
+            // the Pressable's bounds — no extra layout style needed.
             return interactive ? (
-              <Pressable key={color.id} onPress={() => openSheet(color)} style={styles.cellWrap}>
-                {inner}
-              </Pressable>
+              <TutorialTarget key={color.id} targetKey={`inv-cell-${color.id}`}>
+                <Pressable onPress={() => openSheet(color)} style={styles.cellWrap}>
+                  {inner}
+                </Pressable>
+              </TutorialTarget>
             ) : (
               <View key={color.id} style={styles.cellWrap}>
                 {inner}
@@ -203,10 +217,16 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
                 </Pressable>
               )}
 
+              <TutorialTarget targetKey={`inv-place-${actionFor.id}`}>
               <Pressable
                 style={styles.sheetAction}
                 onPress={() => {
                   const colorId = actionFor.id;
+                  // JIT first-case final step: spotlit PLACE tap advances
+                  // the flow (which also flips firstCaseFlow=true). Fire
+                  // BEFORE the placement code so the tutorial flow flag
+                  // commits even if the placement RPC rejects.
+                  advanceFlowStep(`inv-place-${colorId}`);
                   if (!canvasTargetPixels) {
                     Alert.alert('Canvas not ready', 'Try again in a moment.');
                     return;
@@ -238,6 +258,16 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
                     pixelIdx: targetIdx,
                     target: null,
                   });
+                  // Force the Mural sub-tab BEFORE navigating Home. The
+                  // JIT first-case flow switches activeSubTab='cases' at
+                  // step 0 and never restores it; without this, jumpTo
+                  // lands on Home but CasesPanel is rendered (not
+                  // CanvasPanel), so the hand-off effect that resolves
+                  // the target cell rect never runs and the centered
+                  // placeholder times out after 1.5s. Same fix applies
+                  // for the manual "user is on Cases / Profile sub-tab
+                  // when they place from inventory" path.
+                  setActiveSubTab('mural');
                   tapLight();
                   closeSheet();
                   setPendingHomeNav(true);
@@ -259,6 +289,7 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
               >
                 <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>
               </Pressable>
+              </TutorialTarget>
 
               {usedAsCraftInput.has(actionFor.id) && (
                 <Pressable

@@ -19,6 +19,8 @@ import SeasonEndCeremony from './src/components/SeasonEndCeremony';
 import CaseRevealModal from './src/components/CaseRevealModal';
 import TileFlightOverlay from './src/components/TileFlightOverlay';
 import NicknameOnboardingModal from './src/components/NicknameOnboardingModal';
+import OnboardingTutorial from './src/components/OnboardingTutorial';
+import JitTutorial from './src/components/JitTutorial';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
 import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
@@ -199,6 +201,23 @@ export default function App(): React.JSX.Element | null {
               nickname is set. Sign-out → fresh anon → new
               auto-default re-triggers the prompt. */}
           <NicknameOnboardingModal />
+          {/* OnboardingTutorial is the 2-card welcome modal that fires
+              once after the nickname modal completes. HomeScreen owns the
+              trigger effect (gates on nickname being custom +
+              tutorialFlags.onboarding === false); this component self-
+              gates on `onboardingActive` and renders a centered card
+              stack. Skip = same as completing the last card. */}
+          <OnboardingTutorial />
+          {/* JitTutorial is the non-modal spotlight overlay for gameplay-
+              triggered tutorial flows (currently only `first-case`:
+              cases-tab → OPEN → INVENTORY → cell → PLACE). HomeScreen
+              owns the first-case trigger effect (watches per-tier pending
+              0→1 transitions); this component self-gates on
+              `tutorialActiveFlow` and renders dim + cutout + tooltip with
+              a SKIP-only button. The cutout area is taps-through so the
+              player advances the flow by interacting with the spotlit
+              element directly. */}
+          <JitTutorial />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

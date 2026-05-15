@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import TopHeader from '../components/TopHeader';
 import SeasonCard from '../components/SeasonCard';
@@ -39,6 +39,21 @@ export default function InventoryScreen(): React.JSX.Element {
 
   const [tab, setTab] = useState(0);
   const [filter, setFilter] = useState<string | null>(null);
+
+  // Force the Colors sub-tab whenever the JIT first-case flow advances
+  // into the inventory-side steps. Without this, a player who left
+  // Mixing active before the tutorial fired lands on Mixing after
+  // tapping the spotlit INVENTORY bottom tab, and the next spotlight
+  // step (inv-cell) has nothing to anchor to. Only fires on dep change
+  // (entering step 3+), so it won't fight the user if they manually
+  // swipe to Mixing afterwards.
+  const tutorialActiveFlow = useGameStore((s) => s.tutorialActiveFlow);
+  const tutorialFlowStep = useGameStore((s) => s.tutorialFlowStep);
+  useEffect(() => {
+    if (tutorialActiveFlow !== 'first-case') return;
+    if (tutorialFlowStep < 3) return;
+    setTab(0);
+  }, [tutorialActiveFlow, tutorialFlowStep]);
 
   return (
     <View style={styles.root}>

@@ -18,6 +18,107 @@ import { todayKey } from '../native/healthConnect';
 import { rollColorFromCase, rawNextSellPrice } from '../data/colors';
 import { serverPlaceTile } from '../lib/teams';
 import { logFeedEvent } from '../lib/feedEvents';
+import { JIT_FLOWS, ONBOARDING_CARDS, type JitFlowKey } from '../data/tutorial';
+
+// Derived from the tutorial data file. Centralising here means
+// startOnboarding / advanceOnboarding / advanceFlowStep all detect the
+// final card / final step uniformly without each call site re-importing
+// the arrays.
+const ONBOARDING_CARD_COUNT = ONBOARDING_CARDS.length;
+const JIT_FLOW_LENGTHS: Record<JitFlowKey, number> = {
+  'first-case': JIT_FLOWS['first-case'].length,
+};
+
+// Runtime resolver for the currently-active JIT step's targetKey. Some
+// step keys are dynamic (e.g. `case-open-${tier}` depends on which tier
+// just transitioned 0→1; `inv-cell-${colorId}` depends on the colorId
+// rolled in the opened case and seeded into tutorialFlowColorId). Static
+// keys ('cases-tab', 'bottom-inventory') resolve to themselves.
+//
+// Kept in this file (not in data/tutorial.ts) because the resolution
+// reads GameState — importing the GameState type from the store would
+// circle back through the import graph. The data file stays dependency-
+// free of store types; this helper stays inside the store.
+function resolveJitTargetKey(
+  flow: JitFlowKey,
+  stepIdx: number,
+  state: GameState,
+): string {
+  if (flow === 'first-case') {
+    switch (stepIdx) {
+      case 0:
+        return 'cases-tab';
+      case 1: {
+        // First tier with pending>0 — the case that just unlocked.
+        // We check tier-order so multi-fill scenarios resolve deterministically
+        // (starter first, then quality, then fine).
+        const tiers: CaseTier[] = ['starter', 'quality', 'fine'];
+        for (const tier of tiers) {
+          if (state.caseState[tier].pending > 0) return `case-open-${tier}`;
+        }
+        // No pending — the open happened before the resolver ran. Fall
+        // through to a sentinel so the TutorialTarget never matches and
+        // we advance via explicit advanceFlowStep call from CaseCard.
+        return 'case-open';
+      }
+      case 2:
+        return 'bottom-inventory';
+      case 3:
+        return state.tutorialFlowColorId
+          ? `inv-cell-${state.tutorialFlowColorId}`
+          : 'inv-cell';
+      case 4:
+        return state.tutorialFlowColorId
+          ? `inv-place-${state.tutorialFlowColorId}`
+          : 'inv-place';
+      default:
+        return '';
+    }
+  }
+  return '';
+}
+
+// Public-from-the-store helper so consumers (TutorialTarget, JitTutorial)
+// can read the currently-active targetKey without duplicating the switch
+// above. NOT exposed on GameActions because it's pure and idempotent.
+export function getActiveJitTargetKey(state: GameState): string | null {
+  if (!state.tutorialActiveFlow) return null;
+  return resolveJitTargetKey(
+    state.tutorialActiveFlow,
+    state.tutorialFlowStep,
+    state,
+  );
+}
+
+// Lenient matcher used by advanceFlowStep. resolveJitTargetKey reads
+// current state and can return a stale sentinel when the underlying
+// state has shifted between render and the advance call (e.g. CaseCard
+// calls advanceFlowStep AFTER openCase decrements pending → step 1's
+// resolver no longer sees a tier with pending>0). Prefix-matching
+// avoids the race while still rejecting wrong-step advances.
+function isExpectedJitKey(
+  flow: JitFlowKey,
+  stepIdx: number,
+  expectedKey: string,
+): boolean {
+  if (flow === 'first-case') {
+    switch (stepIdx) {
+      case 0:
+        return expectedKey === 'cases-tab';
+      case 1:
+        return expectedKey.startsWith('case-open-');
+      case 2:
+        return expectedKey === 'bottom-inventory';
+      case 3:
+        return expectedKey.startsWith('inv-cell-');
+      case 4:
+        return expectedKey.startsWith('inv-place-');
+      default:
+        return false;
+    }
+  }
+  return false;
+}
 
 interface GameState {
   team: Team | null;
@@ -166,6 +267,43 @@ interface GameState {
     seasonEndingSoon: boolean;
     teamActivity: boolean;
   };
+  // Persisted. True after the player has either DONE'd or SKIP'd the
+  // Persistent one-shot flags for the tutorial system. Replaces the old
+  // single `tutorialCompleted` boolean. Each entry is a tutorial flow that
+  // only ever fires once on this device:
+  //   - `onboarding`: the 2-card welcome modal shown after nickname pick.
+  //   - `firstCaseFlow`: the JIT chain triggered when the player's first
+  //      case fills (cases-tab → OPEN → INVENTORY → cell → PLACE).
+  // Migration: existing testers with the legacy `tutorialCompleted=true`
+  // get `tutorialFlags.onboarding=true` so they don't see the welcome again.
+  tutorialFlags: {
+    onboarding: boolean;
+    firstCaseFlow: boolean;
+  };
+  // Transient. True while the 2-card OnboardingTutorial modal is visible.
+  // Not persisted — force-quit mid-onboarding re-fires next launch since
+  // tutorialFlags.onboarding only flips on Done / Skip.
+  onboardingActive: boolean;
+  // Transient. Current onboarding card index (0..N-1 of ONBOARDING_CARDS).
+  onboardingCardIdx: number;
+  // Transient. Currently-running JIT flow, or null when no JIT overlay
+  // is active. JIT flows are driven by JIT_FLOWS in src/data/tutorial.ts.
+  tutorialActiveFlow: 'first-case' | null;
+  // Transient. Index into the active flow's step array.
+  tutorialFlowStep: number;
+  // Transient. The colorId of the most-recently-opened case during a JIT
+  // flow. Used to resolve dynamic targetKeys like `inv-cell-${colorId}`
+  // and `inv-place-${colorId}` for the inventory-side spotlights.
+  tutorialFlowColorId: string | null;
+  // Transient. Latest measureInWindow-derived rect of the active flow
+  // step's target element. Written by TutorialTarget when its targetKey
+  // matches the current step; read by JitTutorial / OnboardingTutorial to
+  // position the cutout. Null while waiting for the next target to mount.
+  tutorialTargetRect: { x: number; y: number; width: number; height: number } | null;
+  // Transient. Which Home sub-tab is currently active (mural / cases /
+  // profile). Lifted out of HomeScreen local state so the tutorial-step
+  // effect can drive it during the spotlight sequence. Default 'mural'.
+  activeSubTab: 'mural' | 'cases' | 'profile';
 }
 
 interface GameActions {
@@ -264,6 +402,32 @@ interface GameActions {
     key: keyof GameState['notificationPrefs'],
     value: boolean,
   ) => void;
+  // Tutorial controls. See GameState's tutorial* fields for semantics.
+  // Onboarding (2-card welcome modal):
+  startOnboarding: () => void;
+  advanceOnboarding: () => void; // NEXT — moves to next card or completes
+  completeOnboarding: () => void; // Done/Skip — flips flag + closes modal
+  // JIT flow controls (cases / inventory / place chain):
+  startTutorialFlow: (flow: 'first-case', seedColorId?: string) => void;
+  // Stash the colorId that the just-opened case rolled, so subsequent
+  // inventory-side flow steps (inv-cell-X / inv-place-X) can resolve
+  // their dynamic targetKeys against it. Called from CaseCard.handleOpen
+  // before advanceFlowStep to ensure tutorialFlowColorId is set before
+  // resolveJitTargetKey is queried for step 2/3/4.
+  setTutorialFlowColorId: (colorId: string | null) => void;
+  // Validates the expected key matches the current step's resolved targetKey
+  // before advancing. Prevents stale advance calls (e.g. a tap on a cell
+  // that isn't the spotlit one) from skipping ahead.
+  advanceFlowStep: (expectedTargetKey: string) => void;
+  // SKIP — flips the active flow's persistent flag and clears transient state.
+  cancelTutorialFlow: () => void;
+  // Dev-only: clear all tutorial flags and active flow state so the entire
+  // onboarding + JIT chain can be re-tested without `adb pm clear`.
+  resetTutorials: () => void;
+  setTutorialTargetRect: (
+    rect: { x: number; y: number; width: number; height: number } | null,
+  ) => void;
+  setActiveSubTab: (tab: 'mural' | 'cases' | 'profile') => void;
   // Dev-only: grant one of every case-category color in the active
   // season's palette so testing the placement / sell / craft flows
   // doesn't require walking thousands of steps to roll the right
@@ -329,6 +493,17 @@ const initialState: GameState = {
     seasonEndingSoon: true,
     teamActivity: true,
   },
+  tutorialFlags: {
+    onboarding: false,
+    firstCaseFlow: false,
+  },
+  onboardingActive: false,
+  onboardingCardIdx: 0,
+  tutorialActiveFlow: null,
+  tutorialFlowStep: 0,
+  tutorialFlowColorId: null,
+  tutorialTargetRect: null,
+  activeSubTab: 'mural',
 };
 
 function addStepsToCase(
@@ -768,6 +943,103 @@ export const useGameStore = create<GameStore>()(
           notificationPrefs: { ...s.notificationPrefs, [key]: value },
         })),
 
+      setTutorialTargetRect: (rect) => set({ tutorialTargetRect: rect }),
+
+      startOnboarding: () =>
+        set({ onboardingActive: true, onboardingCardIdx: 0 }),
+      advanceOnboarding: () => {
+        const s = get();
+        if (!s.onboardingActive) return;
+        const next = s.onboardingCardIdx + 1;
+        if (next >= ONBOARDING_CARD_COUNT) {
+          set({
+            onboardingActive: false,
+            onboardingCardIdx: 0,
+            tutorialFlags: { ...s.tutorialFlags, onboarding: true },
+          });
+        } else {
+          set({ onboardingCardIdx: next });
+        }
+      },
+      completeOnboarding: () =>
+        set((s) => ({
+          onboardingActive: false,
+          onboardingCardIdx: 0,
+          tutorialFlags: { ...s.tutorialFlags, onboarding: true },
+        })),
+
+      startTutorialFlow: (flow, seedColorId) =>
+        set({
+          tutorialActiveFlow: flow,
+          tutorialFlowStep: 0,
+          tutorialFlowColorId: seedColorId ?? null,
+          tutorialTargetRect: null,
+        }),
+      setTutorialFlowColorId: (colorId) =>
+        set({ tutorialFlowColorId: colorId }),
+      advanceFlowStep: (expectedTargetKey) => {
+        const s = get();
+        if (!s.tutorialActiveFlow) return;
+        // Prefix-match (not strict equality) — see isExpectedJitKey docs
+        // for why. Rejects calls from the wrong step but tolerates the
+        // state-mutation race where the spotlit action's own reducer
+        // has already moved the state out from under resolveJitTargetKey.
+        if (
+          !isExpectedJitKey(s.tutorialActiveFlow, s.tutorialFlowStep, expectedTargetKey)
+        ) {
+          return;
+        }
+        const flowLen = JIT_FLOW_LENGTHS[s.tutorialActiveFlow];
+        const nextIdx = s.tutorialFlowStep + 1;
+        if (nextIdx >= flowLen) {
+          // Final step → complete the flow + flip its persistent flag.
+          set({
+            tutorialActiveFlow: null,
+            tutorialFlowStep: 0,
+            tutorialFlowColorId: null,
+            tutorialTargetRect: null,
+            tutorialFlags: {
+              ...s.tutorialFlags,
+              firstCaseFlow: true,
+            },
+          });
+        } else {
+          set({
+            tutorialFlowStep: nextIdx,
+            tutorialTargetRect: null,
+          });
+        }
+      },
+      cancelTutorialFlow: () => {
+        const s = get();
+        if (!s.tutorialActiveFlow) return;
+        // Flip the relevant persistent flag so the flow doesn't re-fire.
+        const nextFlags = {
+          ...s.tutorialFlags,
+          firstCaseFlow:
+            s.tutorialActiveFlow === 'first-case' ? true : s.tutorialFlags.firstCaseFlow,
+        };
+        set({
+          tutorialActiveFlow: null,
+          tutorialFlowStep: 0,
+          tutorialFlowColorId: null,
+          tutorialTargetRect: null,
+          tutorialFlags: nextFlags,
+        });
+      },
+      resetTutorials: () =>
+        set({
+          tutorialFlags: { onboarding: false, firstCaseFlow: false },
+          onboardingActive: false,
+          onboardingCardIdx: 0,
+          tutorialActiveFlow: null,
+          tutorialFlowStep: 0,
+          tutorialFlowColorId: null,
+          tutorialTargetRect: null,
+        }),
+
+      setActiveSubTab: (tab) => set({ activeSubTab: tab }),
+
       devGrantOneOfEach: () =>
         set((s) => {
           if (!s.seasonPalette) return {};
@@ -784,7 +1056,7 @@ export const useGameStore = create<GameStore>()(
     {
       name: 'stridekeep-game-state',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 3,
       // Zustand only invokes `migrate` when the persisted blob has a numeric
       // `version` field. Phase-3's persist config didn't set one, so a
       // Phase-3 → Phase-4 upgrade DOES NOT trigger this migrate at all — the
@@ -793,16 +1065,53 @@ export const useGameStore = create<GameStore>()(
       // Record<string, number>, every reducer breaks). The shape detection in
       // onRehydrateStorage below is the actual safety net; this migrate exists
       // only to handle FUTURE versioned migrations (Phase-4 → Phase-5+).
-      migrate: (_persisted, version) => {
-        if (version !== 1) {
-          // Future-you bumped the version without writing a migration step.
-          // Returning undefined would crash hydration silently; throwing
-          // surfaces the missing migration during the next dev launch.
-          throw new Error(
-            `[stridekeep] no migration registered for persist version ${version}`,
-          );
+      //
+      // v1 → v2: tutorial fields added. Persisted blobs from v1 don't have
+      // `tutorialCompleted` — default to false so the spotlight tutorial
+      // fires once for existing testers on next launch (correct behavior:
+      // they haven't seen it yet). Zustand merges over initialState, so
+      // returning the persisted blob as-is is enough; tutorialCompleted
+      // picks up its initialState default of false during the merge.
+      //
+      // v2 → v3: tutorial system rewritten from a single linear walkthrough
+      // (driven by `tutorialCompleted`) into a 2-card onboarding modal +
+      // JIT flows triggered by gameplay events (driven by `tutorialFlags`).
+      // The legacy `tutorialCompleted=true` value MUST be carried forward as
+      // `tutorialFlags.onboarding=true` — existing testers have already seen
+      // the welcome content and shouldn't have it re-fire. We intentionally
+      // do NOT preset `firstCaseFlow=true` from the legacy flag: existing
+      // testers who never opened a case will still benefit from the JIT
+      // chain when their first one fills, which is the whole point of the
+      // redesign.
+      migrate: (persisted, version) => {
+        if (version === 1) {
+          return persisted as GameStore;
         }
-        return _persisted as GameStore;
+        if (version === 2) {
+          const p = persisted as Record<string, unknown> & {
+            tutorialCompleted?: boolean;
+          };
+          const legacyOnboardingDone = p.tutorialCompleted === true;
+          // Drop the legacy field so it doesn't linger and confuse readers;
+          // it has no consumers in the new code path.
+          delete p.tutorialCompleted;
+          return {
+            ...p,
+            tutorialFlags: {
+              onboarding: legacyOnboardingDone,
+              firstCaseFlow: false,
+            },
+          } as GameStore;
+        }
+        if (version === 3) {
+          return persisted as GameStore;
+        }
+        // Future-you bumped the version without writing a migration step.
+        // Returning undefined would crash hydration silently; throwing
+        // surfaces the missing migration during the next dev launch.
+        throw new Error(
+          `[stridekeep] no migration registered for persist version ${version}`,
+        );
       },
       // seasonPalette + seasonCraftRecipes + canvas state are server data,
       // re-fetched on every launch / rollover / canvas mount — never persist.
@@ -824,6 +1133,17 @@ export const useGameStore = create<GameStore>()(
           pendingCaseReveal: _pcr,
           pendingTileFlight: _ptf,
           selfPlacementMarks: _spm,
+          // Tutorial overlay state is per-session. Only `tutorialFlags`
+          // persists (one-shot bools for onboarding + each JIT flow);
+          // everything below is transient and resets to its initialState
+          // value on each launch (overlay closed, on the Mural sub-tab).
+          onboardingActive: _oa,
+          onboardingCardIdx: _oci,
+          tutorialActiveFlow: _taf,
+          tutorialFlowStep: _tfs,
+          tutorialFlowColorId: _tfc,
+          tutorialTargetRect: _ttr,
+          activeSubTab: _ast,
           ...rest
         } = state;
         return rest as GameStore;

@@ -6,6 +6,8 @@ import HomeScreen from '../screens/HomeScreen';
 import InventoryScreen from '../screens/InventoryScreen';
 import IconHome from '../components/icons/IconHome';
 import IconBag from '../components/icons/IconBag';
+import TutorialTarget from '../components/TutorialTarget';
+import { useGameStore } from '../store/gameStore';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -24,16 +26,30 @@ type IconKind = 'home' | 'bag';
 const TAB_ACTIVE_TINT = colors.accent.activeGold;
 const TAB_INACTIVE_TINT = colors.accent.brassLight;
 
-function tabRenderer(label: string, kind: IconKind): (props: { focused: boolean }) => React.JSX.Element {
+function tabRenderer(
+  label: string,
+  kind: IconKind,
+  tutorialTargetKey?: string,
+): (props: { focused: boolean }) => React.JSX.Element {
   return function TabContent({ focused }) {
     const tint = focused ? TAB_ACTIVE_TINT : TAB_INACTIVE_TINT;
     const Icon = kind === 'home' ? IconHome : IconBag;
-    return (
+    const content = (
       <View style={styles.tabContent}>
         <Icon size={22} color={tint} />
         <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
       </View>
     );
+    // When the JIT tutorial system wants to spotlight this tab, wrap the
+    // tab's icon+label column in a TutorialTarget. The wrapper inherits
+    // the column's bounds so measureInWindow returns a tap-target-sized
+    // rect (not the whole bottom bar) — the cutout hugs the icon.
+    if (tutorialTargetKey) {
+      return (
+        <TutorialTarget targetKey={tutorialTargetKey}>{content}</TutorialTarget>
+      );
+    }
+    return content;
   };
 }
 
@@ -57,6 +73,9 @@ function tabRenderer(label: string, kind: IconKind): (props: { focused: boolean 
 export default function RootTabs(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const safeBottom = Math.max(insets.bottom, 8);
+  // Read advanceFlowStep eagerly so the screenListener can call it
+  // synchronously on tab press without re-subscribing per event.
+  const advanceFlowStep = useGameStore((s) => s.advanceFlowStep);
   return (
     <Tab.Navigator
       screenOptions={{
@@ -81,7 +100,18 @@ export default function RootTabs(): React.JSX.Element {
       <Tab.Screen
         name="Inventory"
         component={InventoryScreen}
-        options={{ tabBarIcon: tabRenderer('INVENTORY', 'bag') }}
+        options={{
+          tabBarIcon: tabRenderer('INVENTORY', 'bag', 'bottom-inventory'),
+        }}
+        listeners={{
+          // JIT first-case step 3: tapping the spotlit INVENTORY tab
+          // advances the flow. Store action is a no-op when the current
+          // step's resolved key !== 'bottom-inventory', so the listener
+          // is safe to fire on every press regardless of tutorial state.
+          tabPress: () => {
+            advanceFlowStep('bottom-inventory');
+          },
+        }}
       />
     </Tab.Navigator>
   );

@@ -4,6 +4,7 @@ import CaseCard from '../../components/CaseCard';
 import SimulateWalkButton from '../../components/SimulateWalkButton';
 import DevGrantTilesButton from '../../components/DevGrantTilesButton';
 import DevTriggerCeremonyButton from '../../components/DevTriggerCeremonyButton';
+import DevResetTutorialsButton from '../../components/DevResetTutorialsButton';
 import { colors, fonts, spacing } from '../../theme';
 
 // CASES sub-tab body. Hosts the 3 case cards (fine / quality / starter)
@@ -15,7 +16,10 @@ import { colors, fonts, spacing } from '../../theme';
 //
 // Migrating the dev buttons to CASES rather than burying them deeper
 // keeps the workflow accessible during dev iteration without crowding
-// the CANVAS hero panel with non-canvas affordances.
+// the CANVAS hero panel with non-canvas affordances. The JIT-tutorial
+// system spotlights the OPEN button on whichever tier filled first —
+// CaseCard owns that wrapper, so this file no longer carries a step-
+// numbered TutorialTarget around the starter card.
 export default function CasesPanel(): React.JSX.Element {
   return (
     <ScrollView
@@ -32,6 +36,7 @@ export default function CasesPanel(): React.JSX.Element {
           <SimulateWalkButton />
           <DevGrantTilesButton />
           <DevTriggerCeremonyButton />
+          <DevResetTutorialsButton />
         </>
       )}
     </ScrollView>

@@ -11,6 +11,7 @@ import type { CaseTier } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { CASES } from '../data/cases';
 import { tapLight } from '../lib/haptics';
+import TutorialTarget from './TutorialTarget';
 import { colors, fonts, radii } from '../theme';
 
 interface Props {
@@ -39,6 +40,14 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
   const caseState = useGameStore((s) => s.caseState[tier]);
   const openCase = useGameStore((s) => s.openCase);
   const setPendingCaseReveal = useGameStore((s) => s.setPendingCaseReveal);
+  // JIT-tutorial wire-up. setTutorialFlowColorId seeds the colorId so the
+  // subsequent inv-cell / inv-place steps can resolve their dynamic
+  // targetKeys; advanceFlowStep performs the actual progression.
+  // Both no-op when no JIT flow is active (the store action guards on
+  // tutorialActiveFlow), so paying for these selectors per render is
+  // basically free.
+  const setTutorialFlowColorId = useGameStore((s) => s.setTutorialFlowColorId);
+  const advanceFlowStep = useGameStore((s) => s.advanceFlowStep);
 
   const progress = caseState.progress;
   const pending = caseState.pending;
@@ -69,6 +78,11 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
     const result = openCase(tier);
     if (result) {
       setPendingCaseReveal({ tier, colorId: result.colorId, rolledTier: result.tier });
+      // Seed the colorId BEFORE advancing so the next step
+      // (`inv-cell-${colorId}` resolution) reads the fresh value.
+      // No-ops when the first-case flow isn't active.
+      setTutorialFlowColorId(result.colorId);
+      advanceFlowStep(`case-open-${tier}`);
     }
   }
 
@@ -106,9 +120,14 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
       </View>
 
       {pending > 0 ? (
-        <TouchableOpacity onPress={handleOpen} style={styles.openPill}>
-          <Text style={styles.openPillText}>OPEN</Text>
-        </TouchableOpacity>
+        // Wrap the OPEN pill in a TutorialTarget keyed by tier so the JIT
+        // first-case flow's `case-open-${tier}` step can spotlight ONLY
+        // the button. Self-gates when no flow is active.
+        <TutorialTarget targetKey={`case-open-${tier}`}>
+          <TouchableOpacity onPress={handleOpen} style={styles.openPill}>
+            <Text style={styles.openPillText}>OPEN</Text>
+          </TouchableOpacity>
+        </TutorialTarget>
       ) : (
         <View style={styles.idlePill}>
           <Text style={styles.idlePillText}>{`${fmtSteps(stepsLeft)} LEFT`}</Text>

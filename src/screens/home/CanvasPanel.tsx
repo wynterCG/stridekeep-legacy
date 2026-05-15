@@ -373,38 +373,45 @@ export default function CanvasPanel(): React.JSX.Element {
     <View style={styles.root}>
       {team && viewingTeam && palette ? (
         <Animated.View style={{ transform: [{ translateX }] }}>
-          <PixelFrame accentColor={teamAccent}>
-            {/* Zoom wrapper around CanvasView. Inactive (transform=[])
-                when no flight is in progress so the layout has zero
-                overhead in the common case. When active, a single
-                `zoomScale` Animated.Value drives both scale and the
-                translation that keeps the anchored cell pinned to
-                its on-screen position (scale-around-anchor reduces
-                to translate=anchorDelta*(1-scale)). All transforms
-                are useNativeDriver-safe. */}
-            <Animated.View
-              style={
-                zoomAnchor
-                  ? {
-                      transform: [
-                        {
-                          translateX: zoomScale.interpolate({
-                            inputRange: [1, 2],
-                            outputRange: [0, -zoomAnchor.dx],
-                          }),
-                        },
-                        {
-                          translateY: zoomScale.interpolate({
-                            inputRange: [1, 2],
-                            outputRange: [0, -zoomAnchor.dy],
-                          }),
-                        },
-                        { scale: zoomScale },
-                      ],
-                    }
-                  : undefined
-              }
-            >
+          {/* Zoom wrapper around the WHOLE picture (frame + canvas).
+              Inactive (transform=undefined) when no flight is in
+              progress so the layout has zero overhead in the common
+              case. When active, a single `zoomScale` Animated.Value
+              drives both scale and the translation that keeps the
+              anchored cell pinned to its on-screen position
+              (scale-around-anchor reduces to
+              translate=anchorDelta*(1-scale)). All transforms are
+              useNativeDriver-safe.
+              The zoom wraps PixelFrame as well as CanvasView so the
+              wood/brass picture frame scales together with the pixel
+              grid — otherwise the frame stays at original size mid-
+              zoom and the canvas detaches from its matte. zoomAnchor
+              is canvas-local (computed from getCanvasWindowRect) so
+              wrapping the frame doesn't shift the anchor math. */}
+          <Animated.View
+            style={
+              zoomAnchor
+                ? {
+                    transform: [
+                      {
+                        translateX: zoomScale.interpolate({
+                          inputRange: [1, 2],
+                          outputRange: [0, -zoomAnchor.dx],
+                        }),
+                      },
+                      {
+                        translateY: zoomScale.interpolate({
+                          inputRange: [1, 2],
+                          outputRange: [0, -zoomAnchor.dy],
+                        }),
+                      },
+                      { scale: zoomScale },
+                    ],
+                  }
+                : undefined
+            }
+          >
+            <PixelFrame accentColor={teamAccent}>
               {/* Passing `size` explicitly so CanvasView matches the
                   wrapper exactly — without it CanvasView's self-computed
                   size (screenWidth - 32) overflows the matte on devices
@@ -423,8 +430,8 @@ export default function CanvasPanel(): React.JSX.Element {
                 onPanEnd={enemyTeam ? handlePanEnd : undefined}
                 size={maxCanvasPx}
               />
-            </Animated.View>
-          </PixelFrame>
+            </PixelFrame>
+          </Animated.View>
         </Animated.View>
       ) : (
         <View style={styles.placeholder}>

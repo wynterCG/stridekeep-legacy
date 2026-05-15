@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, View, Text, Pressable, StyleSheet } from 'react-native';
 import { tapLight } from '../lib/haptics';
+import TutorialTarget from './TutorialTarget';
 import { colors, fonts, radii } from '../theme';
 
 // State indicator for a sub-tab. 'ready' = something worth surfacing
@@ -20,6 +21,11 @@ export interface TabSpec {
   // pulsing brass halo behind the dot for tier-3 cases (Master Pigments)
   // since those earn extra emphasis per the locked design.
   indicator?: TabIndicator;
+  // When set, wraps this tab's Pressable in a <TutorialTarget> so the
+  // JIT spotlight system can target a single tab (rather than the whole
+  // strip). Inert when no JIT flow's current step resolves to the same
+  // key — the TutorialTarget self-gates.
+  tutorialTargetKey?: string;
 }
 
 interface Props {
@@ -44,9 +50,8 @@ export default function SubTabs({ tabs, activeIndex, onChange }: Props): React.J
         {tabs.map((tab, idx) => {
           const isActive = idx === activeIndex;
           const Icon = tab.Icon;
-          return (
+          const pressable = (
             <Pressable
-              key={tab.label}
               style={[styles.tab, isActive && styles.tabActive]}
               onPress={() => {
                 if (isActive) return;
@@ -73,6 +78,25 @@ export default function SubTabs({ tabs, activeIndex, onChange }: Props): React.J
                 <Indicator rare={tab.indicator === 'rare'} />
               )}
             </Pressable>
+          );
+          // When a TabSpec carries `tutorialTargetKey`, wrap that single
+          // tab's Pressable in a TutorialTarget so JIT spotlight can
+          // target it without highlighting the whole strip. The wrapper
+          // uses `flex: 1` to preserve the equal-width row layout —
+          // without the style passthrough the wrapped tab collapses.
+          return (
+            <React.Fragment key={tab.label}>
+              {tab.tutorialTargetKey ? (
+                <TutorialTarget
+                  targetKey={tab.tutorialTargetKey}
+                  style={styles.tabSlot}
+                >
+                  {pressable}
+                </TutorialTarget>
+              ) : (
+                pressable
+              )}
+            </React.Fragment>
           );
         })}
       </View>
@@ -174,6 +198,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+  },
+  // Slot used by tutorial-wrapped tabs so the TutorialTarget participates
+  // in the row's equal-width flex layout — without flex:1 the wrapper
+  // shrinks to content width and the spotlighted tab squeezes neighbours.
+  tabSlot: {
+    flex: 1,
   },
   tab: {
     flex: 1,
