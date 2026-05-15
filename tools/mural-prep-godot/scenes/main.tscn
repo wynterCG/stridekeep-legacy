@@ -249,6 +249,37 @@ layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "LANCZOS averages neighbourhood detail before palette snap. NEAREST samples one source pixel per cell — crisper on pixel-art input, lossy on rendered illustrations."
 
+[node name="PaletteRow" type="HBoxContainer" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PaletteLabel" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Palette k"
+theme_override_colors/font_color = Color(0.945, 0.929, 0.894, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="PaletteSlider" type="HSlider" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+min_value = 4.0
+max_value = 32.0
+step = 1.0
+value = 12.0
+tick_count = 8
+ticks_on_borders = true
+tooltip_text = "Number of palette colors extracted via k-means. Higher = more detail but more colors to name & assign to case/quality/fine tiers. Release the slider to re-extract."
+
+[node name="PaletteValue" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteRow"]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+text = "12"
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(0.781, 0.612, 0.290, 1)
+theme_override_font_sizes/font_size = 13
+
 [node name="ColorsHeader" type="Label" parent="Root/Body/RightCol/RightMargin/RightScroll/RightVBox"]
 layout_mode = 2
 text = "─── COLORS ────────────────────"

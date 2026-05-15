@@ -58,6 +58,8 @@ enum AppState { IDLE, EXTRACTING, CURATING, VALIDATING, READY_TO_EXPORT }
 @onready var _canvas_w_spin: SpinBox = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow/CanvasW
 @onready var _canvas_h_spin: SpinBox = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/CanvasRow/CanvasH
 @onready var _resize_filter_opt: OptionButton = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/ResizeRow/ResizeFilter
+@onready var _palette_slider: HSlider = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteRow/PaletteSlider
+@onready var _palette_value_label: Label = $Root/Body/RightCol/RightMargin/RightScroll/RightVBox/PaletteRow/PaletteValue
 
 @onready var _status_label: Label = $Root/StatusBar/StatusMargin/StatusLabel
 
@@ -92,6 +94,9 @@ func _ready() -> void:
 	_watch_list.item_activated.connect(_on_watch_item_activated)
 	_populate_resize_filter()
 	_resize_filter_opt.item_selected.connect(_on_resize_filter_changed)
+	_palette_slider.value_changed.connect(_on_palette_slider_changed)
+	_palette_slider.drag_ended.connect(_on_palette_slider_drag_ended)
+	_palette_value_label.text = str(int(_palette_slider.value))
 	_set_status("IDLE — Open a PNG to begin.")
 	_export_btn.tooltip_text = "Validate first; then JSON export will enable."
 	_upload_btn.tooltip_text = "Validate first; then package generation will enable."
@@ -164,7 +169,7 @@ func _run_extraction(image: Image) -> void:
 	await get_tree().process_frame
 
 	var t0 := Time.get_ticks_msec()
-	var result: Dictionary = KMeansLib.extract(image, DEFAULT_K)
+	var result: Dictionary = KMeansLib.extract(image, _current_k())
 	var elapsed := Time.get_ticks_msec() - t0
 
 	var centroids: PackedColorArray = result.centroids
@@ -379,6 +384,27 @@ func _current_resize_filter() -> int:
 	if idx < 0 or idx >= RESIZE_FILTER_OPTIONS.size():
 		return Image.INTERPOLATE_LANCZOS
 	return RESIZE_FILTER_OPTIONS[idx].value
+
+func _current_k() -> int:
+	return int(_palette_slider.value)
+
+# Live-update the numeric readout while dragging — cheap, no re-extract.
+# Heavy k-means work waits for drag_ended so we don't run it 20+ times
+# during a single drag.
+func _on_palette_slider_changed(value: float) -> void:
+	_palette_value_label.text = str(int(value))
+
+# Re-extract palette with the new k. Wipes existing color/recipe rows
+# (centroids change → indices change → existing edits become meaningless).
+# No-op if nothing's loaded yet, or if extraction is already in flight.
+func _on_palette_slider_drag_ended(value_changed: bool) -> void:
+	if not value_changed:
+		return
+	if _last_source_image == null:
+		return
+	if _state == AppState.EXTRACTING:
+		return
+	_run_extraction(_last_source_image)
 
 # ---- Validation --------------------------------------------------------------
 
