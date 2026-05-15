@@ -13,9 +13,12 @@ static func quantize_to_palette(source: Image, palette: PackedColorArray, out_w:
 	assert(source != null, "Quantize: source image is null")
 	assert(palette.size() > 0, "Quantize: palette is empty")
 
-	# Step 1: resize down with nearest-neighbor for clean pixel-art quantization.
+	# Step 1: resize down with LANCZOS so each output cell averages the
+	# surrounding source pixels before LAB-snap. NEAREST drops detail by
+	# sampling one source pixel per output cell, which underutilizes the
+	# palette on detailed illustrations (waterfalls, foliage, etc.).
 	var small := source.duplicate() as Image
-	small.resize(out_w, out_h, Image.INTERPOLATE_NEAREST)
+	small.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
 
 	# Step 2: precompute LAB centroids for the palette.
 	var lab_palette: Array[Vector3] = []
@@ -43,7 +46,7 @@ static func quantize_to_palette(source: Image, palette: PackedColorArray, out_w:
 static func map_to_indices(source: Image, palette: PackedColorArray, out_w: int = 32, out_h: int = 32) -> PackedInt32Array:
 	assert(source != null and palette.size() > 0)
 	var small := source.duplicate() as Image
-	small.resize(out_w, out_h, Image.INTERPOLATE_NEAREST)
+	small.resize(out_w, out_h, Image.INTERPOLATE_LANCZOS)
 	var lab_palette: Array[Vector3] = []
 	lab_palette.resize(palette.size())
 	for i in palette.size():
