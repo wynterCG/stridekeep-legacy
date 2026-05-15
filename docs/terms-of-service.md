@@ -1,7 +1,7 @@
 # Stridekeep Terms of Service
 
 **Effective date:** May 14, 2026.
-**Last updated:** May 14, 2026.
+**Last updated:** May 16, 2026.
 
 These are the terms of service ("Terms") for **Stridekeep**, a mobile game in which your real-world step count contributes to a shared pixel-art mural. By installing or using Stridekeep, you agree to these Terms. If you don't agree, please don't use the app.
 
@@ -38,7 +38,7 @@ Stridekeep gives you a **pseudonymous user account** the first time you open the
 - Your account is for personal, non-commercial use.
 - You're responsible for keeping your linked email and password (if you set them) confidential.
 - You may not transfer your account, sell access to it, or share it with others as if it were a separate account.
-- You may delete your account at any time — see §8 ("Termination").
+- You may delete your account at any time — see §9 ("Termination").
 
 ## 5. Acceptable use
 
@@ -60,7 +60,15 @@ Stridekeep's in-game items (cases, colours, badges, lifetime stats, etc.) are pa
 
 At present, **Stridekeep does not offer real-money in-app purchases**. If we add purchasable cosmetic items in the future, we'll update these Terms and the Privacy Policy with the relevant payment-processor disclosures and refund policy before that happens.
 
-## 7. Health, safety, and disclaimers
+## 7. Intellectual property
+
+**Our content.** Stridekeep — including the app code, artwork, season murals, badges, sounds, the Stridekeep name and logo, and all other content we create — is owned by us (or our licensors) and protected by copyright, trade-mark, and other intellectual-property laws. We grant you a personal, non-exclusive, non-transferable, revocable licence to install and use the app on your own device for the purpose of playing the game. That licence is conditional on your compliance with these Terms; it ends if your access is terminated under §9.
+
+**Your content.** You retain whatever rights you have in the content you submit to Stridekeep — primarily your **nickname** and your **tile placements**. By submitting that content, you grant us a worldwide, royalty-free, non-exclusive licence to host, display, and reproduce it as part of operating the game (rendering your placements on the team canvas, surfacing your nickname in the live feed, including pseudonymised placements in the persistent season record described in the Privacy Policy §7). This licence is limited to running the game; we do not use your content for marketing or sublicense it to third parties.
+
+**Your warranty.** You confirm that the content you submit (in particular, your chosen nickname) does not infringe any third party's intellectual-property, privacy, or other rights. We may remove or change content that does — see §5 ("Acceptable use") for the nickname-specific rule.
+
+## 8. Health, safety, and disclaimers
 
 Stridekeep encourages walking but is **not a medical or fitness app**.
 
@@ -68,21 +76,21 @@ Stridekeep encourages walking but is **not a medical or fitness app**.
 - **Consult a professional for medical advice.** The app's step counter is informational. If you have a medical condition, talk to a doctor before changing your activity level — don't rely on Stridekeep.
 - **No warranty.** The app is provided **"as is" and "as available"**, without warranty of any kind (express or implied) to the maximum extent permitted by law. We don't promise the app will be uninterrupted, error-free, or that step counts will always be accurate (they're as accurate as Health Connect / HealthKit and your device sensor allow).
 
-Nothing in this section excludes liability that can't be excluded under mandatory local law — see §9.
+Nothing in this section excludes liability that can't be excluded under mandatory local law — see §10.
 
-## 8. Termination
+## 9. Termination
 
 **You can terminate your account at any time** by tapping Settings → Privacy → DELETE MY ACCOUNT inside the app, or by submitting the deletion form at <https://stridekeep.app/delete-account.html> if you've already uninstalled. Deletion is permanent — see the [Privacy Policy](privacy-policy.md) §7 for retention specifics.
 
 **We may suspend or terminate your access** if you materially violate these Terms (for example: persistent step-count automation, abusive nicknames, attempts to disrupt the service). Where reasonable, we'll warn you first; in cases of clear and serious abuse we may act immediately. You can still request data deletion under the Privacy Policy after a termination.
 
-## 9. Limitation of liability
+## 10. Limitation of liability
 
 To the maximum extent permitted by law, our liability for any claim arising out of or relating to Stridekeep is limited to the amount you've paid us in the twelve months preceding the claim. Since Stridekeep is currently free to play, that amount is effectively **zero**.
 
 Nothing in these Terms limits or excludes liability for (a) fraud or fraudulent misrepresentation, (b) death or personal injury caused by our negligence, or (c) any other liability that can't be limited or excluded under mandatory local law (including, where applicable, EU consumer-protection rights).
 
-## 10. Governing law and disputes
+## 11. Governing law and disputes
 
 These Terms are governed by the laws of **the Netherlands**, without regard to its conflict-of-laws rules.
 
@@ -90,11 +98,21 @@ If you are a **consumer in the EU/EEA**, this does not deprive you of the protec
 
 Any other disputes will be brought before the competent courts in the Netherlands.
 
-## 11. Changes to these Terms
+## 12. Changes to these Terms
 
-We may update these Terms from time to time. Material changes will be announced inside the app via a banner or modal before they take effect. The "Last updated" date at the top will reflect the most recent revision. Continuing to use the app after a change is your acceptance of the updated Terms; if you don't agree, you can delete your account at any time (see §8).
+We may update these Terms from time to time. Material changes will be announced inside the app via a banner or modal before they take effect. The "Last updated" date at the top will reflect the most recent revision. Continuing to use the app after a change is your acceptance of the updated Terms; if you don't agree, you can delete your account at any time (see §9).
 
-## 12. Contact
+## 13. General provisions
+
+**Entire agreement.** These Terms, together with the [Privacy Policy](privacy-policy.md), form the complete agreement between you and us about your use of Stridekeep, and supersede any prior understandings on the same subject matter.
+
+**Severability.** If any provision of these Terms is held to be invalid or unenforceable by a court of competent jurisdiction, the remaining provisions stay in full force and effect. Where reasonable, the invalid provision will be interpreted to give effect to its original intent within the bounds of what's enforceable.
+
+**No waiver.** Our failure to enforce any provision of these Terms is not a waiver of our right to enforce it later.
+
+**Assignment.** You may not assign or transfer your rights under these Terms. We may assign or transfer ours (for example, in the event of a corporate restructuring) provided your rights under the Privacy Policy are not materially reduced; we'll announce any such transfer in-app before it takes effect.
+
+## 14. Contact
 
 Questions about these Terms:
 

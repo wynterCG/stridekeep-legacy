@@ -1,7 +1,7 @@
 # Stridekeep Privacy Policy
 
 **Effective date:** May 4, 2026.
-**Last updated:** May 4, 2026.
+**Last updated:** May 16, 2026.
 
 This is the privacy policy for **Stridekeep**, a mobile game in which your real-world step count contributes to a shared pixel-art mural. We take your privacy seriously and want to be specific about what data we collect, why, the legal basis for collecting it, and how it's stored.
 
@@ -110,6 +110,8 @@ You have the right to:
 - **Withdraw consent** to Health Connect access (Article 9(2)(a) GDPR consent) at any time, via your device's Health Connect settings. Doing so does not delete in-game progress already earned.
 
 To exercise any of these rights, email **privacy@stridekeep.app** — or, inside the app, tap **Settings → Privacy → EMAIL PRIVACY TEAM** to compose an email that pre-fills your player ID for us.
+
+**Response time.** We respond to data subject requests within **one month** of receipt, in line with Article 12 GDPR. For complex requests we may extend the response window by up to two further months; if we do, we will tell you within the first month, with the reason. Self-serve in-app deletion (Settings → Privacy → DELETE MY ACCOUNT) is processed immediately and does not require us to respond.
 
 **Self-serve account deletion** is available inside the app: open Settings → Privacy → DELETE MY ACCOUNT, confirm twice, and your account and all data tied to it are removed immediately. If you have already uninstalled the app, you can still request deletion via the web form at [stridekeep.app/delete-account.html](https://stridekeep.app/delete-account.html).
 
