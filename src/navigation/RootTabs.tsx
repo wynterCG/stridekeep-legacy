@@ -4,8 +4,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
 import InventoryScreen from '../screens/InventoryScreen';
+import ShopScreen from '../screens/ShopScreen';
 import IconHome from '../components/icons/IconHome';
 import IconBag from '../components/icons/IconBag';
+import IconShop from '../components/icons/IconShop';
 import TutorialTarget from '../components/TutorialTarget';
 import { useGameStore } from '../store/gameStore';
 import { colors, fonts } from '../theme';
@@ -17,7 +19,7 @@ const Tab = createBottomTabNavigator();
 // — that's what makes the active tab pop on the wood-canyon bottom nav.
 // React-Navigation's default tab label can't show a second line, so we
 // render the icon + both labels ourselves and hide the default label.
-type IconKind = 'home' | 'bag';
+type IconKind = 'home' | 'bag' | 'shop';
 
 // Saturated gold for the active state; moderate brass for inactive.
 // Active pops at-a-glance ("you are here"); inactive stays bright
@@ -33,7 +35,7 @@ function tabRenderer(
 ): (props: { focused: boolean }) => React.JSX.Element {
   return function TabContent({ focused }) {
     const tint = focused ? TAB_ACTIVE_TINT : TAB_INACTIVE_TINT;
-    const Icon = kind === 'home' ? IconHome : IconBag;
+    const Icon = kind === 'home' ? IconHome : kind === 'bag' ? IconBag : IconShop;
     const content = (
       <View style={styles.tabContent}>
         <Icon size={22} color={tint} />
@@ -112,6 +114,11 @@ export default function RootTabs(): React.JSX.Element {
             advanceFlowStep('bottom-inventory');
           },
         }}
+      />
+      <Tab.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={{ tabBarIcon: tabRenderer('SHOP', 'shop') }}
       />
     </Tab.Navigator>
   );

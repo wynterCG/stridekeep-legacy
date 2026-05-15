@@ -5,6 +5,7 @@ import SimulateWalkButton from '../../components/SimulateWalkButton';
 import DevGrantTilesButton from '../../components/DevGrantTilesButton';
 import DevTriggerCeremonyButton from '../../components/DevTriggerCeremonyButton';
 import DevResetTutorialsButton from '../../components/DevResetTutorialsButton';
+import DevPreviewSeasonButton from '../../components/DevPreviewSeasonButton';
 import { colors, fonts, spacing } from '../../theme';
 
 // CASES sub-tab body. Hosts the 3 case cards (fine / quality / starter)
@@ -36,6 +37,7 @@ export default function CasesPanel(): React.JSX.Element {
           <SimulateWalkButton />
           <DevGrantTilesButton />
           <DevTriggerCeremonyButton />
+          <DevPreviewSeasonButton />
           <DevResetTutorialsButton />
         </>
       )}

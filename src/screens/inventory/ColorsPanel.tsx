@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Modal,
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +13,7 @@ import ColorCell from '../../components/ColorCell';
 import EmptyStateIcon from '../../components/EmptyStateIcon';
 import { RarityFrame } from '../../components/RarityName';
 import TutorialTarget from '../../components/TutorialTarget';
+import ColorDetailSheet from '../../components/ColorDetailSheet';
 import { colorRarity, rawNextSellPrice, type Rarity } from '../../data/colors';
 import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
@@ -57,6 +57,8 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   const sellHistory = useGameStore((s) => s.sellHistory);
   const sellTile = useGameStore((s) => s.sellTile);
   const placeTile = useGameStore((s) => s.placeTile);
+  const buyShopTile = useGameStore((s) => s.buyShopTile);
+  const purse = useGameStore((s) => s.purse);
   const setPendingTileFlight = useGameStore((s) => s.setPendingTileFlight);
   const team = useGameStore((s) => s.team);
   const canvasTargetPixels = useGameStore((s) => s.canvasTargetPixels);
@@ -151,166 +153,101 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
         <View style={styles.grid}>
           {paletteEntries.map((color) => {
             const qty = inventory[color.id] ?? 0;
-            const interactive = qty > 0;
+            const owned = qty > 0;
             const rarity = colorRarity(seasonPalette, color.id);
-            const inner = (
-              <>
+            const cellPressable = (
+              <Pressable onPress={() => openSheet(color)} style={styles.cellWrap}>
                 <RarityFrame rarity={rarity}>
-                  <ColorCell color={color} qty={qty} dimmed={qty === 0} size={56} />
+                  <ColorCell color={color} qty={qty} dimmed={!owned} size={56} />
                 </RarityFrame>
                 <Text style={styles.cellName} numberOfLines={1}>
                   {color.name}
                 </Text>
-              </>
+              </Pressable>
             );
-            // Interactive cells get wrapped in a TutorialTarget keyed by
-            // color so the JIT first-case flow's `inv-cell-${colorId}`
-            // step can spotlight only the just-opened tile. Self-gating
-            // means inactive cells incur no cost. The wrapper inherits
-            // the Pressable's bounds — no extra layout style needed.
-            return interactive ? (
+            // Owned cells get wrapped in a TutorialTarget keyed by color
+            // so the JIT first-case flow's `inv-cell-${colorId}` step
+            // can spotlight only the just-opened tile. Self-gating means
+            // unowned cells incur no cost — they're tappable to preview
+            // the color's description regardless of ownership.
+            return owned ? (
               <TutorialTarget key={color.id} targetKey={`inv-cell-${color.id}`}>
-                <Pressable onPress={() => openSheet(color)} style={styles.cellWrap}>
-                  {inner}
-                </Pressable>
+                {cellPressable}
               </TutorialTarget>
             ) : (
-              <View key={color.id} style={styles.cellWrap}>
-                {inner}
-              </View>
+              <React.Fragment key={color.id}>{cellPressable}</React.Fragment>
             );
           })}
         </View>
       )}
 
-      {/* Action sheet (re-mounted from old InventoryScreen). */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={actionFor !== null}
-        onRequestClose={closeSheet}
-      >
-        <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
-          {actionFor && (
-            <Pressable style={styles.sheetCard} onPress={() => {}}>
-              <View style={styles.sheetHeader}>
-                <ColorCell color={actionFor} size={48} qty={inventory[actionFor.id] ?? 0} />
-                <View style={styles.sheetHeaderText}>
-                  <Text style={styles.sheetTitle}>{actionFor.name}</Text>
-                  <Text style={styles.sheetSub}>
-                    {`You have ${inventory[actionFor.id] ?? 0} tiles`}
-                  </Text>
-                </View>
-              </View>
-
-              {actionFor.category === 'case' && (
-                <Pressable
-                  style={styles.sheetAction}
-                  onPress={() => {
-                    sellTile(actionFor.id, 1);
-                    closeSheet();
-                  }}
-                >
-                  <Text style={styles.sheetActionText}>
-                    {`SELL 1 · $${sellPreviewFor(actionFor.id).toLocaleString()}`}
-                  </Text>
-                </Pressable>
-              )}
-
-              <TutorialTarget targetKey={`inv-place-${actionFor.id}`}>
-              <Pressable
-                style={styles.sheetAction}
-                onPress={() => {
-                  const colorId = actionFor.id;
-                  // JIT first-case final step: spotlit PLACE tap advances
-                  // the flow (which also flips firstCaseFlow=true). Fire
-                  // BEFORE the placement code so the tutorial flow flag
-                  // commits even if the placement RPC rejects.
-                  advanceFlowStep(`inv-place-${colorId}`);
-                  if (!canvasTargetPixels) {
-                    Alert.alert('Canvas not ready', 'Try again in a moment.');
-                    return;
-                  }
-                  const candidates: number[] = [];
-                  for (const [k, needs] of Object.entries(canvasTargetPixels)) {
-                    if (needs !== colorId) continue;
-                    const idx = Number(k);
-                    if (!Number.isInteger(idx)) continue;
-                    if (teamFilled[idx]) continue;
-                    candidates.push(idx);
-                  }
-                  candidates.sort((a, b) => a - b);
-                  const targetIdx = candidates.length > 0 ? candidates[0] : null;
-                  if (targetIdx === null) {
-                    Alert.alert(
-                      'No matching pixel',
-                      "Your team's canvas has no unfilled pixels of this color.",
-                    );
-                    return;
-                  }
-                  // Stage the flight tile at screen center BEFORE
-                  // closing the sheet + navigating Home. CanvasPanel's
-                  // hand-off effect resolves the target rect once the
-                  // canvas mounts, then FlightOverlay animates the
-                  // tile to the auto-chosen cell.
-                  setPendingTileFlight({
-                    colorId,
-                    pixelIdx: targetIdx,
-                    target: null,
-                  });
-                  // Force the Mural sub-tab BEFORE navigating Home. The
-                  // JIT first-case flow switches activeSubTab='cases' at
-                  // step 0 and never restores it; without this, jumpTo
-                  // lands on Home but CasesPanel is rendered (not
-                  // CanvasPanel), so the hand-off effect that resolves
-                  // the target cell rect never runs and the centered
-                  // placeholder times out after 1.5s. Same fix applies
-                  // for the manual "user is on Cases / Profile sub-tab
-                  // when they place from inventory" path.
-                  setActiveSubTab('mural');
-                  tapLight();
-                  closeSheet();
-                  setPendingHomeNav(true);
-                  // Fire-and-forget so the flight beat starts
-                  // immediately. placeTile owns optimistic deduct +
-                  // rollback; on RPC failure we surface an Alert and
-                  // clear the dangling centered tile so the user
-                  // doesn't see a stuck overlay.
-                  void placeTile(colorId, targetIdx).then((result) => {
-                    if (!result.ok) {
-                      setPendingTileFlight(null);
-                      Alert.alert(
-                        'Place failed',
-                        placeErrorMessage(result, seasonPalette),
-                      );
-                    }
-                  });
-                }}
-              >
-                <Text style={styles.sheetActionText}>PLACE ON CANVAS</Text>
-              </Pressable>
-              </TutorialTarget>
-
-              {usedAsCraftInput.has(actionFor.id) && (
-                <Pressable
-                  style={styles.sheetAction}
-                  onPress={() => {
-                    const id = actionFor.id;
-                    closeSheet();
-                    onCraftWith(id);
-                  }}
-                >
-                  <Text style={styles.sheetActionText}>CRAFT WITH</Text>
-                </Pressable>
-              )}
-
-              <Pressable style={styles.sheetCancel} onPress={closeSheet}>
-                <Text style={styles.sheetCancelText}>CANCEL</Text>
-              </Pressable>
-            </Pressable>
-          )}
-        </Pressable>
-      </Modal>
+      <ColorDetailSheet
+        color={actionFor}
+        onClose={closeSheet}
+        qty={actionFor ? (inventory[actionFor.id] ?? 0) : 0}
+        purse={purse}
+        sellPreview={actionFor ? sellPreviewFor(actionFor.id) : 0}
+        usedAsCraftInput={actionFor ? usedAsCraftInput.has(actionFor.id) : false}
+        onBuy={actionFor ? () => {
+          buyShopTile(actionFor.id, 1);
+          closeSheet();
+        } : undefined}
+        onSell={actionFor ? () => {
+          sellTile(actionFor.id, 1);
+          closeSheet();
+        } : undefined}
+        onPlace={actionFor ? () => {
+          const colorId = actionFor.id;
+          // JIT first-case final step: spotlit PLACE tap advances
+          // the flow. Fire BEFORE the placement code so the flow
+          // flag commits even if the placement RPC rejects.
+          advanceFlowStep(`inv-place-${colorId}`);
+          if (!canvasTargetPixels) {
+            Alert.alert('Canvas not ready', 'Try again in a moment.');
+            return;
+          }
+          const candidates: number[] = [];
+          for (const [k, needs] of Object.entries(canvasTargetPixels)) {
+            if (needs !== colorId) continue;
+            const idx = Number(k);
+            if (!Number.isInteger(idx)) continue;
+            if (teamFilled[idx]) continue;
+            candidates.push(idx);
+          }
+          candidates.sort((a, b) => a - b);
+          const targetIdx = candidates.length > 0 ? candidates[0] : null;
+          if (targetIdx === null) {
+            Alert.alert(
+              'No matching pixel',
+              "Your team's canvas has no unfilled pixels of this color.",
+            );
+            return;
+          }
+          setPendingTileFlight({ colorId, pixelIdx: targetIdx, target: null });
+          // Force the Mural sub-tab BEFORE navigating Home — same
+          // rationale as the inline version had: CanvasPanel only
+          // mounts on the mural sub-tab and the hand-off effect
+          // needs it to resolve the target cell rect.
+          setActiveSubTab('mural');
+          tapLight();
+          closeSheet();
+          setPendingHomeNav(true);
+          void placeTile(colorId, targetIdx).then((result) => {
+            if (!result.ok) {
+              setPendingTileFlight(null);
+              Alert.alert(
+                'Place failed',
+                placeErrorMessage(result, seasonPalette),
+              );
+            }
+          });
+        } : undefined}
+        onCraftWith={actionFor ? () => {
+          const id = actionFor.id;
+          closeSheet();
+          onCraftWith(id);
+        } : undefined}
+      />
     </ScrollView>
   );
 }
@@ -413,11 +350,31 @@ const styles = StyleSheet.create({
     color: colors.text.cream,
     letterSpacing: 0.5,
   },
+  sheetCode: {
+    fontFamily: fonts.outfitRegular,
+    fontSize: 10,
+    color: colors.text.dim,
+    letterSpacing: 1,
+    marginTop: 1,
+  },
+  sheetObtainment: {
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 10,
+    color: colors.text.secondary,
+    letterSpacing: 1.5,
+    marginTop: 6,
+  },
+  sheetObtainmentShop: {
+    // Brass-tinted obtainment line for shop-only colors — flags the
+    // "$ to buy" path so the player doesn't keep waiting for it to drop
+    // from a case it can't drop from.
+    color: colors.accent.brass,
+  },
   sheetSub: {
     fontFamily: fonts.outfitRegular,
     fontSize: 11,
     color: colors.text.muted,
-    marginTop: 2,
+    marginTop: 4,
   },
   sheetAction: {
     paddingVertical: 12,
@@ -428,12 +385,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginTop: 6,
   },
+  sheetActionDisabled: {
+    backgroundColor: colors.ui.buttonDisabled,
+    borderColor: colors.ui.buttonDisabled,
+  },
   sheetActionText: {
     fontFamily: fonts.outfitExtraBold,
     fontSize: 13,
     color: colors.text.cream,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
+  },
+  sheetActionTextDisabled: {
+    color: colors.text.muted,
   },
   sheetCancel: {
     marginTop: spacing.sm,

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -8,7 +8,9 @@ import {
 } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import ColorCell from '../../components/ColorCell';
+import ColorDetailSheet from '../../components/ColorDetailSheet';
 import { colors, fonts, spacing } from '../../theme';
+import type { ColorDef } from '../../types';
 
 interface Props {
   // Optional pre-filter (set when player tapped CRAFT WITH on a kept
@@ -32,6 +34,14 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
   const recipes = useGameStore((s) => s.seasonCraftRecipes);
   const inventory = useGameStore((s) => s.inventory);
   const craftTile = useGameStore((s) => s.craftTile);
+  const purse = useGameStore((s) => s.purse);
+  const buyShopTile = useGameStore((s) => s.buyShopTile);
+
+  // Tap-to-preview color detail sheet. Tapping any recipe input or
+  // output swatch shows the obtainment line + BUY (if shop) — the same
+  // sheet used in the Inventory COLORS sub-tab + the SHOP tab so the
+  // interaction is consistent across the app.
+  const [detailFor, setDetailFor] = useState<ColorDef | null>(null);
 
   const recipeList = useMemo(() => {
     if (!recipes) return [];
@@ -78,23 +88,33 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
                     const have = inventory[inputId] ?? 0;
                     const ok = have >= qty;
                     return (
-                      <View key={inputId} style={styles.inputCell}>
+                      <Pressable
+                        key={inputId}
+                        style={styles.inputCell}
+                        onPress={() => {
+                          if (inputDef) setDetailFor(inputDef);
+                        }}
+                        disabled={!inputDef}
+                      >
                         {inputDef && (
                           <ColorCell color={inputDef} size={28} qty={undefined} showCode={false} />
                         )}
                         <Text style={[styles.inputQty, ok ? styles.qtyOk : styles.qtyMissing]}>
                           {`${have}/${qty}`}
                         </Text>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
 
                 <Text style={styles.arrow}>→</Text>
 
-                <View style={styles.outputBlock}>
+                <Pressable
+                  style={styles.outputBlock}
+                  onPress={() => setDetailFor(outputDef)}
+                >
                   <ColorCell color={outputDef} size={36} qty={undefined} />
-                </View>
+                </Pressable>
               </View>
 
               <View style={styles.footer}>
@@ -126,6 +146,16 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
           );
         })
       )}
+      <ColorDetailSheet
+        color={detailFor}
+        onClose={() => setDetailFor(null)}
+        qty={detailFor ? (inventory[detailFor.id] ?? 0) : 0}
+        purse={purse}
+        onBuy={detailFor ? () => {
+          buyShopTile(detailFor.id, 1);
+          setDetailFor(null);
+        } : undefined}
+      />
     </ScrollView>
   );
 }

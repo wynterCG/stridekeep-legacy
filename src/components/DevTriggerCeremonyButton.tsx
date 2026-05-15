@@ -2,8 +2,29 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { loadSeasonEndSnapshot } from '../lib/seasonEnd';
+import { supabase } from '../lib/supabase';
 import type { SeasonEndSnapshot, Team } from '../types';
 import { colors, fonts, radii, spacing } from '../theme';
+
+// Look up the smallest-numbered season > current. With season 2+ now
+// being seeded ahead of rollover, this is what should appear in the
+// ceremony's "Next up" preview — the same row that production rollover
+// would promote. Returns null if no queued season exists (we then fall
+// back to passing current-as-next for UI-standalone testing).
+async function findQueuedNextSeasonNumber(
+  currentSeasonNumber: number,
+): Promise<number | null> {
+  const { data } = await supabase
+    .from('seasons')
+    .select('number')
+    .gt('number', currentSeasonNumber)
+    .order('number', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const n = Number(data.number);
+  return Number.isFinite(n) ? n : null;
+}
 
 type Variant = 'win' | 'lose' | 'tie' | 'noqueue';
 
@@ -36,15 +57,21 @@ export default function DevTriggerCeremonyButton(): React.JSX.Element {
 
     // Build the real snapshot for the current season — fetches both
     // teams' canvas_pixels, real palette + target_pixels, real
-    // my_contribution_count. Passing seasonNumber as both prev AND new
-    // means the "Next up" preview shows the same mural (clearly fake
-    // for dev — easier than seeding a queued season).
+    // my_contribution_count. For the "next up" preview, look up the
+    // actual queued next-season row (e.g. Mistfall when current is
+    // Wine Canyon). Falls back to the current season as new if no
+    // queued mural exists — keeps the UI testable when only one season
+    // has been seeded.
+    let nextSeasonNumber: number | null;
+    if (noQueue) {
+      nextSeasonNumber = null;
+    } else {
+      const queued = await findQueuedNextSeasonNumber(seasonNumber);
+      nextSeasonNumber = queued ?? seasonNumber;
+    }
     let baseSnap: SeasonEndSnapshot;
     try {
-      baseSnap = await loadSeasonEndSnapshot(
-        seasonNumber,
-        noQueue ? null : seasonNumber,
-      );
+      baseSnap = await loadSeasonEndSnapshot(seasonNumber, nextSeasonNumber);
     } catch (err) {
       console.warn('[stridekeep] dev ceremony snapshot failed:', err);
       return;
