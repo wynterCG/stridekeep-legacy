@@ -284,78 +284,64 @@ This single change is the difference between "okay" extracted palettes and "grea
 
 Always pass `seed = 42` (or any constant) to `RandomNumberGenerator`. Same input image → same palette. Required for testing, debugging, and the "I want to regenerate this exact mural's palette" workflow.
 
-## 8. Color naming (generic perceptual)
+## 8. Color naming (LAB nearest-anchor)
 
-`color_naming.gd` produces a descriptive starting-point name from any RGB value. **No thematic lexicon, no curated word list.** The label describes what the color *is* in plain language, not what it *represents* in any genre.
+`color_naming.gd` produces a descriptive starting-point name from any RGB value by finding the nearest entry in a fixed table of ~50 named **anchor colors** in CIELAB space, then optionally prepending a `dark`/`light`/`muted` modifier when the input is meaningfully far from the anchor's representative L\* or chroma.
 
-Algorithm:
+**No thematic lexicon, no curated word list.** The anchor names are generic perceptual descriptors (red, teal, sage, slate, rust, ...) — the same words people use when they describe a color out loud. They're not theme-specific; "rust" describes a hue+chroma, not a setting.
+
+Algorithm sketch:
 
 ```gdscript
 class_name ColorNaming extends RefCounted
 
-# Returns a generic perceptual label like "deep red", "muted teal", "warm gold"
+const ANCHORS := [
+    {"name": "red",    "hex": 0xc03030},
+    {"name": "teal",   "hex": 0x2e8a88},
+    {"name": "slate",  "hex": 0x607080},
+    {"name": "sage",   "hex": 0x9aae88},
+    # ~50 entries spanning the gamut across multiple L* levels.
+    # See scripts/color_naming.gd for the full list.
+]
+
 static func suggest(c: Color) -> String:
-    var hsl = _to_hsl(c)
-    var h = hsl.x  # 0-360 hue
-    var s = hsl.y  # 0-1 saturation
-    var l = hsl.z  # 0-1 lightness
-
-    # Lightness modifier
-    var lightness_mod := ""
-    if l < 0.20: lightness_mod = "very dark "
-    elif l < 0.40: lightness_mod = "dark "
-    elif l > 0.80: lightness_mod = "very light "
-    elif l > 0.65: lightness_mod = "light "
-
-    # Saturation modifier
-    var sat_mod := ""
-    if s < 0.10: return lightness_mod + _gray_label(l)  # very low sat = grays
-    elif s < 0.30: sat_mod = "muted "
-    elif s > 0.80: sat_mod = "vivid "
-
-    # Hue label
-    var hue_label := _hue_to_label(h)
-
-    return (lightness_mod + sat_mod + hue_label).strip_edges()
-
-static func _hue_to_label(h: float) -> String:
-    # 12 hue buckets at 30° intervals
-    if h < 15.0 or h >= 345.0: return "red"
-    elif h < 45.0:  return "warm orange"
-    elif h < 75.0:  return "orange"
-    elif h < 105.0: return "yellow"
-    elif h < 135.0: return "yellow-green"
-    elif h < 165.0: return "green"
-    elif h < 195.0: return "teal"
-    elif h < 225.0: return "cyan"
-    elif h < 255.0: return "blue"
-    elif h < 285.0: return "indigo"
-    elif h < 315.0: return "purple"
-    else: return "magenta"
-
-static func _gray_label(l: float) -> String:
-    if l < 0.15: return "black"
-    elif l < 0.30: return "charcoal"
-    elif l < 0.50: return "dark gray"
-    elif l < 0.70: return "gray"
-    elif l < 0.85: return "light gray"
-    else: return "off-white"
+    # 1. Convert input to CIELAB.
+    # 2. Find argmin over anchors of LAB squared distance.
+    # 3. If the anchor is a pure neutral (white/bone/ash/gray/charcoal/black),
+    #    return as-is — six gray steps already span the lightness range.
+    # 4. If input chroma << anchor chroma (< 55%): prepend "muted ".
+    # 5. If |L*_in - L*_anchor| >= 11: prepend "dark "/"light "
+    #    (>= 22 → "very dark "/"very light ").
+    # 6. Else return the anchor name unchanged.
 ```
 
 Output examples:
-- `#8c3b2a` → `"dark red"`
-- `#476b86` → `"muted blue"`
-- `#eae3d0` → `"very light yellow"` (rename to "Bone" or "Cream" during curation)
-- `#ff66cc` → `"vivid magenta"`
+- `#8c3b2a` → `"rust"`
+- `#476b86` → `"steel"`
+- `#eae3d0` → `"bone"` (rename to "Cream" or "Linen" during curation)
+- `#ff66cc` → `"pink"`
 - `#222222` → `"charcoal"`
+- `#2e8a88` → `"teal"`
+- `#306066` → `"dark teal"`
 
-The names are intentionally bland. They tell you *what hue* without committing to a theme. Always overwritten during curation — the suggestion just removes the "stare at a blank field for 5 seconds" friction.
+### Why this replaced the HSL-bucket version
 
-About 100 lines of code total. No data file. Works for cyberpunk, natural, abstract, architectural — any theme — because it describes the color, not the genre.
+The original implementation classified hue into 12 fixed 30° wedges in HSL (`red`, `warm orange`, `orange`, `yellow`, ..., `teal`, `cyan`, ...). It had two structural problems:
+
+1. **Arbitrary boundaries.** A perceptually-teal color sitting at H=196° got labeled `cyan` while its H=194° neighbor got `teal` — visually identical, opposite labels. The H=195° teal/cyan line was the worst offender on the cool side; H=165° green/teal was nearly as bad.
+2. **Wrong color space.** HSL hue is not perceptually uniform, so equal hue intervals don't correspond to equal "perceived hue" steps. Labels clustered weirdly around the red and yellow regions where the eye is most sensitive.
+
+The LAB anchor approach uses the same CIELAB metric k-means clusters in, so the names match the way the centroids were grouped in the first place. Anchor density is highest in the teal/cyan/sage region — exactly where the HSL classifier was worst.
+
+### Anti-pattern boundary
+
+This is still NOT a thematic lexicon (per §10). The anchor names are everyday perceptual color words from the design vocabulary — `slate`, `sage`, `amber`, `coral` — not theme-specific adjectives (`Verdigris`, `Crimson Madder`, `Neon Plasma`). The line: an anchor name has to make sense as the answer to "what color is this?" said to any literate adult. If it needs context to interpret, it doesn't belong.
+
+Always overwritten during curation — the suggestion just removes the "stare at a blank field for 5 seconds" friction.
 
 ### Auto-name dedup at extraction time
 
-The perceptual labeler is intentionally coarse (12 hue buckets, 4 lightness modifiers, 3 saturation modifiers — ~144 distinct labels max). On real murals with warm-gradient or monochromatic regions, multiple extracted centroids land in the same bucket and produce identical names — e.g. a sunset-canyon palette routinely yields three "red" entries, two "light vivid warm orange", etc. After slugification these all map to the same color id and the validation collision rule fires on first paint.
+The perceptual labeler covers ~50 anchors × 6 modifier states (none, muted, dark, very dark, light, very light) ≈ 300 distinct labels. On real murals with warm-gradient or monochromatic regions, multiple extracted centroids still land near the same anchor with the same modifier and produce identical names — e.g. a sunset-canyon palette routinely yields three "rust" entries, two "dark amber", etc. After slugification these collide on color id and the validation collision rule fires on first paint.
 
 `main.gd._populate_palette_rows` deduplicates by appending `2`, `3`, ... to repeats: the first "red" stays `red`, the next becomes `red 2`, then `red 3`. The numeric suffix is a placeholder, not a constraint — the user is still expected to rename semantically (e.g. `sandstone_red`, `ember_red`, `clay_pink`) during curation. The dedup only ensures the **initial** Validate doesn't reject the palette before the user has had a chance to look at it. This was added after a 3-mural §13 ship-checklist run where every palette had 1-3 collision pairs that the user had to manually disambiguate before Validate would pass — measurably annoying friction without the dedup.
 

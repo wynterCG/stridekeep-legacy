@@ -1,92 +1,177 @@
 class_name ColorNaming extends RefCounted
 
-# Stridekeep Mural Prep — Slice 1
-# Generic perceptual color naming. No thematic lexicon, no data file.
-# Produces descriptive starting-point names like "deep red", "muted teal",
-# "warm gold". Always overwritten by the user during curation.
+# Stridekeep Mural Prep — color naming (LAB nearest-anchor edition).
 #
-# See SKILL.md §8.
+# Produces a generic perceptual label by finding the nearest entry in a
+# fixed table of ~50 named anchor colors in CIELAB space, then optionally
+# prepending a "dark"/"light"/"muted" modifier when the input is far from
+# the anchor's representative L* or chroma.
+#
+# Replaces the original 12-hue-bucket HSL classifier. The old algorithm's
+# arbitrary boundaries (e.g. H=195° between "teal" and "cyan") meant
+# perceptually-adjacent colors got opposite labels; this version uses the
+# same CIELAB metric k-means uses, so the labels match how the centroids
+# were clustered in the first place.
+#
+# Anchors are generic perceptual color words (red, teal, sage, slate,
+# rust, ...) — NOT a thematic lexicon (per SKILL.md §10). They cover the
+# common color space at enough lightness/chroma levels that modifiers
+# rarely fire; when they do fire it's because the input genuinely sits
+# between anchors.
+#
+# Labels are still always overwritten by the user during curation. The
+# suggestion just removes the blank-field friction.
+
+const KMeansLib := preload("res://scripts/kmeans.gd")
+
+# ---- Anchor table ------------------------------------------------------------
+# Each entry: {name, hex}. Hex is parsed once and the LAB conversion is
+# cached lazily on first call. Names are deliberately one-or-two-word
+# generic descriptors — no thematic adjectives.
+const ANCHORS := [
+	# Reds
+	{"name": "red",         "hex": 0xc03030},
+	{"name": "crimson",     "hex": 0xa01818},
+	{"name": "maroon",      "hex": 0x5a1414},
+	{"name": "salmon",      "hex": 0xe89080},
+	{"name": "coral",       "hex": 0xe07a52},
+	# Oranges & warm browns
+	{"name": "orange",      "hex": 0xe07f2a},
+	{"name": "peach",       "hex": 0xf4b888},
+	{"name": "amber",       "hex": 0xc8862e},
+	{"name": "rust",        "hex": 0x8e4823},
+	{"name": "tan",         "hex": 0xb89070},
+	{"name": "brown",       "hex": 0x6e4828},
+	{"name": "chocolate",   "hex": 0x4a2e1a},
+	{"name": "beige",       "hex": 0xd8c4a0},
+	{"name": "sand",        "hex": 0xd8c088},
+	{"name": "khaki",       "hex": 0xbcaa70},
+	# Yellows
+	{"name": "cream",       "hex": 0xf0e4c0},
+	{"name": "yellow",      "hex": 0xe8c828},
+	{"name": "gold",        "hex": 0xd8a828},
+	{"name": "mustard",     "hex": 0xb89020},
+	# Greens (spread across L*)
+	{"name": "olive",       "hex": 0x5e5a28},
+	{"name": "lime",        "hex": 0x88c828},
+	{"name": "chartreuse",  "hex": 0xbcd84a},
+	{"name": "sage",        "hex": 0x9aae88},
+	{"name": "mint",        "hex": 0xa8dab0},
+	{"name": "green",       "hex": 0x4a8838},
+	{"name": "forest",      "hex": 0x2a5e2a},
+	{"name": "pine",        "hex": 0x1e3e1e},
+	{"name": "emerald",     "hex": 0x2e8e48},
+	{"name": "jade",        "hex": 0x4a9878},
+	# Teals & cyans (extra density here — old HSL classifier was worst around H=195°)
+	{"name": "teal",        "hex": 0x2e8a88},
+	{"name": "seafoam",     "hex": 0x88c8b8},
+	{"name": "turquoise",   "hex": 0x38c8c0},
+	{"name": "cyan",        "hex": 0x4ab8d8},
+	{"name": "aqua",        "hex": 0x80d8d8},
+	# Blues
+	{"name": "sky",         "hex": 0x80b8d8},
+	{"name": "slate",       "hex": 0x607080},
+	{"name": "steel",       "hex": 0x486080},
+	{"name": "blue",        "hex": 0x3868b8},
+	{"name": "cobalt",      "hex": 0x1e48a8},
+	{"name": "navy",        "hex": 0x14264e},
+	# Purples
+	{"name": "indigo",      "hex": 0x3838a8},
+	{"name": "violet",      "hex": 0x8838b8},
+	{"name": "purple",      "hex": 0x6028a0},
+	{"name": "lavender",    "hex": 0xb0a0d0},
+	{"name": "plum",        "hex": 0x6a2a5a},
+	# Pinks & magentas
+	{"name": "magenta",     "hex": 0xb038a8},
+	{"name": "pink",        "hex": 0xd88fb0},
+	{"name": "rose",        "hex": 0xd86090},
+	# Neutrals (six L* steps — keeps low-chroma inputs from getting hue labels)
+	{"name": "white",       "hex": 0xf0f0f0},
+	{"name": "bone",        "hex": 0xdcd8cc},
+	{"name": "ash",         "hex": 0xb0b0b0},
+	{"name": "gray",        "hex": 0x808080},
+	{"name": "charcoal",    "hex": 0x444444},
+	{"name": "black",       "hex": 0x1a1a1a},
+]
+
+# Cache: LAB Vector3 per anchor, populated on first call. Kept as a
+# static var on the script-class so it survives across suggest() calls
+# without recomputing 53 sRGB→LAB transforms every time.
+static var _anchor_labs: Array[Vector3] = []
+static var _anchor_chromas: PackedFloat32Array = PackedFloat32Array()
+# Set of anchor names that are pure neutrals — modifiers are suppressed
+# for these because "dark white" or "muted gray" reads as nonsense.
+const _NEUTRAL_NAMES := ["white", "bone", "ash", "gray", "charcoal", "black"]
 
 # ---- Public API --------------------------------------------------------------
 
 static func suggest(c: Color) -> String:
-	var hsl := _to_hsl(c)
-	var h := hsl.x  # 0-360
-	var s := hsl.y  # 0-1
-	var l := hsl.z  # 0-1
+	_ensure_anchor_cache()
+	var in_lab := KMeansLib.rgb_to_lab(c)
+	var in_chroma := sqrt(in_lab.y * in_lab.y + in_lab.z * in_lab.z)
 
-	var lightness_mod := ""
-	if l < 0.20:
-		lightness_mod = "very dark "
-	elif l < 0.40:
-		lightness_mod = "dark "
-	elif l > 0.80:
-		lightness_mod = "very light "
-	elif l > 0.65:
-		lightness_mod = "light "
+	# Find the LAB-nearest anchor. Squared distance suffices for argmin.
+	var best_idx := 0
+	var best_d := _sq_dist(in_lab, _anchor_labs[0])
+	for i in range(1, _anchor_labs.size()):
+		var d := _sq_dist(in_lab, _anchor_labs[i])
+		if d < best_d:
+			best_d = d
+			best_idx = i
 
-	# Very low saturation: render as a gray, no hue label.
-	if s < 0.10:
-		return (lightness_mod + _gray_label(l)).strip_edges()
+	var anchor: Dictionary = ANCHORS[best_idx]
+	var anchor_name: String = anchor.name
+	var anchor_lab: Vector3 = _anchor_labs[best_idx]
+	var anchor_chroma: float = _anchor_chromas[best_idx]
 
-	var sat_mod := ""
-	if s < 0.30:
-		sat_mod = "muted "
-	elif s > 0.80:
-		sat_mod = "vivid "
+	# Pure-neutral anchors get returned as-is. Six gray steps give enough
+	# resolution that the nearest match is the right shade without need-
+	# ing prefixes like "very dark gray".
+	if anchor_name in _NEUTRAL_NAMES:
+		return anchor_name
 
-	var hue_label := _hue_to_label(h)
-	return (lightness_mod + sat_mod + hue_label).strip_edges()
+	# "muted" — input is significantly more desaturated than the anchor.
+	# Threshold chosen so a clearly-greyed version of "teal" reads as
+	# "muted teal", but a slightly-greyed teal stays just "teal".
+	if anchor_chroma >= 18.0 and in_chroma < anchor_chroma * 0.55:
+		return "muted " + anchor_name
 
-# ---- HSL conversion (returns Vector3 with x=hue 0-360, y=sat 0-1, z=light 0-1)
+	# Lightness offsets relative to the anchor's L*. CIELAB L* is 0-100,
+	# so a 12-point delta is ~12% perceptual lightness — about the small-
+	# est step that reads as "noticeably darker/lighter" to the eye.
+	var dL := in_lab.x - anchor_lab.x
+	if dL <= -22.0:
+		return "very dark " + anchor_name
+	if dL <= -11.0:
+		return "dark " + anchor_name
+	if dL >= 22.0:
+		return "very light " + anchor_name
+	if dL >= 11.0:
+		return "light " + anchor_name
 
-static func _to_hsl(c: Color) -> Vector3:
-	var r: float = c.r
-	var g: float = c.g
-	var b: float = c.b
-	var max_c: float = maxf(r, maxf(g, b))
-	var min_c: float = minf(r, minf(g, b))
-	var l: float = (max_c + min_c) * 0.5
-	var s: float = 0.0
-	var h: float = 0.0
-	if not is_equal_approx(max_c, min_c):
-		var d: float = max_c - min_c
-		if l > 0.5:
-			s = d / (2.0 - max_c - min_c)
-		else:
-			s = d / (max_c + min_c)
-		if max_c == r:
-			h = fmod((g - b) / d, 6.0)
-		elif max_c == g:
-			h = (b - r) / d + 2.0
-		else:
-			h = (r - g) / d + 4.0
-		h *= 60.0
-		if h < 0.0:
-			h += 360.0
-	return Vector3(h, s, l)
+	return anchor_name
 
-# ---- Hue / gray labels -------------------------------------------------------
+# ---- Cache ------------------------------------------------------------------
 
-static func _hue_to_label(h: float) -> String:
-	# 12 hue buckets at 30° intervals
-	if h < 15.0 or h >= 345.0: return "red"
-	elif h < 45.0:  return "warm orange"
-	elif h < 75.0:  return "orange"
-	elif h < 105.0: return "yellow"
-	elif h < 135.0: return "yellow-green"
-	elif h < 165.0: return "green"
-	elif h < 195.0: return "teal"
-	elif h < 225.0: return "cyan"
-	elif h < 255.0: return "blue"
-	elif h < 285.0: return "indigo"
-	elif h < 315.0: return "purple"
-	else: return "magenta"
+static func _ensure_anchor_cache() -> void:
+	if not _anchor_labs.is_empty():
+		return
+	_anchor_labs.resize(ANCHORS.size())
+	_anchor_chromas.resize(ANCHORS.size())
+	for i in ANCHORS.size():
+		var rgb := _hex_to_color(ANCHORS[i].hex)
+		var lab := KMeansLib.rgb_to_lab(rgb)
+		_anchor_labs[i] = lab
+		_anchor_chromas[i] = sqrt(lab.y * lab.y + lab.z * lab.z)
 
-static func _gray_label(l: float) -> String:
-	if l < 0.15: return "black"
-	elif l < 0.30: return "charcoal"
-	elif l < 0.50: return "dark gray"
-	elif l < 0.70: return "gray"
-	elif l < 0.85: return "light gray"
-	else: return "off-white"
+static func _hex_to_color(hex: int) -> Color:
+	var r := ((hex >> 16) & 0xff) / 255.0
+	var g := ((hex >> 8) & 0xff) / 255.0
+	var b := (hex & 0xff) / 255.0
+	return Color(r, g, b, 1.0)
+
+static func _sq_dist(a: Vector3, b: Vector3) -> float:
+	var dx := a.x - b.x
+	var dy := a.y - b.y
+	var dz := a.z - b.z
+	return dx * dx + dy * dy + dz * dz
