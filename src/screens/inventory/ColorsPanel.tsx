@@ -17,6 +17,7 @@ import ColorDetailSheet from '../../components/ColorDetailSheet';
 import { colorRarity, rawNextSellPrice, type Rarity } from '../../data/colors';
 import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
+import { sfx } from '../../lib/sounds';
 import { todayKey } from '../../native/healthConnect';
 import { colors, fonts, spacing } from '../../theme';
 import type { ColorDef } from '../../types';
@@ -203,6 +204,7 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
           // flag commits even if the placement RPC rejects.
           advanceFlowStep(`inv-place-${colorId}`);
           if (!canvasTargetPixels) {
+            sfx.errorBuzz();
             Alert.alert('Canvas not ready', 'Try again in a moment.');
             return;
           }
@@ -217,6 +219,7 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
           candidates.sort((a, b) => a - b);
           const targetIdx = candidates.length > 0 ? candidates[0] : null;
           if (targetIdx === null) {
+            sfx.errorBuzz();
             Alert.alert(
               'No matching pixel',
               "Your team's canvas has no unfilled pixels of this color.",
@@ -230,11 +233,13 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
           // needs it to resolve the target cell rect.
           setActiveSubTab('mural');
           tapLight();
+          sfx.tilePlace();
           closeSheet();
           setPendingHomeNav(true);
           void placeTile(colorId, targetIdx).then((result) => {
             if (!result.ok) {
               setPendingTileFlight(null);
+              sfx.errorBuzz();
               Alert.alert(
                 'Place failed',
                 placeErrorMessage(result, seasonPalette),

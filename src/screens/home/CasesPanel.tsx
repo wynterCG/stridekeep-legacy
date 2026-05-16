@@ -6,6 +6,7 @@ import DevGrantTilesButton from '../../components/DevGrantTilesButton';
 import DevTriggerCeremonyButton from '../../components/DevTriggerCeremonyButton';
 import DevResetTutorialsButton from '../../components/DevResetTutorialsButton';
 import DevPreviewSeasonButton from '../../components/DevPreviewSeasonButton';
+import DevAudioTunerButton from '../../components/DevAudioTunerButton';
 import { colors, fonts, spacing } from '../../theme';
 
 // CASES sub-tab body. Hosts the 3 case cards (fine / quality / starter)
@@ -32,15 +33,16 @@ export default function CasesPanel(): React.JSX.Element {
       <CaseCard tier="fine" />
       <CaseCard tier="quality" />
       <CaseCard tier="starter" />
-      {__DEV__ && (
-        <>
-          <SimulateWalkButton />
-          <DevGrantTilesButton />
-          <DevTriggerCeremonyButton />
-          <DevPreviewSeasonButton />
-          <DevResetTutorialsButton />
-        </>
-      )}
+      {/* DEV BUTTONS — temporarily ungated for sound-effect testing.
+          RE-GATE WITH `{__DEV__ && (...)}` BEFORE THE NEXT PLAY STORE
+          BUILD so testers can't grant themselves free inventory or
+          trigger ceremonies from a release APK. */}
+      <SimulateWalkButton />
+      <DevGrantTilesButton />
+      <DevTriggerCeremonyButton />
+      <DevPreviewSeasonButton />
+      <DevResetTutorialsButton />
+      <DevAudioTunerButton />
     </ScrollView>
   );
 }

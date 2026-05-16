@@ -30,6 +30,7 @@ import {
   isBootstrapInFlight,
 } from './src/lib/bootstrap';
 import { useSeasonEndWatcher } from './src/hooks/useSeasonEndWatcher';
+import { applyMusicVolume, initAudioMode, preloadSfx, startMusic, stopMusic } from './src/lib/sounds';
 
 const BOT_TICK_MS = 4_000;
 
@@ -70,6 +71,67 @@ export default function App(): React.JSX.Element | null {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
+
+  // One-shot iOS audio-session + Android ducking config plus eager
+  // preload of all sfx clips. Preloading during the splash window
+  // means the first OPEN tap / first tile place / first ceremony
+  // mount plays instantly — without it, expo-av decodes on the JS
+  // thread at fire time and adds 100-300 ms of perceptible delay.
+  // Sequential await: audio mode must be configured before any Sound
+  // is created or the iOS silent switch / Android ducking won't apply
+  // to the preloaded clips.
+  useEffect(() => {
+    void (async () => {
+      await initAudioMode();
+      await preloadSfx();
+    })();
+  }, []);
+
+  // Background music lifecycle. Two inputs:
+  //   1. AppState — active → start, background/inactive → stop.
+  //      Without this, BGM bleeds into other apps when you swipe away
+  //      from Stridekeep, which is hostile UX for a casual game.
+  //   2. musicEnabled — store toggle. Subscribe via zustand's vanilla
+  //      .subscribe so we react to the flip without re-running this
+  //      whole effect on every unrelated store update.
+  // The startMusic() / stopMusic() helpers are idempotent + gated on
+  // the store flag, so calling start while disabled is a safe no-op.
+  useEffect(() => {
+    // Initial start if hydration already brought musicEnabled = true.
+    // If hydration hasn't completed yet, the toggle defaults to true
+    // in initialState — startMusic() reads the live store value, so
+    // disabling the toggle in persisted state pre-hydration is the
+    // only edge that could play one frame of BGM. The cost (≤200 ms
+    // of music for a returning user who disabled it) isn't worth a
+    // hydration gate; matches how SFX behaves.
+    void startMusic();
+
+    const appStateSub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') void startMusic();
+      else void stopMusic();
+    });
+
+    const unsubStore = useGameStore.subscribe((state, prevState) => {
+      if (state.musicEnabled !== prevState.musicEnabled) {
+        if (state.musicEnabled) void startMusic();
+        else void stopMusic();
+      }
+      // Live BGM volume update — dragging the slider in the dev
+      // tuner changes the volume immediately without restart.
+      if (state.musicVolume !== prevState.musicVolume) {
+        void applyMusicVolume(state.musicVolume);
+      }
+    });
+
+    return () => {
+      appStateSub.remove();
+      unsubStore();
+      // Don't stopMusic() in cleanup — App.tsx mounts once for the
+      // app's lifetime; the only time this effect tears down is on a
+      // hot reload where the next mount immediately restarts the
+      // music. Calling stop here would just add a 100 ms gap.
+    };
+  }, []);
 
   useEffect(() => {
     // The cancelled flag stops `applyRealSteps` from firing after unmount, but

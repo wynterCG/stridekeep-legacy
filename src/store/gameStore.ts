@@ -267,6 +267,33 @@ interface GameState {
     seasonEndingSoon: boolean;
     teamActivity: boolean;
   };
+  // Gameplay sound effects — case opens, tile placements, ceremony.
+  // Default true; UI taps stay silent regardless because we never wired
+  // sfx into them (haptics cover those moments). Read at fire time
+  // inside lib/sounds.ts so a mid-session toggle takes effect with no
+  // app restart.
+  soundEnabled: boolean;
+  // Background music loop. Default true. Independent of soundEnabled
+  // so a player can have ambient music without SFX, or SFX without
+  // music — the standard mobile-game split. App.tsx watches this and
+  // starts/stops the loop in lockstep with AppState transitions.
+  musicEnabled: boolean;
+  // Per-clip mix levels (0.0 – 1.0). Dev-tunable via the AUDIO TUNER
+  // dev button; once the player-acceptable defaults are locked, these
+  // values get baked into initialState below and the dev UI removed.
+  // SFX keys mirror sfx.* fn names in lib/sounds.ts so the play()
+  // path can read directly without a name map. Music volume is
+  // applied on every BGM start + via a store-subscriber in App.tsx
+  // for live drag-to-update.
+  sfxVolumes: {
+    caseOpenStarter: number;
+    caseOpenQuality: number;
+    caseOpenFine: number;
+    tilePlace: number;
+    ceremonyCelebrate: number;
+    errorBuzz: number;
+  };
+  musicVolume: number;
   // Persisted. True after the player has either DONE'd or SKIP'd the
   // Persistent one-shot flags for the tutorial system. Replaces the old
   // single `tutorialCompleted` boolean. Each entry is a tutorial flow that
@@ -402,6 +429,10 @@ interface GameActions {
     key: keyof GameState['notificationPrefs'],
     value: boolean,
   ) => void;
+  setSoundEnabled: (enabled: boolean) => void;
+  setMusicEnabled: (enabled: boolean) => void;
+  setSfxVolume: (key: keyof GameState['sfxVolumes'], value: number) => void;
+  setMusicVolume: (value: number) => void;
   // Tutorial controls. See GameState's tutorial* fields for semantics.
   // Onboarding (2-card welcome modal):
   startOnboarding: () => void;
@@ -493,6 +524,22 @@ const initialState: GameState = {
     seasonEndingSoon: true,
     teamActivity: true,
   },
+  soundEnabled: true,
+  musicEnabled: true,
+  // Mix locked 2026-05-16 via the dev AUDIO TUNER. Tuned against the
+  // 320 kbps SFX + 320 kbps BGM. errorBuzz at 1.00 because the WAV is
+  // already gentle; the case-open clips ride at 0.50 so they don't
+  // clip on the rare-fine flash overlap; ceremony at 0.80 lets the
+  // fanfare punch over the BGM duck.
+  sfxVolumes: {
+    caseOpenStarter: 0.5,
+    caseOpenQuality: 0.5,
+    caseOpenFine: 0.5,
+    tilePlace: 0.5,
+    ceremonyCelebrate: 0.8,
+    errorBuzz: 1.0,
+  },
+  musicVolume: 0.65,
   tutorialFlags: {
     onboarding: false,
     firstCaseFlow: false,
@@ -942,6 +989,21 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({
           notificationPrefs: { ...s.notificationPrefs, [key]: value },
         })),
+
+      setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
+
+      setMusicEnabled: (enabled) => set({ musicEnabled: enabled }),
+
+      setSfxVolume: (key, value) =>
+        set((s) => ({
+          sfxVolumes: {
+            ...s.sfxVolumes,
+            [key]: Math.max(0, Math.min(1, value)),
+          },
+        })),
+
+      setMusicVolume: (value) =>
+        set({ musicVolume: Math.max(0, Math.min(1, value)) }),
 
       setTutorialTargetRect: (rect) => set({ tutorialTargetRect: rect }),
 

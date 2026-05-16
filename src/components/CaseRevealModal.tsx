@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight, tapMedium, success } from '../lib/haptics';
+import { sfx } from '../lib/sounds';
 import ColorCell from './ColorCell';
 import { RarityName } from './RarityName';
 import { colorRarity, type Rarity } from '../data/colors';
@@ -190,6 +191,16 @@ export default function CaseRevealModal(): React.JSX.Element | null {
     const composite = Animated.parallel(animations);
     compositeRef.current = composite;
     composite.start();
+
+    // SFX fires immediately on modal mount — the player just tapped
+    // OPEN and expects an audio response within ~50 ms. Pairing the
+    // sound to the swatch-landing setTimeout (530-1830 ms) read as
+    // "the audio is broken." The haptic still fires at the landing
+    // moment below so the *tactile* celebration syncs with the
+    // visual; the audio cue and the haptic cue serve different jobs.
+    if (rolledTier === 'fine') sfx.caseOpenFine();
+    else if (rolledTier === 'quality') sfx.caseOpenQuality();
+    else sfx.caseOpenStarter();
 
     // Tier-aware impact at swatch landing. Fired off the JS clock
     // rather than the swatch animation callback so a parallel Skip

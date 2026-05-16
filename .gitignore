@@ -48,3 +48,12 @@ tools/mural-prep-godot/test_assets/*
 !tools/mural-prep-godot/test_assets/.gitkeep
 tools/mural-prep-godot/addons/
 .godot/
+
+# Audio working files
+# .asd = Ableton analysis sidecars regenerated on every clip drag.
+# old/ holds the previous-version SFX kept locally for Ableton's
+# session references — Metro never bundles them; only require()'d
+# files reach the APK, so keeping them out of git is enough.
+assets/audio/*.asd
+assets/audio/old/
+assets/audio/Untitled.*

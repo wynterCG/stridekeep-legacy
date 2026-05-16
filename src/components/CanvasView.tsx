@@ -499,6 +499,13 @@ function Pulse({ pulseKey, idx, width, cellPx, hex, isSelf, onDone }: PulseProps
   useEffect(() => {
     if (isSelf) {
       tapHeavy();
+      // NOTE: sfx.tilePlace() used to fire here, but the SelfPulse
+      // mount lags the user's tap by the placeTile RPC round-trip
+      // (~100-400 ms). Sound now fires on the commit tap in the two
+      // place-action call sites (CanvasPanel.handleCommit and
+      // ColorsPanel inventory PLACE) for instant audio feedback. The
+      // haptic stays here so the *tactile* event still pairs with
+      // the visual pulse.
       Animated.parallel([
         Animated.sequence([
           Animated.timing(scale, {

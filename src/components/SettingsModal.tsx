@@ -15,6 +15,7 @@ import SettingsRow from './SettingsRow';
 import AccountSection from '../screens/settings/AccountSection';
 import PrivacySection from '../screens/settings/PrivacySection';
 import NotificationsSection from '../screens/settings/NotificationsSection';
+import SoundSection from '../screens/settings/SoundSection';
 import AboutSection from '../screens/settings/AboutSection';
 import { colors, fonts, spacing } from '../theme';
 
@@ -23,12 +24,19 @@ interface Props {
   onClose: () => void;
 }
 
-type Section = 'list' | 'account' | 'privacy' | 'notifications' | 'about';
+type Section =
+  | 'list'
+  | 'account'
+  | 'privacy'
+  | 'notifications'
+  | 'sound'
+  | 'about';
 
 const SECTION_LABELS: Record<Exclude<Section, 'list'>, string> = {
   account: 'ACCOUNT',
   privacy: 'PRIVACY',
   notifications: 'NOTIFICATIONS',
+  sound: 'SOUND',
   about: 'ABOUT',
 };
 
@@ -76,6 +84,8 @@ export default function SettingsModal({
         return <PrivacySection />;
       case 'notifications':
         return <NotificationsSection />;
+      case 'sound':
+        return <SoundSection />;
       case 'about':
         return <AboutSection />;
       case 'list':
@@ -91,6 +101,7 @@ export default function SettingsModal({
               label="Notifications"
               onPress={() => setSection('notifications')}
             />
+            <SettingsRow label="Sound" onPress={() => setSection('sound')} />
             <SettingsRow label="About" onPress={() => setSection('about')} />
           </View>
         );

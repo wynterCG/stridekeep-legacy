@@ -17,6 +17,7 @@ import EmptyStateIcon from '../../components/EmptyStateIcon';
 import PixelFrame from '../../components/PixelFrame';
 import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
+import { sfx } from '../../lib/sounds';
 import { relativeTime } from '../../hooks/useTownFeed';
 import { colorHex, colorName, colorRarity, type Rarity } from '../../data/colors';
 import { RarityName } from '../../components/RarityName';
@@ -209,10 +210,11 @@ export default function CanvasPanel(): React.JSX.Element {
     setPickerPixel(null);
     if (!targetRect) return;
     setPendingTileFlight({ colorId, pixelIdx: idx, target: targetRect });
-    // Confirmation haptic mirrors the inventory branch — both PLACE
-    // entry points should buzz on commit. Removed from TilePicker
-    // when the await/timeout went away; lives here now.
+    // Confirmation haptic + sound on commit. Both fire here at the
+    // user's tap moment rather than at SelfPulse mount so the audio
+    // doesn't lag the network round-trip.
     tapLight();
+    sfx.tilePlace();
     // Camera zoom fires in parallel with the flight tile's animation.
     // Awaited only for the canvas-rect fetch; the timing chain runs
     // unawaited so handleCommit can continue to the RPC.
@@ -226,6 +228,7 @@ export default function CanvasPanel(): React.JSX.Element {
       // cell the server rejected. Mirrors the inventory branch's
       // failure path. No-op if the flight already completed.
       setPendingTileFlight(null);
+      sfx.errorBuzz();
       Alert.alert('Could not place tile', placeErrorMessage(result, palette));
     }
   };

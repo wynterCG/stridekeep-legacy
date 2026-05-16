@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { badgeImageUrl } from '../lib/badges';
 import { tapLight, tapMedium, success } from '../lib/haptics';
+import { sfx } from '../lib/sounds';
 import CeremonyMiniCanvas from './CeremonyMiniCanvas';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { SeasonEndSnapshot } from '../types';
@@ -97,9 +98,15 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
     // Tier-aware mount haptic: success() for winners feels right; for
     // losers/ties a NotificationFeedbackType.Success buzz under
     // "BETTER LUCK NEXT SEASON" copy is tonally wrong, so we drop to
-    // tapMedium() — still tactile, no celebration semantics.
-    if (iWon) success();
-    else tapMedium();
+    // tapMedium() — still tactile, no celebration semantics. Sound
+    // mirrors only the win branch (the fanfare clip is celebratory by
+    // design); a loss stays silent on the audio channel.
+    if (iWon) {
+      success();
+      sfx.ceremonyCelebrate();
+    } else {
+      tapMedium();
+    }
 
     setContinueEnabled(false);
     backdropOpacity.setValue(0);
