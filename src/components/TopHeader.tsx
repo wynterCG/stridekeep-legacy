@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight } from '../lib/haptics';
+
+const STRIDEKEEP_WEBSITE_URL = 'https://stridekeep.app/';
 import SettingsModal from './SettingsModal';
 import IconShield from './icons/IconShield';
 import IconGlobe from './icons/IconGlobe';
@@ -51,7 +53,28 @@ export default function TopHeader(): React.JSX.Element {
           <Pressable onPress={tapLight} hitSlop={8} accessibilityRole="button" accessibilityLabel="Share Stridekeep">
             <IconShare size={17} color={colors.accent.brassLight} />
           </Pressable>
-          <Pressable onPress={tapLight} hitSlop={8} accessibilityRole="button" accessibilityLabel="stridekeep.app website">
+          <Pressable
+            onPress={() => {
+              tapLight();
+              // Fire-and-forget; OS handles whether it lands in an
+              // in-app browser, the system browser, or a deep-link
+              // handler. canOpenURL gate matches the PrivacySection
+              // pattern so a hostile / sandboxed environment doesn't
+              // unhandled-reject.
+              void (async () => {
+                try {
+                  const ok = await Linking.canOpenURL(STRIDEKEEP_WEBSITE_URL);
+                  if (ok) await Linking.openURL(STRIDEKEEP_WEBSITE_URL);
+                } catch {
+                  // Silent fail — no UI surface in the TopHeader to show
+                  // a banner from; user can tap again or open manually.
+                }
+              })();
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="stridekeep.app website"
+          >
             <IconGlobe size={17} color={colors.accent.brassLight} />
           </Pressable>
           <Pressable onPress={tapLight} hitSlop={8} accessibilityRole="button" accessibilityLabel="Patreon">
