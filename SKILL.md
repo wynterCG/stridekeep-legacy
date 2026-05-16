@@ -685,7 +685,42 @@ Plan file: `C:\Users\Wynter\.claude\plans\but-first-give-me-polymorphic-candy.md
 
 ✅ **TopHeader globe icon wired SHIPPED 2026-05-16.** The globe in [src/components/TopHeader.tsx](e:/Vibe%20Coding/Stridekeep/src/components/TopHeader.tsx) (between the Share + Patreon icons) previously fired `tapLight()` only — pure decoration. Now opens `https://stridekeep.app/` via `Linking.openURL` with the same `canOpenURL` gate pattern PrivacySection uses. Silent-fail on URL-open errors (the TopHeader has no banner-style error surface; user can re-tap or use the system browser manually). Single constant `STRIDEKEEP_WEBSITE_URL` at module scope so the destination is greppable.
 
-⏳ **Production signing setup pending 2026-05-16.** Discovered while prepping the first Play Console Internal Testing upload: [android/app/build.gradle:115](e:/Vibe%20Coding/Stridekeep/android/app/build.gradle#L115) currently has `release { signingConfig signingConfigs.debug }` — release APKs are signed with the well-known debug keystore. Sufficient for `adb install` workflow (which is what we've used through §0 internal-testing dev cycles), but **Play Console rejects any debug-signed upload**. Pending operator steps: (1) generate an upload keystore via `keytool -genkeypair -storetype PKCS12 -keystore stridekeep-upload-key.keystore -alias stridekeep-upload -keyalg RSA -keysize 2048 -validity 10000` and store OUTSIDE the repo (e.g. `C:\Users\Wynter\keystores\`); (2) add 4 `STRIDEKEEP_UPLOAD_*` properties (file/alias/store-password/key-password) to `C:\Users\Wynter\.gradle\gradle.properties`. Then I'll wire a release signing config in build.gradle that reads those properties (with debug-keystore fallback so other dev environments keep working) and produce the AAB via `./gradlew bundleRelease`. Dev buttons are already `__DEV__`-gated (verified after the season-2 ungate-then-regate dance) so they won't ship in the release artifact.
+✅ **Production signing SHIPPED 2026-05-16.** Upload keystore generated at `C:\Users\Wynter\keystores\stridekeep-upload-key.keystore` (PKCS12, RSA 2048, valid until 2053). Credentials live in `C:\Users\Wynter\.gradle\gradle.properties` under `STRIDEKEEP_UPLOAD_*` properties — per-user file, NOT in the repo. First successful signed AAB at `android/app/build/outputs/bundle/release/app-release.aab` (33 MB, verified `Owner: CN=Stridekeep Upload Key` via `keytool -printcert -jarfile`). Dev buttons are `__DEV__`-gated and won't render in the release artifact.
+
+**`android/` is gitignored** (Expo CNG convention — `expo prebuild` regenerates it). The `build.gradle` signing edit is therefore a LOCAL change, not in version control. If you ever run `expo prebuild --clean` and lose the edit, recreate it by adding this to `android/app/build.gradle`:
+
+```gradle
+signingConfigs {
+    debug { /* existing block stays */ }
+    release {
+        def storeFilePath = findProperty('STRIDEKEEP_UPLOAD_STORE_FILE')
+        def storeAlias = findProperty('STRIDEKEEP_UPLOAD_KEY_ALIAS')
+        def storePass = findProperty('STRIDEKEEP_UPLOAD_STORE_PASSWORD')
+        def keyPass = findProperty('STRIDEKEEP_UPLOAD_KEY_PASSWORD')
+        if (storeFilePath != null && storeAlias != null && storePass != null && keyPass != null) {
+            storeFile file(storeFilePath)
+            storePassword storePass
+            keyAlias storeAlias
+            keyPassword keyPass
+        }
+    }
+}
+buildTypes {
+    release {
+        // ...everything else stays...
+        def hasUploadKey = findProperty('STRIDEKEEP_UPLOAD_STORE_FILE') != null \
+            && findProperty('STRIDEKEEP_UPLOAD_KEY_ALIAS') != null \
+            && findProperty('STRIDEKEEP_UPLOAD_STORE_PASSWORD') != null \
+            && findProperty('STRIDEKEEP_UPLOAD_KEY_PASSWORD') != null
+        signingConfig hasUploadKey ? signingConfigs.release : signingConfigs.debug
+        // ...
+    }
+}
+```
+
+The fallback to debug-signing when properties are missing preserves the legacy `adb install -r` dev flow on machines without the keystore.
+
+**Operator backup reminder (critical, one-time):** the keystore at `C:\Users\Wynter\keystores\stridekeep-upload-key.keystore` MUST be backed up to a second location. Losing it = unable to update Stridekeep on Google Play. Password is in `C:\Users\Wynter\.gradle\gradle.properties` (record separately in a password manager since gradle.properties itself only protects via filesystem permissions).
 
 ✅ **Season 2 prep + shop + shared color detail SHIPPED 2026-05-16.** Curated season 2 (`Mistfall`, forest-waterfall scene) end-to-end in the Godot mural-prep tool — palette of 18 with 4 categories represented (case starter/quality/fine + craft + shop), 6 recipes including a concentrate-chain pattern (4× S1 charcoal → C charcoal 2, 4× charcoal 2 → C charcoal 3) plus a forced craft-input chain climb. Atmospheric renames replace the dedup numbers (mist · thicket · plum · hemlock · pewter · abyss). Mural-prep tool curation was driven via the Godot MCP rather than UI clicks — see `mcp__godot-mcp-pro__execute_game_script` calls on `_color_rows[i]._set_category()` / `_drop_spin.value` / `_on_add_recipe()`. **The tool's state IS clobbered by re-extraction** (open PNG / drag the palette-k slider both call `_run_extraction → _clear_palette_rows → _clear_recipes`); the curation script has to be replayed if the user re-extracts. Client-side: new SHOP bottom tab (§5), shared [src/components/ColorDetailSheet.tsx](e:/Vibe%20Coding/Stridekeep/src/components/ColorDetailSheet.tsx) used by Inventory COLORS + Inventory MIXING + SHOP so every color-tap shows the same info card. Obtainment line pulls case names from [src/data/cases.ts](e:/Vibe%20Coding/Stridekeep/src/data/cases.ts) to stay coherent with case-card titles. New [src/components/DevPreviewSeasonButton.tsx](e:/Vibe%20Coding/Stridekeep/src/components/DevPreviewSeasonButton.tsx) on CasesPanel — VIEW-ONLY preview that swaps palette/recipes/target/mural-name in memory (stash in module-level var; EXIT restores; non-persisted store fields self-heal on next bootstrap). [src/components/DevTriggerCeremonyButton.tsx](e:/Vibe%20Coding/Stridekeep/src/components/DevTriggerCeremonyButton.tsx) updated to look up the actual queued next season number via `SELECT number FROM seasons WHERE number > current ORDER BY number ASC LIMIT 1` instead of passing current-as-next; falls back to current if no queued row exists so the UI is still standalone-testable. **Ceremony preview snapshot caveat**: the dev ceremony captures the snapshot ONCE at trigger; if you update the DB after triggering, you have to dismiss + retrigger for the new data to show.
 
