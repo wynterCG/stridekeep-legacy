@@ -771,7 +771,7 @@ The fallback to debug-signing when properties are missing preserves the legacy `
 
 **Filename kept as `CaseRevealModal.tsx`.** The modal is still the primary case-reveal surface; renaming to `TileRevealModal.tsx` would churn App.tsx + every comment that references it for no behavioural change. The top-of-file docstring now documents all three dispatch sites.
 
-**Dev section status (UNCHANGED from 2026-05-16, still applies).** Dev buttons in `CasesPanel` (SIMULATE WALK / GRANT TILES / TRIGGER CEREMONY / PREVIEW SEASON / RESET TUTORIALS / AUDIO TUNER) are **still ungated** from the audio-tuning session. Re-wrap them in `{__DEV__ && (...)}` before the next Play Console build — there's already a `RE-GATE BEFORE NEXT PLAY STORE BUILD` comment in the file.
+**Dev section RE-GATED 2026-05-18.** All six dev buttons in `CasesPanel` (SIMULATE WALK / GRANT TILES / TRIGGER CEREMONY / PREVIEW SEASON / RESET TUTORIALS / AUDIO TUNER) are now wrapped in `{__DEV__ && (...)}`. Metro strips the branch from release bundles via dead-code elimination, so the components never reach the production APK. Each individual `Dev*Button` component's docstring repeats the contract for clarity, but the gate that actually enforces it lives in `CasesPanel.tsx`. Ready for the next Play Console build from this perspective; keystore backup is still a prerequisite for the actual upload.
 
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing

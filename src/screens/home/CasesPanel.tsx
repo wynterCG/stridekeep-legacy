@@ -11,10 +11,11 @@ import { colors, fonts, spacing } from '../../theme';
 
 // CASES sub-tab body. Hosts the 3 case cards (fine / quality / starter)
 // and the dev buttons at the bottom (dev-builds only). The dev buttons
-// were temporarily ungated during the §0 internal-testing dev push
-// — they're now re-gated to __DEV__ ahead of Play Store submission
-// so testers can't grant themselves free inventory or trigger ceremonies
-// from a release APK.
+// were temporarily ungated during the §0 internal-testing dev push and
+// the 2026-05-16/18 audio + polish sessions; they're now re-gated to
+// __DEV__ (2026-05-18) ahead of Play Store submission so testers can't
+// grant themselves free inventory or trigger ceremonies from a release
+// APK.
 //
 // Migrating the dev buttons to CASES rather than burying them deeper
 // keeps the workflow accessible during dev iteration without crowding
@@ -33,16 +34,22 @@ export default function CasesPanel(): React.JSX.Element {
       <CaseCard tier="fine" />
       <CaseCard tier="quality" />
       <CaseCard tier="starter" />
-      {/* DEV BUTTONS — temporarily ungated for sound-effect testing.
-          RE-GATE WITH `{__DEV__ && (...)}` BEFORE THE NEXT PLAY STORE
-          BUILD so testers can't grant themselves free inventory or
-          trigger ceremonies from a release APK. */}
-      <SimulateWalkButton />
-      <DevGrantTilesButton />
-      <DevTriggerCeremonyButton />
-      <DevPreviewSeasonButton />
-      <DevResetTutorialsButton />
-      <DevAudioTunerButton />
+      {/* DEV BUTTONS — gated to dev builds only. Each Dev*Button
+          component's docstring repeats this __DEV__ contract, but the
+          gate that actually keeps them out of release APKs lives here.
+          Metro's dead-code elimination strips the entire branch when
+          __DEV__ is false, so the components never reach the production
+          bundle. */}
+      {__DEV__ && (
+        <>
+          <SimulateWalkButton />
+          <DevGrantTilesButton />
+          <DevTriggerCeremonyButton />
+          <DevPreviewSeasonButton />
+          <DevResetTutorialsButton />
+          <DevAudioTunerButton />
+        </>
+      )}
     </ScrollView>
   );
 }
