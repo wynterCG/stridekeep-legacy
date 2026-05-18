@@ -41,19 +41,23 @@ const TIER_TIMINGS: Record<CaseTier, { suspense: number; savor: number }> = {
 
 const SWATCH_SPRING_DURATION_MS = 600;
 
-// Full-screen reveal modal. Mounts when gameStore.pendingCaseReveal is
-// non-null (set by CaseCard.handleOpen on a successful openCase()
-// roll). The card row is purely a step-progress + OPEN button now —
-// the moment the player taps OPEN the card unmounts the inline reveal
-// (it never had one in this version) and this modal owns the
-// celebration. Centering + dimming the rest of the UI lets the rolled
-// swatch feel as big as the moment deserves, especially for tier-3
-// fine drops that otherwise died in a 48px card swatch.
+// Full-screen reveal modal. Mounts when gameStore.pendingTileReveal is
+// non-null. Three dispatch sites:
+//   - CaseCard.handleOpen      (source='case')  → tier-driven pacing,
+//                               rolledTier drives SFX/haptic/shake,
+//                               rare-fine flash gated here.
+//   - buyShopTile (in store)   (source='shop')  → snappy 'starter'
+//                               pacing, rarity drives intensity.
+//   - craftTile   (in store)   (source='craft') → snappy 'starter'
+//                               pacing, rarity drives intensity.
+// Centering + dimming the rest of the UI lets the rolled swatch feel
+// as big as the moment deserves, especially for rare tier-3 case
+// drops that otherwise died in a 48px card swatch.
 //
 // Built-in Animated API (NOT Reanimated). See SKILL.md §11 lesson.
 export default function CaseRevealModal(): React.JSX.Element | null {
-  const reveal = useGameStore((s) => s.pendingCaseReveal);
-  const setPendingCaseReveal = useGameStore((s) => s.setPendingCaseReveal);
+  const reveal = useGameStore((s) => s.pendingTileReveal);
+  const setPendingTileReveal = useGameStore((s) => s.setPendingTileReveal);
   const seasonPalette = useGameStore((s) => s.seasonPalette);
 
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -86,10 +90,37 @@ export default function CaseRevealModal(): React.JSX.Element | null {
   // native driver from continuing to paint after a JS-side setValue.
   const compositeRef = useRef<Animated.CompositeAnimation | null>(null);
 
+  const source = reveal?.source ?? 'case';
   const tier = reveal?.tier ?? 'starter';
   const rolledTier = reveal?.rolledTier ?? 'starter';
   const colorDef = reveal && seasonPalette ? seasonPalette[reveal.colorId] : null;
+  // Rarity drives the displayed label (COMMON / UNCOMMON / RARE / EPIC
+  // / LEGENDARY) and its tint AND — for non-case sources — the SFX +
+  // haptic + shake intensity. tier still drives modal pacing for case
+  // sources via TIER_TIMINGS.
+  const rarity: Rarity = useMemo(
+    () =>
+      reveal && seasonPalette
+        ? colorRarity(seasonPalette, reveal.colorId)
+        : 'common',
+    [reveal, seasonPalette],
+  );
+  // Pre-compute the "intensity tier" used for SFX, haptic, and shake
+  // amplitude. case sources preserve the existing rolledTier behavior
+  // (a pity-clamped fine still feels like fine). shop/craft map rarity
+  // → intensity so a rare craft thunks heavier than a common buy.
+  const intensityTier: CaseTier = useMemo(() => {
+    if (source === 'case') return rolledTier;
+    if (rarity === 'epic' || rarity === 'legendary') return 'fine';
+    if (rarity === 'rare') return 'quality';
+    return 'starter';
+  }, [source, rolledTier, rarity]);
+  // Rare-fine radial flash is the "you opened a rare case drop" reward
+  // beat — it shouldn't fire on a buy/craft of the same color. Glow +
+  // frame still render normally for those (rarity-driven, not source-
+  // driven).
   const isRareFine =
+    source === 'case' &&
     rolledTier === 'fine' &&
     typeof colorDef?.dropWeightPct === 'number' &&
     colorDef.dropWeightPct < RARE_FLASH_DROP_WEIGHT;
@@ -97,7 +128,12 @@ export default function CaseRevealModal(): React.JSX.Element | null {
   useEffect(() => {
     if (reveal === null) return;
 
-    const timings = TIER_TIMINGS[tier];
+    // Buy + Craft are deterministic — the player tapped knowing the
+    // outcome — so the suspense beat doesn't apply. Use 'starter'
+    // pacing (200 ms suspense, 0 ms savor) regardless of rarity. Cases
+    // keep their tier-driven pacing exactly as before.
+    const timings =
+      source === 'case' ? TIER_TIMINGS[tier] : TIER_TIMINGS.starter;
 
     setContinueEnabled(false);
     backdropOpacity.setValue(0);
@@ -209,26 +245,28 @@ export default function CaseRevealModal(): React.JSX.Element | null {
     composite.start();
 
     // SFX fires immediately on modal mount — the player just tapped
-    // OPEN and expects an audio response within ~50 ms. Pairing the
-    // sound to the swatch-landing setTimeout (530-1830 ms) read as
-    // "the audio is broken." The haptic still fires at the landing
-    // moment below so the *tactile* celebration syncs with the
+    // OPEN / BUY / CRAFT and expects an audio response within ~50 ms.
+    // Pairing the sound to the swatch-landing setTimeout (530-1830 ms)
+    // read as "the audio is broken." The haptic still fires at the
+    // landing moment below so the *tactile* celebration syncs with the
     // visual; the audio cue and the haptic cue serve different jobs.
-    if (rolledTier === 'fine') sfx.caseOpenFine();
-    else if (rolledTier === 'quality') sfx.caseOpenQuality();
+    // intensityTier maps to the same case-tier SFX bank: case sources
+    // use rolledTier directly, shop/craft map rarity → intensity.
+    if (intensityTier === 'fine') sfx.caseOpenFine();
+    else if (intensityTier === 'quality') sfx.caseOpenQuality();
     else sfx.caseOpenStarter();
 
-    // Tier-aware impact at swatch landing. Fired off the JS clock
+    // Intensity-aware impact at swatch landing. Fired off the JS clock
     // rather than the swatch animation callback so a parallel Skip
     // before landing doesn't double-haptic. Shake amplitude is
-    // tier-graded so a fine drop reads as a heavier thunk than a
+    // intensity-graded so a fine drop reads as a heavier thunk than a
     // starter — same hook as the canvas place-shake, just with a
     // bigger peak for the rare moments.
     const haptic = setTimeout(() => {
-      if (rolledTier === 'fine') {
+      if (intensityTier === 'fine') {
         success();
         triggerShake({ amplitude: 8 });
-      } else if (rolledTier === 'quality') {
+      } else if (intensityTier === 'quality') {
         tapMedium();
         triggerShake({ amplitude: 6 });
       } else {
@@ -275,7 +313,7 @@ export default function CaseRevealModal(): React.JSX.Element | null {
     // Animated values are stable refs; deps narrowed to the snapshot
     // identity + the variant gates that change which animations run.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reveal, tier, rolledTier, isRareFine]);
+  }, [reveal, source, tier, rolledTier, intensityTier, isRareFine]);
 
   function snapToEnd(): void {
     // STOP before setValue — see SeasonEndCeremony.snapToEnd comment
@@ -305,20 +343,9 @@ export default function CaseRevealModal(): React.JSX.Element | null {
 
   function handleContinue(): void {
     tapMedium();
-    setPendingCaseReveal(null);
+    setPendingTileReveal(null);
   }
 
-  // Rarity drives the displayed label (COMMON / UNCOMMON / RARE /
-  // EPIC / LEGENDARY) and its tint. tier still drives modal pacing
-  // (TIER_TIMINGS) and the existing rare-flash gate (isRareFine);
-  // rarity is purely a *display* concept layered on top.
-  const rarity: Rarity = useMemo(
-    () =>
-      reveal && seasonPalette
-        ? colorRarity(seasonPalette, reveal.colorId)
-        : 'common',
-    [reveal, seasonPalette],
-  );
   const rarityLabel = useMemo(() => rarity.toUpperCase(), [rarity]);
 
   if (reveal === null) return null;

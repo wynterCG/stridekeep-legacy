@@ -32,14 +32,16 @@ function fmtSteps(n: number): string {
 // The card row is purely a step-progress + OPEN button. The reveal
 // celebration is owned by <CaseRevealModal /> mounted at App.tsx root —
 // handleOpen rolls the color (gameStore.openCase), then dispatches
-// pendingCaseReveal so the root-mounted modal picks it up. The
-// medallion squash on press acknowledges the tap before the modal
-// mounts. See CaseRevealModal for the tier-aware celebration timing.
+// pendingTileReveal with source='case' so the root-mounted modal picks
+// it up. The medallion squash on press acknowledges the tap before the
+// modal mounts. See CaseRevealModal for the tier-aware celebration
+// timing. Buy + Craft reveals share the same modal via the same store
+// field (dispatched from inside buyShopTile / craftTile).
 export default function CaseCard({ tier }: Props): React.JSX.Element {
   const caseData = CASES[tier];
   const caseState = useGameStore((s) => s.caseState[tier]);
   const openCase = useGameStore((s) => s.openCase);
-  const setPendingCaseReveal = useGameStore((s) => s.setPendingCaseReveal);
+  const setPendingTileReveal = useGameStore((s) => s.setPendingTileReveal);
   // JIT-tutorial wire-up. setTutorialFlowColorId seeds the colorId so the
   // subsequent inv-cell / inv-place steps can resolve their dynamic
   // targetKeys; advanceFlowStep performs the actual progression.
@@ -77,7 +79,12 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
     ]).start();
     const result = openCase(tier);
     if (result) {
-      setPendingCaseReveal({ tier, colorId: result.colorId, rolledTier: result.tier });
+      setPendingTileReveal({
+        source: 'case',
+        tier,
+        colorId: result.colorId,
+        rolledTier: result.tier,
+      });
       // Seed the colorId BEFORE advancing so the next step
       // (`inv-cell-${colorId}` resolution) reads the fresh value.
       // No-ops when the first-case flow isn't active.

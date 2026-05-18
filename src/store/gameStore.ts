@@ -217,14 +217,28 @@ interface GameState {
   // CONTINUE doesn't re-fire the ceremony. Survives season resets — it
   // tracks user-facing acknowledgement, not intra-season state.
   lastShownCeremonySeason: number | null;
-  // Transient. Set by CaseCard's handleOpen on a successful openCase()
-  // roll; read by App.tsx to render <CaseRevealModal />. Not persisted
-  // — a force-quit mid-reveal silently drops the ceremony (the rolled
-  // color is already in inventory regardless), which is fine for a
-  // single-tap interaction. The struct stores both `tier` (the case
-  // tier the user opened) and `rolledTier` (which may differ under a
-  // pity-clamp upgrade) so the modal can render the right tier label.
-  pendingCaseReveal: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null;
+  // Transient. Drives the full-screen tile-reveal modal at App root
+  // (<CaseRevealModal /> — kept the filename to avoid churn; the modal
+  // now handles three sources). Set by three call sites:
+  //   - CaseCard.handleOpen on successful openCase() roll ('case')
+  //   - buyShopTile on successful purchase                  ('shop')
+  //   - craftTile on successful craft                       ('craft')
+  // Not persisted — a force-quit mid-reveal silently drops the
+  // ceremony; the inventory/purse effect is already committed.
+  //
+  // Field gating:
+  //   - source='case'  → tier + rolledTier required; modal uses
+  //     TIER_TIMINGS[tier] for pacing and rolledTier for SFX/haptic
+  //     intensity. Rare-fine flash gates on this source.
+  //   - source='shop' | 'craft' → tier + rolledTier undefined; modal
+  //     uses TIER_TIMINGS.starter pacing (snappy 200/0) and derives
+  //     SFX/haptic/shake intensity from the rolled tile's rarity.
+  pendingTileReveal: {
+    source: 'case' | 'shop' | 'craft';
+    colorId: string;
+    tier?: CaseTier;
+    rolledTier?: CaseTier;
+  } | null;
   // Transient. Drives <TileFlightOverlay /> at App root. Set by both
   // place-tile call sites (CanvasPanel for the canvas TilePicker, and
   // ColorsPanel for the inventory PLACE ON CANVAS shortcut). The
@@ -399,10 +413,18 @@ interface GameActions {
   // as a number (the highest prev-season-number acknowledged) so a user
   // who skipped multiple offline rollovers only sees the most recent.
   markCeremonyShown: (seasonNumber: number) => void;
-  // Set by CaseCard's handleOpen on a successful openCase() roll. Pass
-  // null from CaseRevealModal's CONTINUE handler to dismiss the modal.
-  setPendingCaseReveal: (
-    payload: { tier: CaseTier; colorId: string; rolledTier: CaseTier } | null,
+  // Dispatched by CaseCard.handleOpen / buyShopTile / craftTile on
+  // success. Pass null from CaseRevealModal's CONTINUE handler to
+  // dismiss the modal.
+  setPendingTileReveal: (
+    payload:
+      | {
+          source: 'case' | 'shop' | 'craft';
+          colorId: string;
+          tier?: CaseTier;
+          rolledTier?: CaseTier;
+        }
+      | null,
   ) => void;
   setPendingTileFlight: (
     payload: {
@@ -509,7 +531,7 @@ const initialState: GameState = {
   accountEmail: null,
   pendingSeasonEnd: null,
   lastShownCeremonySeason: null,
-  pendingCaseReveal: null,
+  pendingTileReveal: null,
   pendingTileFlight: null,
   selfPlacementMarks: {},
   lifetimeStats: {
@@ -839,7 +861,14 @@ export const useGameStore = create<GameStore>()(
         newInventory[recipe.outputColorId] =
           (newInventory[recipe.outputColorId] ?? 0) + qty;
 
-        set({ inventory: newInventory });
+        set({
+          inventory: newInventory,
+          // Trigger the shared full-screen reveal modal. Bundled into
+          // the same set() so React schedules one render. The modal
+          // derives rarity + glow/frame from colorId via seasonPalette
+          // and uses snappy 'starter' pacing for non-case sources.
+          pendingTileReveal: { source: 'craft', colorId: recipe.outputColorId },
+        });
         void logFeedEvent('crafted', { colorId: recipe.outputColorId, qty });
       },
 
@@ -857,6 +886,13 @@ export const useGameStore = create<GameStore>()(
             ...inventory,
             [colorId]: (inventory[colorId] ?? 0) + qty,
           },
+          // Trigger the shared full-screen reveal modal (see craftTile
+          // comment above). Shop tiles have no .tier and resolve to
+          // 'common' rarity, so they get the snappy starter intensity
+          // with no glow/frame — that's the intended "tile colour =
+          // tile rarity, nothing else" rule (see categorical-accent
+          // pollution memory).
+          pendingTileReveal: { source: 'shop', colorId },
         });
         void logFeedEvent('shop_bought', { colorId, qty });
       },
@@ -953,7 +989,7 @@ export const useGameStore = create<GameStore>()(
           return { lastShownCeremonySeason: seasonNumber };
         }),
 
-      setPendingCaseReveal: (payload) => set({ pendingCaseReveal: payload }),
+      setPendingTileReveal: (payload) => set({ pendingTileReveal: payload }),
 
       setPendingTileFlight: (payload) => set({ pendingTileFlight: payload }),
 
@@ -1177,10 +1213,10 @@ export const useGameStore = create<GameStore>()(
       },
       // seasonPalette + seasonCraftRecipes + canvas state are server data,
       // re-fetched on every launch / rollover / canvas mount — never persist.
-      // pendingSeasonEnd / pendingCaseReveal are transient: force-quit
+      // pendingSeasonEnd / pendingTileReveal are transient: force-quit
       // mid-ceremony / mid-reveal must NOT re-fire the modal on next
-      // boot (the inventory effect of the case open is already
-      // committed; the season ceremony recomputes from server state).
+      // boot (the inventory effect of the case open / buy / craft is
+      // already committed; the season ceremony recomputes from server).
       // selfPlacementMarks are session-scoped — a placement initiated
       // before quit shouldn't render a heavy pulse two days later when
       // the realtime echo finally lands.
@@ -1192,7 +1228,7 @@ export const useGameStore = create<GameStore>()(
           canvasFilled: _f,
           teamsCanvasProgress: _tp,
           pendingSeasonEnd: _pse,
-          pendingCaseReveal: _pcr,
+          pendingTileReveal: _pcr,
           pendingTileFlight: _ptf,
           selfPlacementMarks: _spm,
           // Tutorial overlay state is per-session. Only `tutorialFlags`

@@ -243,10 +243,11 @@ export default function App(): React.JSX.Element | null {
               so it overlays the bottom-tab bar. */}
           <SeasonEndCeremony />
           {/* CaseRevealModal renders itself as a Modal when
-              gameStore.pendingCaseReveal is non-null (set by
-              CaseCard.handleOpen on a successful openCase roll).
-              Mounted at root so the dimmed backdrop covers the entire
-              UI including bottom nav, not just the case card row. */}
+              gameStore.pendingTileReveal is non-null. Three dispatch
+              sites: CaseCard.handleOpen ('case'), buyShopTile ('shop'),
+              craftTile ('craft'). Mounted at root so the dimmed
+              backdrop covers the entire UI including bottom nav, not
+              just the case card row. */}
           <CaseRevealModal />
           {/* TileFlightOverlay renders the place-tile fly-to
               animation (big-in-center → cell). Driven by
