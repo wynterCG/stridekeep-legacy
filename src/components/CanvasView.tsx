@@ -19,6 +19,7 @@ import Svg, { Rect, Line } from 'react-native-svg';
 import type { ColorDef, Team } from '../types';
 import { useGameStore } from '../store/gameStore';
 import { tapHeavy } from '../lib/haptics';
+import { useShake } from '../hooks/useShake';
 import { colors } from '../theme';
 
 interface Props {
@@ -276,6 +277,15 @@ function CanvasView(
     setPulses((p) => p.filter((x) => x.key !== key));
   }, []);
 
+  // Screen-shake. Driven on the inner content (Svg + pulses) — the
+  // outer wrapper View keeps its layout box stable so `measureInWindow`
+  // calls from CanvasPanel.handleCommit still resolve cell rects
+  // correctly during placement. Fires when a self-placed tile lands
+  // (any fresh pulse with isSelf === true). useShake handles the
+  // damped-oscillation animation; we just call trigger() at the right
+  // moment.
+  const { shakeX, shakeY, trigger: triggerShake } = useShake();
+
   useEffect(() => {
     const currentSet = new Set<number>();
     for (const k of Object.keys(filled)) {
@@ -319,7 +329,15 @@ function CanvasView(
         ? merged.slice(merged.length - MAX_CONCURRENT_PULSES)
         : merged;
     });
-  }, [filled, palette]);
+
+    // Shake the canvas if at least one fresh pulse was self-placed.
+    // Teammate placements (only isSelf=false) intentionally don't
+    // shake — would feel hostile + noisy if a busy realtime burst
+    // jittered the canvas every few hundred ms.
+    if (fresh.some((p) => p.isSelf)) {
+      triggerShake();
+    }
+  }, [filled, palette, triggerShake]);
 
   // Team identity is now communicated by the surrounding PixelFrame's
   // accentColor (CanvasPanel passes the team-coloured hairline). Dropped
@@ -444,22 +462,34 @@ function CanvasView(
       {...panResponder.panHandlers}
       style={[styles.frame, { width: canvasPx, height: canvasPx }]}
     >
-      <Svg width={canvasPx} height={canvasPx}>
-        {rects}
-        {gridLines}
-      </Svg>
-      {pulses.map((p) => (
-        <Pulse
-          key={p.key}
-          pulseKey={p.key}
-          idx={p.idx}
-          width={width}
-          cellPx={cellPx}
-          hex={p.hex}
-          isSelf={p.isSelf}
-          onDone={removePulse}
-        />
-      ))}
+      {/* Animated.View is what shakes on self-placement. The outer
+          View keeps its layout box stable so measureInWindow (called
+          from CanvasPanel.handleCommit to resolve cell rects) still
+          returns the correct pre-shake position — only the visible
+          content jitters inside the box. */}
+      <Animated.View
+        style={[
+          styles.shakeWrap,
+          { width: canvasPx, height: canvasPx, transform: [{ translateX: shakeX }, { translateY: shakeY }] },
+        ]}
+      >
+        <Svg width={canvasPx} height={canvasPx}>
+          {rects}
+          {gridLines}
+        </Svg>
+        {pulses.map((p) => (
+          <Pulse
+            key={p.key}
+            pulseKey={p.key}
+            idx={p.idx}
+            width={width}
+            cellPx={cellPx}
+            hex={p.hex}
+            isSelf={p.isSelf}
+            onDone={removePulse}
+          />
+        ))}
+      </Animated.View>
     </View>
   );
 }
@@ -679,6 +709,16 @@ const styles = StyleSheet.create({
     // placed (full-opacity) tiles read as bright pixels. The SVG rect
     // fallback for no-target cells matches this exactly.
     backgroundColor: colors.bg.overlay,
+  },
+  // Inner shake target. Same dimensions as the frame; translateX/Y
+  // are driven by Animated.Values that fire a damped oscillation when
+  // a self-placed tile lands. overflow:hidden on the outer frame
+  // catches the few-pixel excursion so the shake doesn't bleed onto
+  // the surrounding mural matte.
+  shakeWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   pulse: {
     position: 'absolute',

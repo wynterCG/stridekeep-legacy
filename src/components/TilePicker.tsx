@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import ColorCell from './ColorCell';
-import { RarityName } from './RarityName';
+import { RarityFrame, RarityName } from './RarityName';
 import { colorRarity } from '../data/colors';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -58,19 +58,32 @@ export default function TilePicker({
         <View style={styles.card}>
           <Text style={styles.kicker}>{`PIXEL #${pixelIdx}`}</Text>
 
-          {targetDef ? (
+          {targetDef ? (() => {
+            const targetRarity = colorRarity(palette, targetColorId);
+            const showFrame =
+              targetRarity === 'rare' ||
+              targetRarity === 'epic' ||
+              targetRarity === 'legendary';
+            return (
             <View style={styles.preview}>
-              <ColorCell color={targetDef} size={64} qty={undefined} showCode />
+              {showFrame ? (
+                <RarityFrame rarity={targetRarity}>
+                  <ColorCell color={targetDef} size={64} qty={undefined} showCode />
+                </RarityFrame>
+              ) : (
+                <ColorCell color={targetDef} size={64} qty={undefined} showCode />
+              )}
               <View style={styles.previewText}>
                 <Text style={styles.targetLabel}>This pixel needs</Text>
                 <RarityName
                   name={targetDef.name}
-                  rarity={colorRarity(palette, targetColorId)}
+                  rarity={targetRarity}
                   style={styles.targetName}
                 />
               </View>
             </View>
-          ) : (
+            );
+          })() : (
             <Text style={styles.targetLabel}>Loading palette…</Text>
           )}
 

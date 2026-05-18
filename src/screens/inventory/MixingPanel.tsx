@@ -9,6 +9,7 @@ import {
 import { useGameStore } from '../../store/gameStore';
 import ColorCell from '../../components/ColorCell';
 import ColorDetailSheet from '../../components/ColorDetailSheet';
+import { TileFeedback } from '../../components/TileFeedback';
 import { colors, fonts, spacing } from '../../theme';
 import type { ColorDef } from '../../types';
 
@@ -97,7 +98,9 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
                         disabled={!inputDef}
                       >
                         {inputDef && (
-                          <ColorCell color={inputDef} size={28} qty={undefined} showCode={false} />
+                          <TileFeedback color={inputDef} palette={palette} swatchSize={28}>
+                            <ColorCell color={inputDef} size={28} qty={undefined} showCode={false} />
+                          </TileFeedback>
                         )}
                         <Text style={[styles.inputQty, ok ? styles.qtyOk : styles.qtyMissing]}>
                           {`${have}/${qty}`}
@@ -113,7 +116,9 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
                   style={styles.outputBlock}
                   onPress={() => setDetailFor(outputDef)}
                 >
-                  <ColorCell color={outputDef} size={36} qty={undefined} />
+                  <TileFeedback color={outputDef} palette={palette} swatchSize={36}>
+                    <ColorCell color={outputDef} size={36} qty={undefined} />
+                  </TileFeedback>
                 </Pressable>
               </View>
 

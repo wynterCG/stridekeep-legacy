@@ -182,10 +182,29 @@ function stopLegendaryLoop(): void {
 }
 
 // Hook: registers an active legendary instance and returns the shared
+// 0→1→0 Animated.Value driving the blink. Use this when you need the
+// raw progress (e.g. cross-fading two pre-coloured layers); for the
+// common "give me the interpolated colour string" case, prefer
+// useLegendaryBlink.
+export function useLegendaryBlinkValue(): Animated.Value {
+  useEffect(() => {
+    legendaryRefCount++;
+    if (legendaryRefCount === 1) startLegendaryLoop();
+    return () => {
+      legendaryRefCount--;
+      if (legendaryRefCount === 0) stopLegendaryLoop();
+    };
+  }, []);
+  return legendaryBlink;
+}
+
+// Hook: registers an active legendary instance and returns the shared
 // yellow ↔ cyan interpolation. The interpolation is created per-call
 // (cheap — just a config object) but reads from the singleton value,
-// so all instances tick together.
-function useLegendaryBlink(): Animated.AnimatedInterpolation<string> {
+// so all instances tick together. Exported so other surfaces (e.g.
+// the rarity glow halo behind the case-reveal swatch) can paint
+// against the same blink without spinning up a second loop.
+export function useLegendaryBlink(): Animated.AnimatedInterpolation<string> {
   useEffect(() => {
     legendaryRefCount++;
     if (legendaryRefCount === 1) startLegendaryLoop();

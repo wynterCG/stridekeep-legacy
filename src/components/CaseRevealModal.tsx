@@ -12,8 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight, tapMedium, success } from '../lib/haptics';
 import { sfx } from '../lib/sounds';
+import { useShake } from '../hooks/useShake';
 import ColorCell from './ColorCell';
-import { RarityName } from './RarityName';
+import { RarityFrame, RarityName } from './RarityName';
+import { RarityGlow } from './RarityGlow';
+import { useWiggle } from '../hooks/useWiggle';
 import { colorRarity, type Rarity } from '../data/colors';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { CaseTier } from '../types';
@@ -61,6 +64,19 @@ export default function CaseRevealModal(): React.JSX.Element | null {
   const flashOpacity = useRef(new Animated.Value(0)).current;
   const continueOpacity = useRef(new Animated.Value(0)).current;
   const skipOpacity = useRef(new Animated.Value(0)).current;
+  // Swatch-landing shake. Fires alongside the tier-graded haptic at
+  // the swatch peak so the audio (already played on modal mount) +
+  // haptic + shake form the "impact" beat. Same hook as CanvasView's
+  // self-place shake — see src/hooks/useShake.ts.
+  const { shakeX, shakeY, trigger: triggerShake } = useShake();
+  // Idle wiggle: continuous gentle rotation + tiny vertical drift
+  // running on the swatch after it lands, until the modal closes.
+  // Reads as "the gem is alive" and keeps the eye on the prize
+  // through the savor hold (especially long for fine tier — 1.2 s of
+  // stillness without this felt frozen). useWiggle handles the
+  // primer + dual-axis loops + cleanup; we start it manually after
+  // the swatch settles.
+  const { wiggleRotate, wiggleY, start: startWiggle } = useWiggle();
 
   const [continueEnabled, setContinueEnabled] = useState(false);
 
@@ -204,11 +220,21 @@ export default function CaseRevealModal(): React.JSX.Element | null {
 
     // Tier-aware impact at swatch landing. Fired off the JS clock
     // rather than the swatch animation callback so a parallel Skip
-    // before landing doesn't double-haptic.
+    // before landing doesn't double-haptic. Shake amplitude is
+    // tier-graded so a fine drop reads as a heavier thunk than a
+    // starter — same hook as the canvas place-shake, just with a
+    // bigger peak for the rare moments.
     const haptic = setTimeout(() => {
-      if (rolledTier === 'fine') success();
-      else if (rolledTier === 'quality') tapMedium();
-      else tapLight();
+      if (rolledTier === 'fine') {
+        success();
+        triggerShake({ amplitude: 8 });
+      } else if (rolledTier === 'quality') {
+        tapMedium();
+        triggerShake({ amplitude: 6 });
+      } else {
+        tapLight();
+        triggerShake({ amplitude: 4 });
+      }
     }, timings.suspense + SWATCH_SPRING_DURATION_MS * 0.55);
 
     // Enable CONTINUE on the same deterministic clock the fade-in
@@ -227,12 +253,24 @@ export default function CaseRevealModal(): React.JSX.Element | null {
       }).start();
     }, T_SKIP_VISIBLE_AT);
 
+    // Start the idle wiggle once the swatch has fully settled
+    // (spring + savor hold are both "the gem is here" beats; the
+    // wiggle reinforces them). Idempotent via startWiggle guard so
+    // a later snapToEnd() can re-trigger without piling loops.
+    const wiggleStartTimer = setTimeout(
+      () => startWiggle(),
+      timings.suspense + SWATCH_SPRING_DURATION_MS,
+    );
+
     return () => {
       clearTimeout(haptic);
       clearTimeout(enableTimer);
       clearTimeout(skipTimer);
+      clearTimeout(wiggleStartTimer);
       compositeRef.current?.stop();
       compositeRef.current = null;
+      // useWiggle owns its own teardown — unmount stops the loop and
+      // resets the values automatically.
     };
     // Animated values are stable refs; deps narrowed to the snapshot
     // identity + the variant gates that change which animations run.
@@ -253,6 +291,11 @@ export default function CaseRevealModal(): React.JSX.Element | null {
     continueOpacity.setValue(1);
     skipOpacity.setValue(1);
     setContinueEnabled(true);
+    // If the user skipped before the wiggle-start timer fired, kick
+    // off the wiggle now so the post-skip swatch still reads as
+    // alive. startWiggle is idempotent — already-running wiggles
+    // are left alone.
+    startWiggle();
   }
 
   function handleSkip(): void {
@@ -298,7 +341,20 @@ export default function CaseRevealModal(): React.JSX.Element | null {
             </TouchableOpacity>
           </Animated.View>
 
-          <View style={styles.center}>
+          {/* Shake wrapper. The center column (swatch + name + tier)
+              shakes together at landing — backdrop, skip pill, and
+              CONTINUE button stay stable so they don't compete with
+              the celebration. Transforms compose with the per-child
+              transforms inside (swatchScale, nameTranslateY); RN's
+              Animated stacks them in declaration order, so this
+              outer translate applies as the world bump on top of the
+              spring + slide-in. */}
+          <Animated.View
+            style={[
+              styles.center,
+              { transform: [{ translateX: shakeX }, { translateY: shakeY }] },
+            ]}
+          >
             <View style={styles.swatchHolder}>
               {/* Radial flash sits BEHIND the swatch and expands
                   outward; pointerEvents none so it never eats taps. */}
@@ -315,9 +371,51 @@ export default function CaseRevealModal(): React.JSX.Element | null {
                   ]}
                 />
               )}
-              <Animated.View style={{ transform: [{ scale: swatchScale }] }}>
+              {/* Rarity halo. Rendered only for rare / epic / legendary
+                  drops — common + uncommon stay halo-less so the rarer
+                  drops feel distinctly more valuable. Color sources:
+                  RARITY_COLOR for rare/epic, shared legendaryBlink
+                  singleton for legendary. Sits behind the swatch (and
+                  in front of the rare-fine flash) so the swatch always
+                  reads as the focal point. */}
+              <RarityGlow rarity={rarity} swatchSize={SWATCH_SIZE} fadeInDelayMs={TIER_TIMINGS[tier].suspense} />
+              <Animated.View
+                style={{
+                  transform: [
+                    // Order matters: scale first (sets size), then
+                    // translateY (vertical drift), then rotate
+                    // (around the now-positioned center). Reordering
+                    // would offset the rotation pivot.
+                    { scale: swatchScale },
+                    {
+                      translateY: wiggleY.interpolate({
+                        inputRange: [-1, 1],
+                        outputRange: [-1.5, 1.5],
+                      }),
+                    },
+                    {
+                      rotate: wiggleRotate.interpolate({
+                        inputRange: [-1, 1],
+                        outputRange: ['-2deg', '2deg'],
+                      }),
+                    },
+                  ],
+                }}
+              >
                 {colorDef ? (
-                  <ColorCell color={colorDef} size={SWATCH_SIZE} />
+                  // Frame only above uncommon — matches the glow's
+                  // gate so common + uncommon drops stay visually
+                  // plain and rare+ drops feel distinctly upgraded.
+                  // RarityFrame ships the legendary blink variant
+                  // automatically so the frame stays in sync with
+                  // the legendary text and halo cross-fade.
+                  rarity === 'rare' || rarity === 'epic' || rarity === 'legendary' ? (
+                    <RarityFrame rarity={rarity}>
+                      <ColorCell color={colorDef} size={SWATCH_SIZE} />
+                    </RarityFrame>
+                  ) : (
+                    <ColorCell color={colorDef} size={SWATCH_SIZE} />
+                  )
                 ) : (
                   <View style={[styles.swatchFallback, { width: SWATCH_SIZE, height: SWATCH_SIZE }]} />
                 )}
@@ -344,7 +442,7 @@ export default function CaseRevealModal(): React.JSX.Element | null {
                 style={styles.tierLabel}
               />
             </Animated.View>
-          </View>
+          </Animated.View>
 
           <Animated.View style={[styles.continueWrap, { opacity: continueOpacity }]}>
             <TouchableOpacity

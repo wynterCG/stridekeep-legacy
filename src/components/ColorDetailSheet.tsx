@@ -1,10 +1,17 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import ColorCell from './ColorCell';
 import TutorialTarget from './TutorialTarget';
+import { RarityFrame, RarityName } from './RarityName';
+import { RarityGlow } from './RarityGlow';
+import { useWiggle } from '../hooks/useWiggle';
+import { colorRarity } from '../data/colors';
 import { CASES } from '../data/cases';
+import { useGameStore } from '../store/gameStore';
 import type { ColorDef } from '../types';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, radii, spacing } from '../theme';
+
+const HERO_SWATCH_SIZE = 100;
 
 interface Props {
   // null = sheet hidden. Setting a color shows the sheet anchored to
@@ -57,6 +64,17 @@ export default function ColorDetailSheet({
   onCraftWith,
   usedAsCraftInput,
 }: Props): React.JSX.Element {
+  // Read palette for rarity computation. seasonPalette can be null
+  // between seasons / pre-bootstrap; guard with optional chaining
+  // below so the rarity reads 'common' (no halo, no frame) until the
+  // palette loads.
+  const seasonPalette = useGameStore((s) => s.seasonPalette);
+  // Idle wiggle for the centred hero swatch. autoStartDelayMs: 0 so
+  // it picks up immediately when the sheet slides in — the Modal's
+  // own slide-in animation provides the entrance feel, the wiggle
+  // adds the alive-feeling idle motion case-reveal modal players
+  // already know.
+  const { wiggleRotate, wiggleY } = useWiggle({ autoStartDelayMs: 0 });
   return (
     <Modal
       transparent
@@ -72,26 +90,89 @@ export default function ColorDetailSheet({
             isShop && color.shopPrice != null && purse >= color.shopPrice;
           return (
             <Pressable style={styles.card} onPress={() => {}}>
-              <View style={styles.header}>
-                <ColorCell color={color} size={80} qty={qty} />
-                <View style={styles.headerText}>
-                  <Text style={styles.title}>{color.name.toUpperCase()}</Text>
-                  <Text style={styles.code}>{`${color.colorCode} · ${color.hex}`}</Text>
-                  <Text
-                    style={[
-                      styles.obtainment,
-                      isShop && styles.obtainmentShop,
-                    ]}
-                  >
-                    {describeObtainment(color)}
-                  </Text>
-                  <Text style={styles.sub}>
-                    {owned
-                      ? `You have ${qty} tile${qty === 1 ? '' : 's'}`
-                      : 'Not in inventory'}
-                  </Text>
-                </View>
-              </View>
+              {(() => {
+                const rarity = seasonPalette !== null
+                  ? colorRarity(seasonPalette, color.id)
+                  : 'common';
+                const showFrame =
+                  rarity === 'rare' ||
+                  rarity === 'epic' ||
+                  rarity === 'legendary';
+                return (
+                  <>
+                    {/* Hero block: centred wiggling swatch with a
+                        rarity halo behind. Glow stays put while the
+                        framed swatch wiggles inside its orbit — same
+                        layering rule as CaseRevealModal so the
+                        "alive gem in a halo" reading carries across
+                        the two surfaces. */}
+                    <View style={[styles.heroSlot, { width: HERO_SWATCH_SIZE, height: HERO_SWATCH_SIZE }]}>
+                      <RarityGlow rarity={rarity} swatchSize={HERO_SWATCH_SIZE} />
+                      <Animated.View
+                        style={{
+                          transform: [
+                            {
+                              translateY: wiggleY.interpolate({
+                                inputRange: [-1, 1],
+                                outputRange: [-1.5, 1.5],
+                              }),
+                            },
+                            {
+                              rotate: wiggleRotate.interpolate({
+                                inputRange: [-1, 1],
+                                outputRange: ['-2deg', '2deg'],
+                              }),
+                            },
+                          ],
+                        }}
+                      >
+                        {showFrame ? (
+                          <RarityFrame rarity={rarity}>
+                            <ColorCell color={color} size={HERO_SWATCH_SIZE} qty={qty} />
+                          </RarityFrame>
+                        ) : (
+                          <ColorCell color={color} size={HERO_SWATCH_SIZE} qty={qty} />
+                        )}
+                      </Animated.View>
+                    </View>
+
+                    <View style={styles.headerText}>
+                      <View style={styles.titleRow}>
+                        {/* Title text is tinted by rarity (cream for
+                            common, blue for rare, magenta for epic,
+                            blinking yellow↔cyan for legendary).
+                            RarityName handles the legendary blink. */}
+                        <RarityName
+                          name={color.name.toUpperCase()}
+                          rarity={rarity}
+                          style={styles.title}
+                        />
+                        {rarity !== 'common' && (
+                          <RarityName
+                            name={rarity.toUpperCase()}
+                            rarity={rarity}
+                            style={styles.rarityChip}
+                          />
+                        )}
+                      </View>
+                      <Text style={styles.code}>{`${color.colorCode} · ${color.hex}`}</Text>
+                      <Text
+                        style={[
+                          styles.obtainment,
+                          isShop && styles.obtainmentShop,
+                        ]}
+                      >
+                        {describeObtainment(color)}
+                      </Text>
+                      <Text style={styles.sub}>
+                        {owned
+                          ? `You have ${qty} tile${qty === 1 ? '' : 's'}`
+                          : 'Not in inventory'}
+                      </Text>
+                    </View>
+                  </>
+                );
+              })()}
 
               {onBuy !== undefined && isShop && color.shopPrice != null && (
                 <Pressable
@@ -182,24 +263,57 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingBottom: spacing.xl,
   },
-  header: {
-    flexDirection: 'row',
+  // Centred hero slot for the wiggling swatch. position:relative is
+  // critical — the absolute-positioned RarityGlow inside uses
+  // negative offsets to bleed beyond this box. alignItems +
+  // justifyContent centre the framed swatch (RarityFrame adds 4 px
+  // padding+border on each side so the swatch overflows the slot
+  // dimensions slightly; that's intentional, no overflow:hidden).
+  heroSlot: {
+    alignSelf: 'center',
+    position: 'relative',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  // Text block sits directly under the hero swatch. paddingBottom +
+  // dashed underline replicate the old `header` separator so the
+  // visual divider between hero+metadata and action buttons stays
+  // consistent.
+  headerText: {
+    alignItems: 'center',
     paddingBottom: 10,
     marginBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(70, 40, 14, 0.35)',
     borderStyle: 'dashed',
+    gap: 2,
   },
-  headerText: {
-    flex: 1,
+  // Title + rarity chip share a row, centred as a pair under the
+  // hero swatch. Was previously space-between (title flex:1 pushed
+  // chip to the right edge of a horizontal header); the new
+  // vertical layout reads better with the pair hugging the centre.
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   title: {
     fontFamily: fonts.outfitBlack,
-    fontSize: 17,
+    fontSize: 20,
     color: colors.text.cream,
     letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  // Smaller all-caps rarity callout on the right of the title.
+  // Colour is supplied by RarityName based on the rarity prop, so
+  // changing a rarity's hue in theme.ts updates here automatically.
+  rarityChip: {
+    fontFamily: fonts.outfitExtraBold,
+    fontSize: 10,
+    letterSpacing: 2,
   },
   code: {
     fontFamily: fonts.outfitRegular,
@@ -207,6 +321,7 @@ const styles = StyleSheet.create({
     color: colors.text.dim,
     letterSpacing: 1,
     marginTop: 1,
+    textAlign: 'center',
   },
   obtainment: {
     fontFamily: fonts.outfitExtraBold,
@@ -214,6 +329,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     letterSpacing: 1.5,
     marginTop: 6,
+    textAlign: 'center',
   },
   obtainmentShop: {
     color: colors.accent.brass,
@@ -223,6 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.text.muted,
     marginTop: 4,
+    textAlign: 'center',
   },
   action: {
     paddingVertical: 12,

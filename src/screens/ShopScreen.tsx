@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import TopHeader from '../components/TopHeader';
 import SeasonCard from '../components/SeasonCard';
 import ColorDetailSheet from '../components/ColorDetailSheet';
+import { TileFeedback } from '../components/TileFeedback';
 import { useGameStore } from '../store/gameStore';
 import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
@@ -62,6 +63,7 @@ export default function ShopScreen(): React.JSX.Element {
             <ShopRow
               key={c.id}
               color={c}
+              palette={palette}
               affordable={purse >= (c.shopPrice ?? Infinity)}
               onBuy={() => buyShopTile(c.id, 1)}
               onTapInfo={() => setDetailFor(c)}
@@ -85,6 +87,11 @@ export default function ShopScreen(): React.JSX.Element {
 
 interface ShopRowProps {
   color: ColorDef;
+  // Forwarded to TileFeedback so the swatch picks up the right
+  // category accent (brass for shop). palette is needed for the
+  // rarity-fallback branch — irrelevant here since shop tiles never
+  // hit it, but kept for the prop API to mirror other call sites.
+  palette: Record<string, ColorDef> | null;
   affordable: boolean;
   onBuy: () => void;
   onTapInfo: () => void;
@@ -95,6 +102,7 @@ interface ShopRowProps {
 // pill stays inline as a one-tap shortcut for the common path.
 function ShopRow({
   color,
+  palette,
   affordable,
   onBuy,
   onTapInfo,
@@ -103,7 +111,9 @@ function ShopRow({
   return (
     <View style={styles.row}>
       <Pressable style={styles.rowInfo} onPress={onTapInfo}>
-        <View style={[styles.swatch, { backgroundColor: color.hex }]} />
+        <TileFeedback color={color} palette={palette} swatchSize={36}>
+          <View style={[styles.swatch, { backgroundColor: color.hex }]} />
+        </TileFeedback>
         <View style={styles.meta}>
           <Text style={styles.name} numberOfLines={1}>
             {color.name.toUpperCase()}
