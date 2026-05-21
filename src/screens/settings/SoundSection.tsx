@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import { tapLight } from '../../lib/haptics';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 
 // Sound section. Two independent toggles:
@@ -17,6 +18,7 @@ import { colors, fonts, spacing } from '../../theme';
 // most opinionated audio choice (some players will love it, some will
 // want sfx-only over their own Spotify).
 export default function SoundSection(): React.JSX.Element {
+  const t = useTranslation();
   const soundEnabled = useGameStore((s) => s.soundEnabled);
   const setSoundEnabled = useGameStore((s) => s.setSoundEnabled);
   const musicEnabled = useGameStore((s) => s.musicEnabled);
@@ -24,17 +26,13 @@ export default function SoundSection(): React.JSX.Element {
 
   return (
     <View>
-      <Text style={styles.kicker}>SOUND</Text>
-      <Text style={styles.body}>
-        Independent toggles for short sound effects and the looping background music.
-      </Text>
+      <Text style={styles.kicker}>{t('sound.kicker')}</Text>
+      <Text style={styles.body}>{t('sound.body')}</Text>
 
       <View style={styles.row}>
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>Gameplay sounds</Text>
-          <Text style={styles.rowSub}>
-            Case opens, tile placements, ceremony celebration, place-rejection buzz.
-          </Text>
+          <Text style={styles.rowLabel}>{t('sound.sfxLabel')}</Text>
+          <Text style={styles.rowSub}>{t('sound.sfxSub')}</Text>
         </View>
         <Switch
           value={soundEnabled}
@@ -52,10 +50,8 @@ export default function SoundSection(): React.JSX.Element {
 
       <View style={styles.row}>
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>Background music</Text>
-          <Text style={styles.rowSub}>
-            Ambient loop that plays while you're in the app. Pauses when you switch away.
-          </Text>
+          <Text style={styles.rowLabel}>{t('sound.musicLabel')}</Text>
+          <Text style={styles.rowSub}>{t('sound.musicSub')}</Text>
         </View>
         <Switch
           value={musicEnabled}
@@ -71,9 +67,7 @@ export default function SoundSection(): React.JSX.Element {
         />
       </View>
 
-      <Text style={styles.fineprint}>
-        Respect the iOS silent switch — flipping your phone to silent mutes Stridekeep's sounds even with these toggles on.
-      </Text>
+      <Text style={styles.fineprint}>{t('sound.silentSwitchNote')}</Text>
     </View>
   );
 }

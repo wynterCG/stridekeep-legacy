@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import { badgeImageUrl } from '../../lib/badges';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 
 // PROFILE sub-tab body. Read-only stats + badge gallery + "best season"
@@ -24,30 +25,31 @@ import { colors, fonts, spacing } from '../../theme';
 // (FRAME ▸) lives HERE, not on Home, when implemented. Frames are
 // loadout/cosmetic data; Home is the playing surface.
 export default function ProfilePanel(): React.JSX.Element {
+  const t = useTranslation();
   const stats = useGameStore((s) => s.lifetimeStats);
   const badges = useGameStore((s) => s.badges);
 
   return (
     <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-      <Section label="LIFETIME">
+      <Section label={t('profile.lifetime')}>
         <View style={styles.statGrid}>
-          <StatBox value={fmtN(stats.steps_lifetime)} label="STEPS" />
-          <StatBox value={fmtN(stats.tiles_placed_lifetime)} label="TILES PLACED" />
+          <StatBox value={fmtN(stats.steps_lifetime)} label={t('profile.lifetimeSteps')} />
+          <StatBox value={fmtN(stats.tiles_placed_lifetime)} label={t('profile.tilesPlaced')} />
         </View>
       </Section>
 
-      <Section label="CASES OPENED">
+      <Section label={t('profile.casesOpened')}>
         <View style={styles.casesRow}>
-          <CaseStat tier="STARTER" count={stats.cases_opened.starter} />
-          <CaseStat tier="QUALITY" count={stats.cases_opened.quality} />
-          <CaseStat tier="FINE" count={stats.cases_opened.fine} />
+          <CaseStat tier={t('profile.starter')} count={stats.cases_opened.starter} />
+          <CaseStat tier={t('profile.quality')} count={stats.cases_opened.quality} />
+          <CaseStat tier={t('profile.fine')} count={stats.cases_opened.fine} />
         </View>
       </Section>
 
-      <Section label={`MURALS · ${badges.length}`}>
+      <Section label={t('profile.muralsSection', { n: badges.length })}>
         {badges.length === 0 ? (
           <Text style={styles.emptyText}>
-            No murals yet — win a season to earn your first.
+            {t('profile.muralsEmpty')}
           </Text>
         ) : (
           <View style={styles.badgeGrid}>
@@ -65,24 +67,24 @@ export default function ProfilePanel(): React.JSX.Element {
         )}
       </Section>
 
-      <Section label="BEST SEASON">
+      <Section label={t('profile.bestSeason')}>
         {stats.best_season_number === null ? (
           <Text style={styles.emptyText}>
-            First completed season will be recorded here.
+            {t('profile.bestSeasonEmpty')}
           </Text>
         ) : (
           <View style={styles.bestRow}>
             <View>
               <Text style={styles.bestNumber}>
-                SEASON {stats.best_season_number}
+                {t('profile.seasonNumber', { n: stats.best_season_number })}
               </Text>
-              <Text style={styles.bestSub}>Your peak contribution</Text>
+              <Text style={styles.bestSub}>{t('profile.peakContribution')}</Text>
             </View>
             <Text style={styles.bigStat}>
               {fmtN(stats.best_season_contribution)}
               <Text style={styles.bigStatUnit}>
                 {' '}
-                {stats.best_season_contribution === 1 ? 'PIXEL' : 'PIXELS'}
+                {stats.best_season_contribution === 1 ? t('profile.pixelSingular') : t('profile.pixelPlural')}
               </Text>
             </Text>
           </View>

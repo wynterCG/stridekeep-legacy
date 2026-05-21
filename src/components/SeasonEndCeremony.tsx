@@ -15,6 +15,7 @@ import { badgeImageUrl } from '../lib/badges';
 import { tapLight, tapMedium, success } from '../lib/haptics';
 import { sfx } from '../lib/sounds';
 import CeremonyMiniCanvas from './CeremonyMiniCanvas';
+import { useTranslation } from '../i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { SeasonEndSnapshot } from '../types';
 
@@ -45,6 +46,7 @@ const T_SKIP_VISIBLE_AT = 1500;
 // CanvasView). See SKILL.md §11 lesson: Reanimated v3 silently no-ops on
 // SDK 54 + old-arch.
 export default function SeasonEndCeremony(): React.JSX.Element | null {
+  const t = useTranslation();
   const snap = useGameStore((s) => s.pendingSeasonEnd);
   const applySeasonReset = useGameStore((s) => s.applySeasonReset);
   const setPendingSeasonEnd = useGameStore((s) => s.setPendingSeasonEnd);
@@ -368,17 +370,17 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
   // it in sync with the latest snap (no stale closure on a state field).
   const headline = useMemo(() => {
     if (snap === null) return '';
-    if (isTie) return 'STALEMATE';
-    if (iWon) return 'YOUR TEAM WON';
-    return 'BETTER LUCK NEXT SEASON';
-  }, [snap, isTie, iWon]);
+    if (isTie) return t('ceremony.headline.tie');
+    if (iWon) return t('ceremony.headline.win');
+    return t('ceremony.headline.loss');
+  }, [snap, isTie, iWon, t]);
 
   const subhead = useMemo(() => {
     if (snap === null) return '';
-    if (isTie) return 'Both teams will remember this';
-    if (iWon) return `Season ${snap.prevSeasonNumber} — you painted into history`;
-    return `Season ${snap.prevSeasonNumber} — keep walking, the next mural awaits`;
-  }, [snap, isTie, iWon]);
+    if (isTie) return t('ceremony.subhead.tie');
+    if (iWon) return t('ceremony.subhead.win', { n: snap.prevSeasonNumber });
+    return t('ceremony.subhead.loss', { n: snap.prevSeasonNumber });
+  }, [snap, isTie, iWon, t]);
 
   if (snap === null) return null;
 
@@ -399,7 +401,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
           {/* Skip → link, top-right */}
           <Animated.View style={[styles.skipWrap, { opacity: skipOpacity }]}>
             <TouchableOpacity onPress={handleSkip} hitSlop={12}>
-              <Text style={styles.skipText}>SKIP →</Text>
+              <Text style={styles.skipText}>{t('common.skip')}</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -413,7 +415,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
               },
             ]}
           >
-            <Text style={styles.seasonTag}>SEASON {snap.prevSeasonNumber}</Text>
+            <Text style={styles.seasonTag}>{t('ceremony.seasonTag', { n: snap.prevSeasonNumber })}</Text>
             <Text style={styles.headline}>{headline}</Text>
             <Text style={styles.subhead}>{subhead}</Text>
           </Animated.View>
@@ -442,10 +444,13 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
 
           {/* Contribution count */}
           <View style={styles.contribWrap}>
-            <Text style={styles.contribLabel}>YOU PLACED</Text>
+            <Text style={styles.contribLabel}>{t('ceremony.youPlaced')}</Text>
             <Text style={styles.contribValue}>
               {contribDisplay}
-              <Text style={styles.contribUnit}> {target === 1 ? 'PIXEL' : 'PIXELS'}</Text>
+              <Text style={styles.contribUnit}>
+                {' '}
+                {target === 1 ? t('ceremony.pixelSingular') : t('ceremony.pixelPlural')}
+              </Text>
             </Text>
           </View>
 
@@ -466,9 +471,9 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
                 resizeMode="cover"
               />
               <View style={styles.badgeMeta}>
-                <Text style={styles.badgeMetaTitle}>BADGE EARNED</Text>
+                <Text style={styles.badgeMetaTitle}>{t('ceremony.badgeEarned')}</Text>
                 <Text style={styles.badgeMetaSub}>
-                  Season {snap.prevSeasonNumber}
+                  {t('ceremony.badgeSeasonLine', { n: snap.prevSeasonNumber })}
                 </Text>
               </View>
             </Animated.View>
@@ -484,7 +489,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
               },
             ]}
           >
-            <Text style={styles.previewLabel}>NEXT UP →</Text>
+            <Text style={styles.previewLabel}>{t('ceremony.nextUp')}</Text>
             {snap.newSeasonNumber !== null ? (
               <View style={styles.previewRow}>
                 <CeremonyMiniCanvas
@@ -497,16 +502,18 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
                   showTargetGhost={false}
                 />
                 <View style={styles.previewMeta}>
-                  <Text style={styles.previewSeasonNum}>SEASON {snap.newSeasonNumber}</Text>
+                  <Text style={styles.previewSeasonNum}>
+                    {t('ceremony.nextSeasonNum', { n: snap.newSeasonNumber })}
+                  </Text>
                   <Text style={styles.previewName}>
-                    {snap.newSeasonName ?? 'Untitled'}
+                    {snap.newSeasonName ?? t('ceremony.untitled')}
                   </Text>
                 </View>
               </View>
             ) : (
               <View style={styles.previewPlaceholder}>
                 <Text style={styles.previewPlaceholderText}>
-                  Next mural coming soon
+                  {t('ceremony.nextMuralComingSoon')}
                 </Text>
               </View>
             )}
@@ -519,7 +526,7 @@ export default function SeasonEndCeremony(): React.JSX.Element | null {
               onPress={handleContinue}
               disabled={!continueEnabled}
             >
-              <Text style={styles.continueText}>CONTINUE</Text>
+              <Text style={styles.continueText}>{t('common.continue')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>

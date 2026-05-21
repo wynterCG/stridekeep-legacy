@@ -18,6 +18,7 @@ import { RarityFrame, RarityName } from './RarityName';
 import { RarityGlow } from './RarityGlow';
 import { useWiggle } from '../hooks/useWiggle';
 import { colorRarity, type Rarity } from '../data/colors';
+import { useTranslation } from '../i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 import type { CaseTier } from '../types';
 
@@ -56,6 +57,7 @@ const SWATCH_SPRING_DURATION_MS = 600;
 //
 // Built-in Animated API (NOT Reanimated). See SKILL.md §11 lesson.
 export default function CaseRevealModal(): React.JSX.Element | null {
+  const t = useTranslation();
   const reveal = useGameStore((s) => s.pendingTileReveal);
   const setPendingTileReveal = useGameStore((s) => s.setPendingTileReveal);
   const seasonPalette = useGameStore((s) => s.seasonPalette);
@@ -364,7 +366,7 @@ export default function CaseRevealModal(): React.JSX.Element | null {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Animated.View style={[styles.skipWrap, { opacity: skipOpacity }]}>
             <TouchableOpacity onPress={handleSkip} hitSlop={12}>
-              <Text style={styles.skipText}>SKIP →</Text>
+              <Text style={styles.skipText}>{t('common.skip')}</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -477,7 +479,7 @@ export default function CaseRevealModal(): React.JSX.Element | null {
               onPress={handleContinue}
               disabled={!continueEnabled}
             >
-              <Text style={styles.continueText}>CONTINUE</Text>
+              <Text style={styles.continueText}>{t('common.continue')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </SafeAreaView>

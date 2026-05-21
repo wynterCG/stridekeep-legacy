@@ -1,37 +1,39 @@
 import Constants from 'expo-constants';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 
 // About section. Version + credits + build channel diagnostic. Read-
 // only; no actions. Sized to fit at the bottom of the Settings list
 // without competing for attention.
 export default function AboutSection(): React.JSX.Element {
+  const t = useTranslation();
   // expo-constants exposes the app.json version. Falls back to '—' so
   // a missing constant doesn't crash the screen on a malformed build.
   const appVersion = Constants.expoConfig?.version ?? '—';
   // __DEV__ is the React Native build-time global; true in Metro dev
   // server, false in release APK. Useful diagnostic for QA when a
   // tester reports a bug from a build whose channel is ambiguous.
+  // 'Debug' / 'Release' are technical labels that read the same in
+  // both locales, so they're not in the i18n dictionary.
   const channel = __DEV__ ? 'Debug' : 'Release';
 
   return (
     <View>
-      <Text style={styles.kicker}>STRIDEKEEP</Text>
-      <Text style={styles.body}>
-        A team-based walking game where every step paints a shared mural.
-      </Text>
+      <Text style={styles.kicker}>{t('about.kicker')}</Text>
+      <Text style={styles.body}>{t('about.body')}</Text>
 
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>VERSION</Text>
+        <Text style={styles.rowLabel}>{t('about.versionLabel')}</Text>
         <Text style={styles.rowValue}>{appVersion}</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>BUILD</Text>
+        <Text style={styles.rowLabel}>{t('about.buildLabel')}</Text>
         <Text style={styles.rowValue}>{channel}</Text>
       </View>
 
-      <Text style={styles.credits}>Made with care by Wynter.</Text>
+      <Text style={styles.credits}>{t('about.credits')}</Text>
     </View>
   );
 }

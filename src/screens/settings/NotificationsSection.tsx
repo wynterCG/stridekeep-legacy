@@ -1,27 +1,28 @@
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
+import { useTranslation, type TKey } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 
 const TOGGLES: Array<{
   key: 'dailyWalkReminder' | 'seasonEndingSoon' | 'teamActivity';
-  label: string;
-  sub: string;
+  labelKey: TKey;
+  subKey: TKey;
 }> = [
   {
     key: 'dailyWalkReminder',
-    label: 'Daily walk reminder',
-    sub: "A nudge if you haven't moved much by evening.",
+    labelKey: 'notifications.dailyWalkReminderLabel',
+    subKey: 'notifications.dailyWalkReminderSub',
   },
   {
     key: 'seasonEndingSoon',
-    label: 'Season ending soon',
-    sub: 'Heads-up the day before a season closes.',
+    labelKey: 'notifications.seasonEndingSoonLabel',
+    subKey: 'notifications.seasonEndingSoonSub',
   },
   {
     key: 'teamActivity',
-    label: 'Teammate places in your color',
-    sub: "When someone fills a pixel of a color you've placed.",
+    labelKey: 'notifications.teamActivityLabel',
+    subKey: 'notifications.teamActivitySub',
   },
 ];
 
@@ -31,25 +32,24 @@ const TOGGLES: Array<{
 // honor them once wired. Fineprint at the bottom sets that
 // expectation so a player toggling on doesn't expect a buzz tonight.
 export default function NotificationsSection(): React.JSX.Element {
+  const t = useTranslation();
   const prefs = useGameStore((s) => s.notificationPrefs);
   const setPref = useGameStore((s) => s.setNotificationPref);
 
   return (
     <View>
-      <Text style={styles.kicker}>NOTIFICATIONS</Text>
-      <Text style={styles.body}>
-        Choose which kinds of nudges you want when push notifications arrive.
-      </Text>
+      <Text style={styles.kicker}>{t('notifications.kicker')}</Text>
+      <Text style={styles.body}>{t('notifications.body')}</Text>
 
-      {TOGGLES.map((t) => (
-        <View key={t.key} style={styles.row}>
+      {TOGGLES.map((toggle) => (
+        <View key={toggle.key} style={styles.row}>
           <View style={styles.textBlock}>
-            <Text style={styles.rowLabel}>{t.label}</Text>
-            <Text style={styles.rowSub}>{t.sub}</Text>
+            <Text style={styles.rowLabel}>{t(toggle.labelKey)}</Text>
+            <Text style={styles.rowSub}>{t(toggle.subKey)}</Text>
           </View>
           <Switch
-            value={prefs[t.key]}
-            onValueChange={(v) => setPref(t.key, v)}
+            value={prefs[toggle.key]}
+            onValueChange={(v) => setPref(toggle.key, v)}
             // Track + thumb tints chosen so the on-state reads as
             // brass (matches the rest of the wood-canyon UI) and
             // off-state recedes into the parchment chrome.
@@ -57,14 +57,12 @@ export default function NotificationsSection(): React.JSX.Element {
               false: colors.ui.border,
               true: colors.accent.brassDeep,
             }}
-            thumbColor={prefs[t.key] ? colors.accent.brassLight : colors.text.muted}
+            thumbColor={prefs[toggle.key] ? colors.accent.brassLight : colors.text.muted}
           />
         </View>
       ))}
 
-      <Text style={styles.fineprint}>
-        Push notifications ship in a future update — your preferences are saved.
-      </Text>
+      <Text style={styles.fineprint}>{t('notifications.fineprint')}</Text>
     </View>
   );
 }

@@ -12,6 +12,7 @@ import { useGameStore } from '../store/gameStore';
 import { CASES } from '../data/cases';
 import { tapLight } from '../lib/haptics';
 import TutorialTarget from './TutorialTarget';
+import { useTranslation } from '../i18n';
 import { colors, fonts, radii } from '../theme';
 
 interface Props {
@@ -38,6 +39,7 @@ function fmtSteps(n: number): string {
 // timing. Buy + Craft reveals share the same modal via the same store
 // field (dispatched from inside buyShopTile / craftTile).
 export default function CaseCard({ tier }: Props): React.JSX.Element {
+  const t = useTranslation();
   const caseData = CASES[tier];
   const caseState = useGameStore((s) => s.caseState[tier]);
   const openCase = useGameStore((s) => s.openCase);
@@ -120,7 +122,7 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
           </View>
           <Text style={styles.progressText}>
             {pending > 0
-              ? `${pending} PENDING`
+              ? t('case.pending', { n: pending })
               : `${fmtSteps(progress)} / ${fmtSteps(required)}`}
           </Text>
         </View>
@@ -132,12 +134,12 @@ export default function CaseCard({ tier }: Props): React.JSX.Element {
         // the button. Self-gates when no flow is active.
         <TutorialTarget targetKey={`case-open-${tier}`}>
           <TouchableOpacity onPress={handleOpen} style={styles.openPill}>
-            <Text style={styles.openPillText}>OPEN</Text>
+            <Text style={styles.openPillText}>{t('case.open')}</Text>
           </TouchableOpacity>
         </TutorialTarget>
       ) : (
         <View style={styles.idlePill}>
-          <Text style={styles.idlePillText}>{`${fmtSteps(stepsLeft)} LEFT`}</Text>
+          <Text style={styles.idlePillText}>{t('case.stepsLeft', { n: fmtSteps(stepsLeft) })}</Text>
         </View>
       )}
     </View>

@@ -19,6 +19,7 @@ import { placeErrorMessage } from '../../lib/placeErrors';
 import { tapLight } from '../../lib/haptics';
 import { sfx } from '../../lib/sounds';
 import { todayKey } from '../../native/healthConnect';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 import type { ColorDef } from '../../types';
 
@@ -52,6 +53,7 @@ interface Props {
 // via onCraftWith instead of opening a CraftModal — InventoryScreen
 // switches to the MIXING sub-tab with that filter pre-applied.
 export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
+  const t = useTranslation();
   const inventory = useGameStore((s) => s.inventory);
   const seasonPalette = useGameStore((s) => s.seasonPalette);
   const seasonCraftRecipes = useGameStore((s) => s.seasonCraftRecipes);
@@ -133,22 +135,20 @@ export default function ColorsPanel({ onCraftWith }: Props): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerLabel}>PIXEL COLORS</Text>
+        <Text style={styles.headerLabel}>{t('colors.kicker')}</Text>
         <Text style={styles.headerFraction}>{`${ownedCount} / ${totalCount}`}</Text>
       </View>
 
       {seasonPalette === null ? (
         <View style={styles.emptyCard}>
           <EmptyStateIcon kind="palette" size={56} />
-          <Text style={styles.emptyText}>Loading this season's palette…</Text>
-          <Text style={styles.emptySub}>
-            The mural prep tool seeds colors at season start.
-          </Text>
+          <Text style={styles.emptyText}>{t('colors.loadingPalette')}</Text>
+          <Text style={styles.emptySub}>{t('colors.muralPrepHint')}</Text>
         </View>
       ) : paletteEntries.length === 0 ? (
         <View style={styles.emptyCard}>
           <EmptyStateIcon kind="palette" size={56} />
-          <Text style={styles.emptyText}>No colors in this season's palette.</Text>
+          <Text style={styles.emptyText}>{t('colors.noColors')}</Text>
         </View>
       ) : (
         <View style={styles.grid}>

@@ -16,7 +16,10 @@ import AccountSection from '../screens/settings/AccountSection';
 import PrivacySection from '../screens/settings/PrivacySection';
 import NotificationsSection from '../screens/settings/NotificationsSection';
 import SoundSection from '../screens/settings/SoundSection';
+import LanguageSection from '../screens/settings/LanguageSection';
+import CurrencySection from '../screens/settings/CurrencySection';
 import AboutSection from '../screens/settings/AboutSection';
+import { useTranslation } from '../i18n';
 import { colors, fonts, spacing } from '../theme';
 
 interface Props {
@@ -30,15 +33,9 @@ type Section =
   | 'privacy'
   | 'notifications'
   | 'sound'
+  | 'language'
+  | 'currency'
   | 'about';
-
-const SECTION_LABELS: Record<Exclude<Section, 'list'>, string> = {
-  account: 'ACCOUNT',
-  privacy: 'PRIVACY',
-  notifications: 'NOTIFICATIONS',
-  sound: 'SOUND',
-  about: 'ABOUT',
-};
 
 // Settings shell. Replaces AccountModal as the gear-icon target;
 // hosts a 4-row drill-in list (Account / Privacy / Notifications /
@@ -54,6 +51,18 @@ export default function SettingsModal({
   onClose,
 }: Props): React.JSX.Element {
   const [section, setSection] = useState<Section>('list');
+  const t = useTranslation();
+  // Built per-render so the labels react to a Settings → Language flip
+  // without remounting this whole modal.
+  const SECTION_LABELS: Record<Exclude<Section, 'list'>, string> = {
+    account: t('settings.section.account'),
+    privacy: t('settings.section.privacy'),
+    notifications: t('settings.section.notifications'),
+    sound: t('settings.section.sound'),
+    language: t('settings.section.language'),
+    currency: t('settings.section.currency'),
+    about: t('settings.section.about'),
+  };
   // Read auth state directly from the store. Bootstrap hydrates these
   // on cold-start; AccountSection writes them on link / sign-in /
   // sign-out. Subscribing here (vs an async getSession() call) means
@@ -71,10 +80,10 @@ export default function SettingsModal({
 
   const accountStatusSnippet =
     accountLinked && accountEmail !== null
-      ? `Linked: ${accountEmail}`
+      ? `${t('settings.linked')}: ${accountEmail}`
       : accountLinked
-        ? 'Linked'
-        : 'Anonymous';
+        ? t('settings.linked')
+        : t('settings.anonymous');
 
   const renderSection = () => {
     switch (section) {
@@ -86,30 +95,51 @@ export default function SettingsModal({
         return <NotificationsSection />;
       case 'sound':
         return <SoundSection />;
+      case 'language':
+        return <LanguageSection />;
+      case 'currency':
+        return <CurrencySection />;
       case 'about':
         return <AboutSection />;
       case 'list':
         return (
           <View>
             <SettingsRow
-              label="Account"
+              label={t('settings.account')}
               status={accountStatusSnippet}
               onPress={() => setSection('account')}
             />
-            <SettingsRow label="Privacy" onPress={() => setSection('privacy')} />
             <SettingsRow
-              label="Notifications"
+              label={t('settings.privacy')}
+              onPress={() => setSection('privacy')}
+            />
+            <SettingsRow
+              label={t('settings.notifications')}
               onPress={() => setSection('notifications')}
             />
-            <SettingsRow label="Sound" onPress={() => setSection('sound')} />
-            <SettingsRow label="About" onPress={() => setSection('about')} />
+            <SettingsRow
+              label={t('settings.sound')}
+              onPress={() => setSection('sound')}
+            />
+            <SettingsRow
+              label={t('settings.language')}
+              onPress={() => setSection('language')}
+            />
+            <SettingsRow
+              label={t('settings.currency')}
+              onPress={() => setSection('currency')}
+            />
+            <SettingsRow
+              label={t('settings.about')}
+              onPress={() => setSection('about')}
+            />
           </View>
         );
     }
   };
 
   const headerLabel =
-    section === 'list' ? '⚙  SETTINGS' : `←  ${SECTION_LABELS[section]}`;
+    section === 'list' ? t('settings.title') : `←  ${SECTION_LABELS[section]}`;
 
   const handleHeaderPress = () => {
     if (section === 'list') return;
@@ -143,7 +173,7 @@ export default function SettingsModal({
                 <Text style={styles.header}>{headerLabel}</Text>
               </Pressable>
               <Pressable onPress={onClose} hitSlop={8}>
-                <Text style={styles.closeBtn}>CLOSE</Text>
+                <Text style={styles.closeBtn}>{t('common.close')}</Text>
               </Pressable>
             </View>
 

@@ -21,9 +21,14 @@ import TileFlightOverlay from './src/components/TileFlightOverlay';
 import NicknameOnboardingModal from './src/components/NicknameOnboardingModal';
 import OnboardingTutorial from './src/components/OnboardingTutorial';
 import JitTutorial from './src/components/JitTutorial';
+import HealthConnectGate from './src/components/HealthConnectGate';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
-import { ensureStepsPermission, readDailySteps } from './src/native/healthConnect';
+import {
+  ensureStepsPermission,
+  readDailySteps,
+  getHealthConnectStatus,
+} from './src/native/healthConnect';
 import { supabase } from './src/lib/supabase';
 import {
   bootstrapAuthAndSeason,
@@ -31,6 +36,7 @@ import {
 } from './src/lib/bootstrap';
 import { useSeasonEndWatcher } from './src/hooks/useSeasonEndWatcher';
 import { applyMusicVolume, initAudioMode, preloadSfx, startMusic, stopMusic } from './src/lib/sounds';
+import * as Localization from 'expo-localization';
 
 const BOT_TICK_MS = 4_000;
 
@@ -87,6 +93,26 @@ export default function App(): React.JSX.Element | null {
     })();
   }, []);
 
+  // Boot-time language detection. Runs ONCE per install (more precisely:
+  // once until the user sets a value). `language` persists across
+  // launches, so on subsequent boots this effect re-reads the stored
+  // value and short-circuits. A user who manually picks a language in
+  // Settings overrides the detection permanently — moving the device
+  // to a different locale later won't surprise-flip their pick.
+  //
+  // Strategy: read the FIRST locale from expo-localization's ordered
+  // list (matches the device's primary language preference) and map
+  // its languageCode → 'pt' if 'pt', else 'en'. Everything we don't
+  // explicitly support falls back to English.
+  useEffect(() => {
+    const current = useGameStore.getState().language;
+    if (current !== null) return; // already set; respect existing value
+    const locales = Localization.getLocales();
+    const primaryCode = locales[0]?.languageCode ?? 'en';
+    const detected = primaryCode === 'pt' ? 'pt' : 'en';
+    useGameStore.getState().setLanguage(detected);
+  }, []);
+
   // Background music lifecycle. Two inputs:
   //   1. AppState — active → start, background/inactive → stop.
   //      Without this, BGM bleeds into other apps when you swipe away
@@ -140,7 +166,18 @@ export default function App(): React.JSX.Element | null {
     // its result is just discarded.
     let cancelled = false;
 
+    // Two-stage sync. First probe SDK availability — if the provider app
+    // isn't installed or the device can't run HC at all, we surface a
+    // blocking gate (HealthConnectGate) instead of silently failing the
+    // step read. The store field drives the gate; on each foreground
+    // we re-probe so installing HC and returning auto-dismisses the
+    // gate (status 'needs-install' → 'available') and the same tick
+    // proceeds to ensureStepsPermission + readDailySteps.
     const sync = async () => {
+      const status = await getHealthConnectStatus();
+      if (cancelled) return;
+      useGameStore.getState().setHealthConnectStatus(status);
+      if (status !== 'available') return;
       const ok = await ensureStepsPermission();
       if (!ok || cancelled) return;
       const total = await readDailySteps();
@@ -281,6 +318,15 @@ export default function App(): React.JSX.Element | null {
               player advances the flow by interacting with the spotlit
               element directly. */}
           <JitTutorial />
+          {/* HealthConnectGate self-gates on store.healthConnectStatus.
+              Renders a blocking modal when the device needs to install
+              the Health Connect provider OR can't run it at all. The
+              step-sync effect above re-probes status on every foreground
+              transition so installing HC and returning auto-dismisses
+              this gate. Mounted last so it sits on top of every other
+              overlay (the user must resolve the HC situation before
+              they can do anything else). */}
+          <HealthConnectGate />
         </View>
       </NavigationContainer>
     </SafeAreaProvider>

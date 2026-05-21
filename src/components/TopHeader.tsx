@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { tapLight } from '../lib/haptics';
+import { useTranslation, t as tSnapshot } from '../i18n';
 
 const STRIDEKEEP_WEBSITE_URL = 'https://stridekeep.app/';
 import SettingsModal from './SettingsModal';
@@ -34,7 +35,11 @@ export default function TopHeader(): React.JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const seasonMuralName = useGameStore((s) => s.seasonMuralName);
-
+  // Subscribe to language via the hook so the subtitle re-renders on
+  // a language flip. The actual formatting uses the snapshot `t` so we
+  // can keep `formatSubtitle` as a pure helper outside the component.
+  const t = useTranslation();
+  void t; // referenced solely to subscribe to language changes
   const subtitle = formatSubtitle(seasonNumber, seasonMuralName);
 
   return (
@@ -102,16 +107,21 @@ export default function TopHeader(): React.JSX.Element {
   );
 }
 
-// "canyon_dawn" → "Season 1 · CANYON DAWN". Returns null when the
-// season number is null (between-seasons / pre-bootstrap), so the
-// subtitle row gets dropped from the layout entirely rather than
-// rendering a stub like "Season — · —".
+// "canyon_dawn" → "Season 1 · CANYON DAWN" (or "Temporada 1 · CANYON
+// DAWN" in PT). Returns null when the season number is null
+// (between-seasons / pre-bootstrap), so the subtitle row gets dropped
+// from the layout entirely rather than rendering a stub like
+// "Season — · —". The mural name itself is an atmospheric proper noun
+// and stays UNTRANSLATED in both languages — only the "Season N"
+// prefix flips between EN and PT.
 function formatSubtitle(seasonNumber: number | null, muralName: string | null): string | null {
   if (seasonNumber === null) return null;
   const name = muralName !== null && muralName.trim().length > 0
     ? muralName.replace(/_/g, ' ').toUpperCase()
     : null;
-  return name !== null ? `Season ${seasonNumber} · ${name}` : `Season ${seasonNumber}`;
+  return name !== null
+    ? tSnapshot('header.seasonSubtitleWithName', { n: seasonNumber, name })
+    : tSnapshot('header.seasonSubtitleNoName', { n: seasonNumber });
 }
 
 const styles = StyleSheet.create({

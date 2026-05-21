@@ -21,6 +21,7 @@ import { sfx } from '../../lib/sounds';
 import { relativeTime } from '../../hooks/useTownFeed';
 import { colorHex, colorName, colorRarity, type Rarity } from '../../data/colors';
 import { RarityName } from '../../components/RarityName';
+import { useTranslation } from '../../i18n';
 import type { Team } from '../../types';
 import { colors, fonts, spacing } from '../../theme';
 
@@ -47,6 +48,7 @@ const ZOOM_PEAK = 1.6;
 // just-enough community context (last few events) without competing
 // for attention the way a full LiveFeed would.
 export default function CanvasPanel(): React.JSX.Element {
+  const t = useTranslation();
   const { width: screenWidth } = useWindowDimensions();
   const team = useGameStore((s) => s.team);
   const seasonNumber = useGameStore((s) => s.seasonNumber);
@@ -229,7 +231,7 @@ export default function CanvasPanel(): React.JSX.Element {
       // failure path. No-op if the flight already completed.
       setPendingTileFlight(null);
       sfx.errorBuzz();
-      Alert.alert('Could not place tile', placeErrorMessage(result, palette));
+      Alert.alert(t('canvas.placeFailedTitle'), placeErrorMessage(result, palette));
     }
   };
 
@@ -440,7 +442,7 @@ export default function CanvasPanel(): React.JSX.Element {
         <View style={styles.placeholder}>
           <EmptyStateIcon kind="canvas" size={64} />
           <Text style={styles.placeholderText}>
-            {seasonNumber === null ? 'Awaiting next season…' : 'Loading canvas…'}
+            {seasonNumber === null ? t('canvas.awaitingNextSeason') : t('canvas.loadingCanvas')}
           </Text>
         </View>
       )}
@@ -454,19 +456,19 @@ export default function CanvasPanel(): React.JSX.Element {
         {team && viewingTeam && enemyTeam && (
           <View style={styles.viewingLine}>
             <Text style={[styles.viewingText, { color: teamAccent }]}>
-              {isOwnView ? 'YOUR TEAM' : 'ENEMY TEAM'}
+              {isOwnView ? t('canvas.yourTeam') : t('canvas.enemyTeam')}
             </Text>
             <Text style={styles.viewingHint}>
               {isOwnView
-                ? '  ·  swipe to see opponent'
-                : '  ·  swipe to return'}
+                ? t('canvas.swipeToSeeOpponent')
+                : t('canvas.swipeToReturn')}
             </Text>
           </View>
         )}
         <Text style={styles.completionText}>
-          {`${tilesLifetime.toLocaleString()} TILES`}
+          {`${tilesLifetime.toLocaleString()} ${t('canvas.tilesUnit')}`}
           <Text style={styles.completionSep}>{'  ·  '}</Text>
-          {`${pct}% FILLED`}
+          {t('canvas.percentFilled', { n: pct })}
         </Text>
       </View>
 
@@ -475,9 +477,9 @@ export default function CanvasPanel(): React.JSX.Element {
           above a separate card) lost the empty state behind layout
           margins and made the feed feel stranded under the canvas. */}
       <View style={styles.feedCard}>
-        <Text style={styles.feedTitle}>LIVE STRIDE FEED</Text>
+        <Text style={styles.feedTitle}>{t('canvas.liveFeedTitle')}</Text>
         {recent.length === 0 ? (
-          <Text style={styles.recentEmpty}>No activity yet.</Text>
+          <Text style={styles.recentEmpty}>{t('canvas.noActivityYet')}</Text>
         ) : (
           recent.map((e) => {
             const swatchHex = e.color_id ? colorHex(palette, e.color_id) : '#666';

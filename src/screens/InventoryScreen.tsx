@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import TopHeader from '../components/TopHeader';
 import SeasonCard from '../components/SeasonCard';
@@ -10,12 +10,8 @@ import MixingPanel from './inventory/MixingPanel';
 import { useGameStore } from '../store/gameStore';
 import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
+import { useTranslation } from '../i18n';
 import { colors } from '../theme';
-
-const TABS: TabSpec[] = [
-  { label: 'Colors', Icon: IconColors },
-  { label: 'Mixing', Icon: IconMixing },
-];
 
 // Phase-4 redesign Inventory shell. Two sub-tabs (COLORS / MIXING) over
 // the same shared SeasonCard banner that Home uses. The COLORS sub-tab
@@ -36,9 +32,21 @@ export default function InventoryScreen(): React.JSX.Element {
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   useCanvasLiveSync(team, seasonNumber);
   useTeamsCanvasProgressSync();
+  const t = useTranslation();
 
   const [tab, setTab] = useState(0);
   const [filter, setFilter] = useState<string | null>(null);
+
+  // Built per-render so the labels react to a language flip without
+  // remounting the screen. The icon refs are top-level constants so
+  // the deps array only needs `t` (which is stable per language).
+  const TABS: TabSpec[] = useMemo(
+    () => [
+      { label: t('inventory.colors'), Icon: IconColors },
+      { label: t('inventory.mixing'), Icon: IconMixing },
+    ],
+    [t],
+  );
 
   // Force the Colors sub-tab whenever the JIT first-case flow advances
   // into the inventory-side steps. Without this, a player who left

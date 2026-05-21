@@ -5,6 +5,7 @@ import { bootstrapAuthAndSeason } from '../../lib/bootstrap';
 import { success } from '../../lib/haptics';
 import { useGameStore } from '../../store/gameStore';
 import { supabase } from '../../lib/supabase';
+import { useTranslation, t as tSnapshot } from '../../i18n';
 import { colors, fonts, radii, spacing } from '../../theme';
 
 // Live URLs — files live at docs/privacy-policy.md and
@@ -30,6 +31,7 @@ const DELETION_REQUEST_EMAIL = 'privacy@stridekeep.app';
 //      RPC cascade-deletes auth.users → public.users / user_badges
 //      and sets canvas_pixels.placed_by to NULL.
 export default function PrivacySection(): React.JSX.Element {
+  const t = useTranslation();
   const [linkError, setLinkError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -49,19 +51,19 @@ export default function PrivacySection(): React.JSX.Element {
     try {
       const supported = await Linking.canOpenURL(url);
       if (!supported) {
-        setLinkError(`Could not open ${label}. Please try again.`);
+        setLinkError(tSnapshot('privacy.errorOpenLink', { label }));
         return;
       }
       await Linking.openURL(url);
     } catch {
-      setLinkError(`Could not open ${label}. Please try again.`);
+      setLinkError(tSnapshot('privacy.errorOpenLink', { label }));
     }
   };
 
   const handleOpenPolicy = () =>
-    openExternal(PRIVACY_POLICY_URL, 'the privacy policy');
+    openExternal(PRIVACY_POLICY_URL, tSnapshot('privacy.linkLabelPolicy'));
   const handleOpenTerms = () =>
-    openExternal(TERMS_OF_SERVICE_URL, 'the terms of service');
+    openExternal(TERMS_OF_SERVICE_URL, tSnapshot('privacy.linkLabelTerms'));
 
   const handleEmailPrivacy = async () => {
     setLinkError(null);
@@ -71,11 +73,8 @@ export default function PrivacySection(): React.JSX.Element {
     // Settings was open.
     const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id ?? 'unknown';
-    const subject = `Stridekeep support — player ${uid}`;
-    const body =
-      'Hi Stridekeep team,\n\n' +
-      `My player ID is ${uid}.\n\n` +
-      '(Describe your question or request below.)';
+    const subject = tSnapshot('privacy.mailSubject', { uid });
+    const body = tSnapshot('privacy.mailBody', { uid });
     const mailto = `mailto:${DELETION_REQUEST_EMAIL}?subject=${encodeURIComponent(
       subject,
     )}&body=${encodeURIComponent(body)}`;
@@ -83,14 +82,14 @@ export default function PrivacySection(): React.JSX.Element {
       const supported = await Linking.canOpenURL(mailto);
       if (!supported) {
         setLinkError(
-          `Could not open your mail app. Please email ${DELETION_REQUEST_EMAIL} directly.`,
+          tSnapshot('privacy.errorOpenMail', { email: DELETION_REQUEST_EMAIL }),
         );
         return;
       }
       await Linking.openURL(mailto);
     } catch {
       setLinkError(
-        `Could not open your mail app. Please email ${DELETION_REQUEST_EMAIL} directly.`,
+        tSnapshot('privacy.errorOpenMail', { email: DELETION_REQUEST_EMAIL }),
       );
     }
   };
@@ -109,21 +108,21 @@ export default function PrivacySection(): React.JSX.Element {
   const handleDeleteAccount = () => {
     if (deleting) return;
     Alert.alert(
-      'Delete your account?',
-      'This permanently removes your team, badges, lifetime stats, and account from our servers. Your tile placements stay on the canvas but become anonymous. This cannot be undone.',
+      tSnapshot('privacy.deleteConfirmTitle'),
+      tSnapshot('privacy.deleteConfirmBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: tSnapshot('privacy.cancel'), style: 'cancel' },
         {
-          text: 'Continue',
+          text: tSnapshot('privacy.deleteConfirmContinue'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Are you absolutely sure?',
-              'There is no recovery. You will start over as a new anonymous player.',
+              tSnapshot('privacy.deleteConfirm2Title'),
+              tSnapshot('privacy.deleteConfirm2Body'),
               [
-                { text: 'Cancel', style: 'cancel' },
+                { text: tSnapshot('privacy.cancel'), style: 'cancel' },
                 {
-                  text: 'Delete forever',
+                  text: tSnapshot('privacy.deleteConfirm2Action'),
                   style: 'destructive',
                   onPress: runDeleteAccount,
                 },
@@ -143,10 +142,10 @@ export default function PrivacySection(): React.JSX.Element {
       setDeleting(false);
       const msg =
         result.error === 'not_authenticated'
-          ? 'You are not signed in. Restart the app and try again.'
+          ? tSnapshot('privacy.errorNotAuth')
           : result.error === 'network_error'
-            ? 'Network error. Check your connection and try again.'
-            : 'Could not delete your account. Try again, or email privacy@stridekeep.app.';
+            ? tSnapshot('privacy.errorNetwork')
+            : tSnapshot('privacy.errorGeneric', { email: DELETION_REQUEST_EMAIL });
       setLinkError(msg);
       return;
     }
@@ -163,18 +162,15 @@ export default function PrivacySection(): React.JSX.Element {
     success();
     setDeleting(false);
     Alert.alert(
-      'Account deleted',
-      'Your account and all data tied to it have been removed. You are now a fresh anonymous player — pick a nickname to start over.',
+      tSnapshot('privacy.deletedTitle'),
+      tSnapshot('privacy.deletedBody'),
     );
   };
 
   return (
     <View>
-      <Text style={styles.kicker}>POLICY</Text>
-      <Text style={styles.body}>
-        We collect step counts via Health Connect, your team and tile placements,
-        and a nickname you chose. Read the full policy or request deletion below.
-      </Text>
+      <Text style={styles.kicker}>{t('privacy.kicker')}</Text>
+      <Text style={styles.body}>{t('privacy.body')}</Text>
 
       <Pressable
         style={[styles.row, !termsAvailable && styles.rowDisabled]}
@@ -182,9 +178,9 @@ export default function PrivacySection(): React.JSX.Element {
         disabled={!termsAvailable}
       >
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>TERMS OF SERVICE</Text>
+          <Text style={styles.rowLabel}>{t('privacy.termsLink')}</Text>
           <Text style={styles.rowSub}>
-            {termsAvailable ? 'Open in browser' : 'Coming soon'}
+            {termsAvailable ? t('privacy.openInBrowser') : t('privacy.comingSoon')}
           </Text>
         </View>
         <Text style={styles.chevron}>{'›'}</Text>
@@ -196,9 +192,9 @@ export default function PrivacySection(): React.JSX.Element {
         disabled={!policyAvailable}
       >
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>PRIVACY POLICY</Text>
+          <Text style={styles.rowLabel}>{t('privacy.policyLink')}</Text>
           <Text style={styles.rowSub}>
-            {policyAvailable ? 'Open in browser' : 'Coming soon'}
+            {policyAvailable ? t('privacy.openInBrowser') : t('privacy.comingSoon')}
           </Text>
         </View>
         <Text style={styles.chevron}>{'›'}</Text>
@@ -206,10 +202,8 @@ export default function PrivacySection(): React.JSX.Element {
 
       <Pressable style={styles.row} onPress={handleEmailPrivacy}>
         <View style={styles.textBlock}>
-          <Text style={styles.rowLabel}>EMAIL PRIVACY TEAM</Text>
-          <Text style={styles.rowSub}>
-            Questions, support, or backup deletion path
-          </Text>
+          <Text style={styles.rowLabel}>{t('privacy.emailTeam')}</Text>
+          <Text style={styles.rowSub}>{t('privacy.emailTeamSub')}</Text>
         </View>
         <Text style={styles.chevron}>{'›'}</Text>
       </Pressable>
@@ -221,9 +215,9 @@ export default function PrivacySection(): React.JSX.Element {
       >
         <View style={styles.textBlock}>
           <Text style={styles.dangerRowLabel}>
-            {deleting ? 'DELETING…' : 'DELETE MY ACCOUNT'}
+            {deleting ? t('privacy.deleting') : t('privacy.deleteAccount')}
           </Text>
-          <Text style={styles.dangerRowSub}>Permanently remove all my data</Text>
+          <Text style={styles.dangerRowSub}>{t('privacy.deleteAccountSub')}</Text>
         </View>
         <Text style={styles.dangerChevron}>{'›'}</Text>
       </Pressable>

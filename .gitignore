@@ -57,3 +57,6 @@ tools/mural-prep-godot/addons/
 assets/audio/*.asd
 assets/audio/old/
 assets/audio/Untitled.*
+
+# Claude Code runtime state (scheduled-task lock files etc.)
+.claude/

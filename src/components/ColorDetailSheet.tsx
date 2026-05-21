@@ -8,6 +8,8 @@ import { useWiggle } from '../hooks/useWiggle';
 import { colorRarity } from '../data/colors';
 import { CASES } from '../data/cases';
 import { useGameStore } from '../store/gameStore';
+import { useTranslation, t as tSnapshot } from '../i18n';
+import { formatCurrency, useFormatCurrency } from '../lib/currency';
 import type { ColorDef } from '../types';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -64,6 +66,8 @@ export default function ColorDetailSheet({
   onCraftWith,
   usedAsCraftInput,
 }: Props): React.JSX.Element {
+  const t = useTranslation();
+  const fmtCurrency = useFormatCurrency();
   // Read palette for rarity computation. seasonPalette can be null
   // between seasons / pre-bootstrap; guard with optional chaining
   // below so the rarity reads 'common' (no halo, no frame) until the
@@ -166,8 +170,8 @@ export default function ColorDetailSheet({
                       </Text>
                       <Text style={styles.sub}>
                         {owned
-                          ? `You have ${qty} tile${qty === 1 ? '' : 's'}`
-                          : 'Not in inventory'}
+                          ? (qty === 1 ? t('detail.youHave1Tile') : t('detail.youHaveTiles', { n: qty }))
+                          : t('detail.notInInventory')}
                       </Text>
                     </View>
                   </>
@@ -186,7 +190,7 @@ export default function ColorDetailSheet({
                       !canAffordOne && styles.actionTextDisabled,
                     ]}
                   >
-                    {`BUY 1 · $${color.shopPrice.toLocaleString()}`}
+                    {t('detail.actionBuyOne', { price: fmtCurrency(color.shopPrice) })}
                   </Text>
                 </Pressable>
               )}
@@ -194,7 +198,7 @@ export default function ColorDetailSheet({
               {onSell !== undefined && owned && color.category === 'case' && (
                 <Pressable style={styles.action} onPress={onSell}>
                   <Text style={styles.actionText}>
-                    {`SELL 1 · $${(sellPreview ?? 0).toLocaleString()}`}
+                    {t('detail.actionSellOne', { price: fmtCurrency(sellPreview ?? 0) })}
                   </Text>
                 </Pressable>
               )}
@@ -202,19 +206,19 @@ export default function ColorDetailSheet({
               {onPlace !== undefined && owned && (
                 <TutorialTarget targetKey={`inv-place-${color.id}`}>
                   <Pressable style={styles.action} onPress={onPlace}>
-                    <Text style={styles.actionText}>PLACE ON CANVAS</Text>
+                    <Text style={styles.actionText}>{t('detail.actionPlace')}</Text>
                   </Pressable>
                 </TutorialTarget>
               )}
 
               {onCraftWith !== undefined && owned && usedAsCraftInput && (
                 <Pressable style={styles.action} onPress={onCraftWith}>
-                  <Text style={styles.actionText}>CRAFT WITH</Text>
+                  <Text style={styles.actionText}>{t('detail.actionCraftWith')}</Text>
                 </Pressable>
               )}
 
               <Pressable style={styles.cancel} onPress={onClose}>
-                <Text style={styles.cancelText}>CLOSE</Text>
+                <Text style={styles.cancelText}>{t('common.close')}</Text>
               </Pressable>
             </Pressable>
           );
@@ -234,20 +238,28 @@ export default function ColorDetailSheet({
 // Distinct phrasing for shop-only colors flags the "can't drop, must
 // buy" path so the player doesn't keep opening cases hoping it'll
 // show up.
+// Uses the snapshot `t` so this stays a pure helper outside the
+// component tree. Caller is a render-time consumer inside the sheet,
+// which already subscribes to `language` via useTranslation() —
+// language flips will re-render the sheet and re-call this helper
+// against the new dictionary on the next read.
 function describeObtainment(color: ColorDef): string {
   if (color.category === 'shop') {
     const price = color.shopPrice;
-    if (price == null) return 'SHOP ONLY';
-    return `SHOP ONLY · $${price.toLocaleString()}`;
+    if (price == null) return tSnapshot('detail.obtainShopOnly');
+    return tSnapshot('detail.obtainShopOnlyPriced', { price: formatCurrency(price) });
   }
   if (color.category === 'craft') {
-    return 'CRAFTED · See MIXING tab for recipe';
+    return tSnapshot('detail.obtainCrafted');
   }
   const tier = color.tier;
   if (tier === 'starter' || tier === 'quality' || tier === 'fine') {
-    return `DROPS FROM ${CASES[tier].name.toUpperCase()}`;
+    // Case name (e.g. "PIGMENT POUCH") is an atmospheric proper noun
+    // — it stays the same across languages, so the brand reading is
+    // consistent between EN and PT.
+    return tSnapshot('detail.obtainDropsFrom', { case: CASES[tier].name.toUpperCase() });
   }
-  return 'CASE DROP';
+  return tSnapshot('detail.obtainCaseDrop');
 }
 
 const styles = StyleSheet.create({

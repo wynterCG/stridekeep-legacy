@@ -7,6 +7,7 @@ import DevTriggerCeremonyButton from '../../components/DevTriggerCeremonyButton'
 import DevResetTutorialsButton from '../../components/DevResetTutorialsButton';
 import DevPreviewSeasonButton from '../../components/DevPreviewSeasonButton';
 import DevAudioTunerButton from '../../components/DevAudioTunerButton';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 
 // CASES sub-tab body. Hosts the 3 case cards (fine / quality / starter)
@@ -24,22 +25,17 @@ import { colors, fonts, spacing } from '../../theme';
 // CaseCard owns that wrapper, so this file no longer carries a step-
 // numbered TutorialTarget around the starter card.
 export default function CasesPanel(): React.JSX.Element {
+  const t = useTranslation();
   return (
     <ScrollView
       style={styles.root}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.kicker}>MATERIALS</Text>
+      <Text style={styles.kicker}>{t('case.materialsKicker')}</Text>
       <CaseCard tier="fine" />
       <CaseCard tier="quality" />
       <CaseCard tier="starter" />
-      {/* DEV BUTTONS — gated to dev builds only. Each Dev*Button
-          component's docstring repeats this __DEV__ contract, but the
-          gate that actually keeps them out of release APKs lives here.
-          Metro's dead-code elimination strips the entire branch when
-          __DEV__ is false, so the components never reach the production
-          bundle. */}
       {__DEV__ && (
         <>
           <SimulateWalkButton />

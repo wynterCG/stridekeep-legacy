@@ -773,6 +773,79 @@ The fallback to debug-signing when properties are missing preserves the legacy `
 
 **Dev section RE-GATED 2026-05-18.** All six dev buttons in `CasesPanel` (SIMULATE WALK / GRANT TILES / TRIGGER CEREMONY / PREVIEW SEASON / RESET TUTORIALS / AUDIO TUNER) are now wrapped in `{__DEV__ && (...)}`. Metro strips the branch from release bundles via dead-code elimination, so the components never reach the production APK. Each individual `Dev*Button` component's docstring repeats the contract for clarity, but the gate that actually enforces it lives in `CasesPanel.tsx`. Ready for the next Play Console build from this perspective; keystore backup is still a prerequisite for the actual upload.
 
+✅ **i18n + Portuguese (PT-PT) added 2026-05-18 ahead of internal testing.** Stridekeep now ships with full English + Portuguese-Portugal localization across the core gameplay loop, device-locale auto-detection on first launch, and an in-app picker at Settings → Idioma / Language.
+
+**Architecture.** Lightweight custom i18n via Zustand — no `react-i18next` / Format.js dependency. Three files under [src/i18n/](e:/Vibe%20Coding/Stridekeep/src/i18n/):
+- `en.ts` — the **canonical** dictionary. Flat dot-namespaced keys (`'case.open'`, `'season.day'`) → English strings. Declared `satisfies Record<string, string>` so the values are typed as plain strings but the key set is locked at compile time via `keyof typeof en` exported as `TKey`.
+- `pt.ts` — the PT-PT translation. Declared `Record<TKey, string>`, so **any key in en.ts that's missing here is a TypeScript compile error**. That's the safety net for partial translations — adding `en.ts` first, then `pt.ts`, surfaces the missing keys immediately.
+- `index.ts` — exports `useTranslation()` (React hook, subscribes to `language`, re-renders on flip) and a bare `t(key, vars?)` snapshot (for non-React contexts: `lib/placeErrors.ts`, store actions, anything outside the component tree). Both share the same `resolve()` helper that does `{var}` interpolation.
+
+**Store field.** [gameStore.ts](e:/Vibe%20Coding/Stridekeep/src/store/gameStore.ts) carries `language: 'en' | 'pt' | null` (persisted) and a `setLanguage` setter. `null` means "boot-time auto-detect hasn't fired yet"; App.tsx writes the detected value on first launch and never re-detects unless `language` somehow becomes null again (which it can't through normal use). User picks in Settings → Idioma overwrite the field and the auto-detect respects the manual pick on subsequent launches.
+
+**Boot-time auto-detect.** [App.tsx](e:/Vibe%20Coding/Stridekeep/App.tsx) reads `expo-localization`'s first locale on a `useEffect` with empty deps, maps `languageCode === 'pt'` → `'pt'` else `'en'`, and writes it via `setLanguage`. Runs ONCE per install. Device locale changes later DON'T re-flip the app — that's deliberate; the manual pick wins.
+
+**Settings switcher.** New [LanguageSection.tsx](e:/Vibe%20Coding/Stridekeep/src/screens/settings/LanguageSection.tsx) mirrors `SoundSection`'s structure: two radio rows (English / Português) tied to the store. Picking flips the language instantly — every component subscribed via `useTranslation()` re-renders with the new strings without remount. Lives in the SettingsModal drill-in between Sound and About.
+
+**v1 localization scope.** Localized in this pass (and extended on 2026-05-21 ahead of v1.0.2):
+- Bottom tabs (HOME / INVENTORY / SHOP) + home sub-tabs (Mural / Cases / Profile)
+- `SeasonCard` (DAY, STEPS, PURSE, RED/BLUE lead labels, "AWAITING FIRST PIXEL", extended-cap line)
+- `TopHeader` (season subtitle with/without mural name — mural name itself stays untranslated)
+- `CasesPanel` + `CaseCard` (MATERIALS kicker, OPEN button, PENDING / LEFT progress text)
+- `CaseRevealModal` (CONTINUE, SKIP)
+- `CanvasPanel` (YOUR TEAM / ENEMY TEAM, swipe hints, TILES / % FILLED, LIVE STRIDE FEED title + empty state, place-fail alert title, canvas-loading placeholder)
+- `ProfilePanel` (LIFETIME, CASES OPENED, MURALS, BEST SEASON, empty-state copy, PIXEL singular/plural)
+- `SettingsModal` shell + drill-in row labels + CLOSE button + Linked/Anonymous account snippet
+- `SoundSection` + `NotificationsSection` + `AboutSection` + `LanguageSection` + `CurrencySection` + `PrivacySection`
+- `ShopScreen` / `MixingPanel` / `ColorsPanel` / `InventoryScreen` / `TilePicker`
+- `ColorDetailSheet` (the per-tile sheet — rarity chip, BUY/CRAFT/PLACE actions, obtainment lines)
+- `SeasonEndCeremony` (win/loss/tie headlines + subheads + CONTINUE)
+- `OnboardingTutorial` + `JitTutorial` (refactored to hold `TKey` references in `data/tutorial.ts`, resolved at render time)
+- `HealthConnectGate` (needs-install + unsupported copy)
+- `lib/placeErrors.ts` — all 8 PlaceResult error discriminators, including the `{name}`-interpolated wrong-color message
+
+**v1 scope still deferred:**
+- `NicknameOnboardingModal` + `AccountSection` (low-traffic on first-launch + power-user surfaces)
+- `LiveFeed` event templates ("X placed Y", "X opened Y") — template structure needs i18n-friendly refactor
+
+These surfaces stay English in both locales for v1; the UI is fully usable but mixed-language when a PT user taps into them.
+
+**Why no `react-i18next` dependency.** The library is mature but heavy (~30 KB gzipped + ICU plural rules we don't need). Stridekeep has no plural-form complexity (`PIXEL`/`PIXELS` is the only one and a ternary handles it inline) and no date/number formatting needs beyond `toLocaleString`. The 60-line custom resolver in `i18n/index.ts` ships ~0.5 KB and is trivially extendable if real i18n complexity surfaces later.
+
+**Atmospheric proper nouns stay untranslated by design.** Color names (Mistfall, Pigment Pouch, Thicket), case tier display names (CASES.starter.name), season titles, and the team names "RED" / "BLUE" — none of these are in the i18n dictionary. They're proper-noun-like taxonomy and read as the same brand across all locales. The body copy of `language.body` explicitly tells the user this.
+
+**Translation tone for PT-PT.** Casual "tu" form throughout (matches Stridekeep's wholesome mobile-game vibe; "você" reads as distant for this audience). PT-PT vocabulary, not PT-BR — "écran" not "tela", "telemóvel" not "celular", "carregar" not "baixar". Casing preserves the English source's visual weight: uppercase 'CONTINUE' → uppercase 'CONTINUAR', so button-styling assumptions hold. **User-locked PT-PT lexical choices** (overrides default translator output): "acções" not "ações" (pre-1990 spelling); "SAI EM" not "CAI EM" for case-drop sources (semantic — color *comes out of* a case); "pixeis" not "tiles" for the in-game piece (translator-friendly PT term for the small square mosaic units).
+
+✅ **Internal testing rollout shipped 2026-05-21 — v1.0.0 → v1.0.1 → v1.0.2.** Three versionCode bumps in two days as the Play Console internal testing track went live with `winterpt91@gmail.com` as the sole tester.
+
+**Currency picker + locale-aware Intl.NumberFormat (v1.0.1).** [src/lib/currency.ts](e:/Vibe%20Coding/Stridekeep/src/lib/currency.ts) wraps `Intl.NumberFormat` with a module-level cache (`Map<string, Intl.NumberFormat>`) so the same currency code reuses the same formatter across all call sites. Two reads: `formatCurrency(n)` (snapshot for non-React callers like store actions) + `useFormatCurrency()` (React hook that re-renders on currency change). Both honor the new `currency: 'auto' | 'EUR' | 'USD' | 'GBP'` store field — 'auto' uses `expo-localization`'s `currencyCode`, the explicit codes override for users whose Android locale lies (common case: NL-resident with Android set to en-GB sees GBP under 'auto' even though they want EUR). [CurrencySection.tsx](e:/Vibe%20Coding/Stridekeep/src/screens/settings/CurrencySection.tsx) is a four-radio drill-in (Auto-detect / Euro / US Dollar / British Pound) routed from SettingsModal between Language and Sound. The picker is independent from the UI language — Portuguese players can keep currency in USD if they want; the two settings serve different needs (language = UI text, currency = how the in-game purse is rendered).
+
+**Tug-of-war scoreboard simplified.** [SeasonCard.tsx](e:/Vibe%20Coding/Stridekeep/src/components/SeasonCard.tsx) previously showed `LEAD: TEAM ±N` in a middle cell between the two team bars; per user feedback, that overwhelmed the at-a-glance read. Now just two coloured bars touching in the middle, flexed by `red`/`blue` counts. Lead is implicit in the bar widths; players who want the exact number can tap into the canvas. Removed: `computeLead()` helper + `tugCenter` styles.
+
+**Dev buttons re-gated to `__DEV__` (v1.0.1).** All six dev buttons in `CasesPanel` (SIMULATE WALK / GRANT TILES / TRIGGER CEREMONY / PREVIEW SEASON / RESET TUTORIALS / AUDIO TUNER) are wrapped in `{__DEV__ && (...)}`. Metro strips the branch from release bundles via dead-code elimination, so the components never reach the production APK. The dev workflow uses local debug builds for iteration; the release APK / AAB ships clean.
+
+**Health Connect availability gate (v1.0.2).** Before v1.0.2, `App.tsx` called `ensureStepsPermission()` on cold start + every foreground transition, which internally called `initialize()` from `react-native-health-connect`. If Health Connect wasn't installed on the device, `initialize()` failed silently — the step sync just never happened and the user stared at an empty canvas with no idea what was broken. The girlfriend-test on a real consumer phone (Samsung Galaxy A52-ish range, Android 13) confirmed the gap.
+
+Architecture: three-state probe `getHealthConnectStatus(): Promise<'available' | 'needs-install' | 'unsupported'>` in [src/native/healthConnect.ts](e:/Vibe%20Coding/Stridekeep/src/native/healthConnect.ts) wraps `getSdkStatus()` from the package + `SdkAvailabilityStatus` constants:
+- `SDK_AVAILABLE` (3) → `'available'`
+- `SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED` (2) → `'needs-install'`
+- `SDK_UNAVAILABLE` (1) → `'unsupported'`
+- Native error → `'unsupported'` (defensive — at least render a dead-end message instead of silent failure)
+
+Store field `healthConnectStatus: HealthConnectStatus | 'unknown'` (default `'unknown'`, NOT persisted — re-probed every launch + foreground transition since users can install/uninstall HC between sessions). [HealthConnectGate.tsx](e:/Vibe%20Coding/Stridekeep/src/components/HealthConnectGate.tsx) self-gates on the store field, mounted at App root *after* every other overlay so it sits on top. Two render branches:
+- `needs-install` → Modal with "Install Health Connect" CTA that tries `market://details?id=com.google.android.apps.healthdata` first (opens Play Store app directly), falls back to `https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata`.
+- `unsupported` → Modal with no CTA, explaining Android 8+ requirement. Game unplayable on this device.
+
+The same `useEffect` in App.tsx that drives `ensureStepsPermission` now does a two-stage sync: probe → set status → if available, proceed with the existing permission + read flow. Foreground transitions re-probe, so installing HC and returning to Stridekeep flips the status to `'available'` and auto-dismisses the modal in the same tick.
+
+**Google Fit is dead, don't propose it.** Google Fit Android API was shut down on **2025-06-30**. Any new step-tracking work on Android is Health Connect (multi-source aggregation) or `Sensor.TYPE_STEP_COUNTER` (native hardware sensor, no Google Fit involvement). Expo SDK 54's `expo-sensors` Pedometer uses `hardware.Sensor` on Android, not Google Fit. Saved to [google_fit_deprecated.md](C:/Users/Wynter/.claude/projects/e--Vibe-Coding-Stridekeep/memory/google_fit_deprecated.md) so I don't suggest it again.
+
+**Internal testing track lessons learned.** Play Console gotchas worth remembering:
+- The Internal testing email list is **fully mutable** — add/remove testers anytime, no rebuild or re-rollout needed. The opt-in URL stays the same; the email gate is what changes.
+- "License testers (auto-generated)" is a separate system list for paid-app licensing — do NOT tick this for ordinary internal testing.
+- The R8/proguard "no deobfuscation file" warning is harmless when `enableMinifyInReleaseBuilds=false` (our setup) — there's no minified code to deobfuscate. Crash reports already have readable stack traces.
+- VersionCode must monotonically increase across uploads. Bump when in doubt; the actual versionCode of the LAST-uploaded AAB is the floor for the next.
+- After `Guardar e publicar`, status goes `A processar` → `Disponível` in 1-10 minutes typically. The opt-in URL only goes live once status is Disponível.
+
 ### Phase 5: Closed beta (6-8 weeks) — pending Phase 4
 - 20-50 testers via Google Play closed testing
 - Privacy policy and store listing

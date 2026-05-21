@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { JIT_FLOWS } from '../data/tutorial';
+import { useTranslation } from '../i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 
 // Spotlight padding around the highlighted rect — gives the cutout
@@ -41,6 +42,7 @@ const TOOLTIP_HEIGHT_ESTIMATE = 200;
 // compensation the cutout floats ~status-bar-height above the actual
 // element on Android edge-to-edge.
 export default function JitTutorial(): React.JSX.Element | null {
+  const t = useTranslation();
   const tutorialActiveFlow = useGameStore((s) => s.tutorialActiveFlow);
   const tutorialFlowStep = useGameStore((s) => s.tutorialFlowStep);
   const tutorialTargetRect = useGameStore((s) => s.tutorialTargetRect);
@@ -189,11 +191,11 @@ export default function JitTutorial(): React.JSX.Element | null {
       {/* Tooltip card */}
       <View style={[styles.tooltipWrap, tooltipStyle]} pointerEvents="box-none">
         <View style={styles.tooltip}>
-          <Text style={styles.tooltipKicker}>{step.title}</Text>
-          <Text style={styles.tooltipBody}>{step.body}</Text>
+          <Text style={styles.tooltipKicker}>{t(step.titleKey)}</Text>
+          <Text style={styles.tooltipBody}>{t(step.bodyKey)}</Text>
           <View style={styles.buttonRow}>
             <Pressable onPress={cancelTutorialFlow} hitSlop={8}>
-              <Text style={styles.skipBtnText}>SKIP TUTORIAL</Text>
+              <Text style={styles.skipBtnText}>{t('jit.skip')}</Text>
             </Pressable>
           </View>
         </View>

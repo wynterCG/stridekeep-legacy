@@ -10,6 +10,7 @@ import { useGameStore } from '../../store/gameStore';
 import ColorCell from '../../components/ColorCell';
 import ColorDetailSheet from '../../components/ColorDetailSheet';
 import { TileFeedback } from '../../components/TileFeedback';
+import { useTranslation } from '../../i18n';
 import { colors, fonts, spacing } from '../../theme';
 import type { ColorDef } from '../../types';
 
@@ -31,6 +32,7 @@ interface Props {
 // Filter empty state reads "No recipes use this color." matching the
 // old CRAFT WITH behaviour.
 export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.Element {
+  const t = useTranslation();
   const palette = useGameStore((s) => s.seasonPalette);
   const recipes = useGameStore((s) => s.seasonCraftRecipes);
   const inventory = useGameStore((s) => s.inventory);
@@ -55,18 +57,18 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
     <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <Text style={styles.headerLabel}>
-          {filterByInputColorId ? 'CRAFT WITH' : 'RECIPES'}
+          {filterByInputColorId ? t('mixing.craftWithHeader') : t('mixing.recipesHeader')}
         </Text>
         <Text style={styles.headerCount}>{recipeList.length}</Text>
       </View>
 
       {recipes === null ? (
-        <Text style={styles.emptyText}>Loading recipes…</Text>
+        <Text style={styles.emptyText}>{t('mixing.loading')}</Text>
       ) : recipeList.length === 0 ? (
         <Text style={styles.emptyText}>
           {filterByInputColorId
-            ? 'No recipes use this color.'
-            : 'No craft recipes this season.'}
+            ? t('mixing.noRecipesForColor')
+            : t('mixing.noRecipesThisSeason')}
         </Text>
       ) : (
         recipeList.map((recipe) => {
@@ -128,8 +130,8 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
                   {!canCraft && (
                     <Text style={styles.shortLine}>
                       {missingCount === 1
-                        ? 'NEED 1 MORE INPUT'
-                        : `NEED ${missingCount} MORE INPUTS`}
+                        ? t('mixing.needOneMore')
+                        : t('mixing.needNMore', { n: missingCount })}
                     </Text>
                   )}
                 </View>
@@ -143,7 +145,7 @@ export default function MixingPanel({ filterByInputColorId }: Props): React.JSX.
                   <Text
                     style={[styles.craftBtnText, !canCraft && styles.craftBtnTextDisabled]}
                   >
-                    CRAFT
+                    {t('mixing.craft')}
                   </Text>
                 </Pressable>
               </View>

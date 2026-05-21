@@ -7,6 +7,8 @@ import {
   isSeasonCapExtended,
   msLeftInSeason,
 } from '../data/season';
+import { useTranslation } from '../i18n';
+import { useFormatCurrency } from '../lib/currency';
 import { colors, fonts } from '../theme';
 
 // Wood-canyon stats card (2026-05-03 redesign) — replaces the prior
@@ -27,6 +29,8 @@ import { colors, fonts } from '../theme';
 //
 // Renders identically across HOME and INVENTORY for context continuity.
 export default function SeasonCard(): React.JSX.Element | null {
+  const t = useTranslation();
+  const fmtCurrency = useFormatCurrency();
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   const seasonStartedAt = useGameStore((s) => s.seasonStartedAt);
   const seasonSoftCapAt = useGameStore((s) => s.seasonSoftCapAt);
@@ -58,7 +62,6 @@ export default function SeasonCard(): React.JSX.Element | null {
   const blue = teamsCanvasProgress.blue;
   const total = red + blue;
   const empty = total === 0;
-  const lead = computeLead(red, blue);
 
   return (
     <View style={styles.wrapper}>
@@ -66,7 +69,7 @@ export default function SeasonCard(): React.JSX.Element | null {
         <View style={styles.deckle} />
 
       <Text style={styles.dayLine}>
-        {day !== null ? `DAY ${day}` : '—'}
+        {day !== null ? t('season.day', { n: day }) : '—'}
         {msLeft !== null && (
           <>
             <Text style={styles.daySep}> · </Text>
@@ -81,40 +84,42 @@ export default function SeasonCard(): React.JSX.Element | null {
           active. Without this line the extension is invisible — players
           read it as "the timer reset" and assume a bug. */}
       {capExtended && (
-        <Text style={styles.extendedLine}>EXTENDED · NEXT MURAL PENDING</Text>
+        <Text style={styles.extendedLine}>{t('season.extended')}</Text>
       )}
 
       <View style={styles.statRow}>
         <View style={styles.stat}>
           <Text style={styles.statNum}>{steps.toLocaleString()}</Text>
-          <Text style={styles.statLabel}>STEPS</Text>
+          <Text style={styles.statLabel}>{t('season.steps')}</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
-          <Text style={styles.statNum}>{`$${purse.toLocaleString()}`}</Text>
-          <Text style={styles.statLabel}>PURSE</Text>
+          <Text style={styles.statNum}>{fmtCurrency(purse)}</Text>
+          <Text style={styles.statLabel}>{t('season.purse')}</Text>
         </View>
       </View>
 
-      {/* Tug-of-war scoreboard: RED N | LEAD: TEAM ±N | N BLUE.
+      {/* Tug-of-war scoreboard: two coloured bars competing against
+          each other. Each side flexes by its team's pixel count, so
+          the divider between them slides toward whichever team is
+          losing. The counts label each bar (RED 79 / 50 BLUE) — the
+          lead delta is conveyed visually by where the bars meet, not
+          spelled out in a centre cell.
           Empty state (no pixels yet) collapses the side bars and
           centers an "AWAITING FIRST PIXEL" message. */}
       <View style={styles.tug}>
         {empty ? (
           <View style={styles.tugEmpty}>
-            <Text style={styles.tugEmptyText}>AWAITING FIRST PIXEL</Text>
+            <Text style={styles.tugEmptyText}>{t('season.awaitingFirstPixel')}</Text>
           </View>
         ) : (
           <>
             <View style={[styles.tugSide, styles.tugRed, { flex: Math.max(red, 1) }]}>
-              <Text style={styles.tugSideText}>{`RED ${red.toLocaleString()}`}</Text>
-            </View>
-            <View style={styles.tugCenter}>
-              <Text style={styles.tugCenterText}>{lead}</Text>
+              <Text style={styles.tugSideText}>{t('season.redSide', { n: red.toLocaleString() })}</Text>
             </View>
             <View style={[styles.tugSide, styles.tugBlue, { flex: Math.max(blue, 1) }]}>
               <Text style={[styles.tugSideText, styles.tugSideTextRight]}>
-                {`${blue.toLocaleString()} BLUE`}
+                {t('season.blueSide', { n: blue.toLocaleString() })}
               </Text>
             </View>
           </>
@@ -125,13 +130,12 @@ export default function SeasonCard(): React.JSX.Element | null {
   );
 }
 
-// "LEAD: RED +29" / "LEAD: BLUE +12" / "TIED" depending on the gap.
-// Returns the lead label that goes in the tug-of-war's center cell.
-function computeLead(red: number, blue: number): string {
-  if (red === blue) return 'TIED';
-  if (red > blue) return `LEAD: RED +${(red - blue).toLocaleString()}`;
-  return `LEAD: BLUE +${(blue - red).toLocaleString()}`;
-}
+// Prior `computeLead()` helper that rendered the centre-cell lead
+// text ("LEAD: RED +29" / "TIED") was removed 2026-05-18 — the
+// tug-of-war now shows just two coloured bars touching in the middle,
+// no centre label. The dictionary keys (season.leadRed/leadBlue/tied)
+// are kept in en.ts / pt.ts for future use; the centre cell may come
+// back as an option in a later pass.
 
 const styles = StyleSheet.create({
   // Parchment-tan band that peeks out around the dark card on left,
@@ -253,21 +257,6 @@ const styles = StyleSheet.create({
   tugBlue: {
     backgroundColor: colors.team.blue,
     justifyContent: 'flex-end',
-  },
-  tugCenter: {
-    paddingHorizontal: 8,
-    backgroundColor: colors.bg.card, // parchment-hi cream
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.banner.edge,
-  },
-  tugCenterText: {
-    fontFamily: fonts.outfitExtraBold,
-    fontSize: 9,
-    color: colors.team.redSoft,
-    letterSpacing: 0.8,
   },
   tugSideText: {
     fontFamily: fonts.outfitExtraBold,

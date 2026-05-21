@@ -10,6 +10,7 @@ import IconBag from '../components/icons/IconBag';
 import IconShop from '../components/icons/IconShop';
 import TutorialTarget from '../components/TutorialTarget';
 import { useGameStore } from '../store/gameStore';
+import { useTranslation } from '../i18n';
 import { colors, fonts } from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -78,6 +79,7 @@ export default function RootTabs(): React.JSX.Element {
   // Read advanceFlowStep eagerly so the screenListener can call it
   // synchronously on tab press without re-subscribing per event.
   const advanceFlowStep = useGameStore((s) => s.advanceFlowStep);
+  const t = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -97,13 +99,13 @@ export default function RootTabs(): React.JSX.Element {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarIcon: tabRenderer('HOME', 'home') }}
+        options={{ tabBarIcon: tabRenderer(t('tabs.home'), 'home') }}
       />
       <Tab.Screen
         name="Inventory"
         component={InventoryScreen}
         options={{
-          tabBarIcon: tabRenderer('INVENTORY', 'bag', 'bottom-inventory'),
+          tabBarIcon: tabRenderer(t('tabs.inventory'), 'bag', 'bottom-inventory'),
         }}
         listeners={{
           // JIT first-case step 3: tapping the spotlit INVENTORY tab
@@ -118,7 +120,7 @@ export default function RootTabs(): React.JSX.Element {
       <Tab.Screen
         name="Shop"
         component={ShopScreen}
-        options={{ tabBarIcon: tabRenderer('SHOP', 'shop') }}
+        options={{ tabBarIcon: tabRenderer(t('tabs.shop'), 'shop') }}
       />
     </Tab.Navigator>
   );

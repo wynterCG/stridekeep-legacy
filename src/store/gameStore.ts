@@ -14,7 +14,7 @@ import type {
 } from '../types';
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
-import { todayKey } from '../native/healthConnect';
+import { todayKey, type HealthConnectStatus } from '../native/healthConnect';
 import { rollColorFromCase, rawNextSellPrice } from '../data/colors';
 import { serverPlaceTile } from '../lib/teams';
 import { logFeedEvent } from '../lib/feedEvents';
@@ -287,11 +287,37 @@ interface GameState {
   // inside lib/sounds.ts so a mid-session toggle takes effect with no
   // app restart.
   soundEnabled: boolean;
+  // UI language. `null` on first launch — App.tsx detects the device
+  // locale via expo-localization and writes 'en' or 'pt' here, after
+  // which the value is persisted and the auto-detect is skipped. The
+  // user can override in Settings → Language at any time; the override
+  // overwrites this field and the auto-detect respects the manual pick
+  // on subsequent launches (since `null` never reappears once set).
+  language: 'en' | 'pt' | null;
+  // Currency for in-game purse + shop prices. 'auto' = use whatever
+  // expo-localization reports from the device locale (USD for US,
+  // EUR for Eurozone, GBP for UK, etc.). The explicit codes let the
+  // player override when the device-reported code is wrong for them
+  // — common case: a Dutch player whose Android is set to en-GB
+  // sees GBP under 'auto' even though they want EUR.
+  // The in-game purse is a fantasy currency (not real money) so the
+  // choice is purely cosmetic; we still build a real Intl.NumberFormat
+  // with the picked code so digit grouping + symbol position respect
+  // the device's locale conventions (en-US: $457 · pt-PT: 457 €).
+  currency: 'auto' | 'EUR' | 'USD' | 'GBP';
   // Background music loop. Default true. Independent of soundEnabled
   // so a player can have ambient music without SFX, or SFX without
   // music — the standard mobile-game split. App.tsx watches this and
   // starts/stops the loop in lockstep with AppState transitions.
   musicEnabled: boolean;
+  // Health Connect provider availability on this device. Not persisted —
+  // re-probed on every cold start + every foreground transition (since
+  // the user can install / uninstall HC between sessions). 'unknown' is
+  // the boot value before the first probe resolves. HealthConnectGate
+  // reads this and renders a blocking modal for 'needs-install' /
+  // 'unsupported' so the user understands why steps aren't syncing
+  // instead of staring at an empty canvas wondering what's broken.
+  healthConnectStatus: HealthConnectStatus;
   // Per-clip mix levels (0.0 – 1.0). Dev-tunable via the AUDIO TUNER
   // dev button; once the player-acceptable defaults are locked, these
   // values get baked into initialState below and the dev UI removed.
@@ -453,6 +479,9 @@ interface GameActions {
   ) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setMusicEnabled: (enabled: boolean) => void;
+  setLanguage: (lang: 'en' | 'pt') => void;
+  setCurrency: (currency: 'auto' | 'EUR' | 'USD' | 'GBP') => void;
+  setHealthConnectStatus: (status: HealthConnectStatus) => void;
   setSfxVolume: (key: keyof GameState['sfxVolumes'], value: number) => void;
   setMusicVolume: (value: number) => void;
   // Tutorial controls. See GameState's tutorial* fields for semantics.
@@ -548,6 +577,13 @@ const initialState: GameState = {
   },
   soundEnabled: true,
   musicEnabled: true,
+  // null = "not yet detected"; App.tsx auto-detects from device locale
+  // on first launch then writes 'en' or 'pt'.
+  language: null,
+  currency: 'auto',
+  // 'unknown' until the first App.tsx probe resolves — see the field
+  // doc on GameState above. Always re-detected; never persisted.
+  healthConnectStatus: 'unknown',
   // Mix locked 2026-05-16 via the dev AUDIO TUNER. Tuned against the
   // 320 kbps SFX + 320 kbps BGM. errorBuzz at 1.00 because the WAV is
   // already gentle; the case-open clips ride at 0.50 so they don't
@@ -1030,6 +1066,12 @@ export const useGameStore = create<GameStore>()(
 
       setMusicEnabled: (enabled) => set({ musicEnabled: enabled }),
 
+      setLanguage: (lang) => set({ language: lang }),
+
+      setCurrency: (currency) => set({ currency }),
+
+      setHealthConnectStatus: (status) => set({ healthConnectStatus: status }),
+
       setSfxVolume: (key, value) =>
         set((s) => ({
           sfxVolumes: {
@@ -1242,6 +1284,11 @@ export const useGameStore = create<GameStore>()(
           tutorialFlowColorId: _tfc,
           tutorialTargetRect: _ttr,
           activeSubTab: _ast,
+          // Re-probed each launch — persisting would mean a user who
+          // uninstalled HC between sessions would still see 'available'
+          // and we'd silently fail to sync. Cheap probe, no benefit to
+          // caching.
+          healthConnectStatus: _hcs,
           ...rest
         } = state;
         return rest as GameStore;

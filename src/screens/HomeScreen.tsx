@@ -12,6 +12,7 @@ import ProfilePanel from './home/ProfilePanel';
 import { useGameStore } from '../store/gameStore';
 import { useTeamsLiveSync } from '../hooks/useTeamsLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
+import { useTranslation } from '../i18n';
 import { colors } from '../theme';
 
 // Sub-tab string ↔ index mapping. SubTabs takes an integer activeIndex
@@ -48,6 +49,7 @@ const DEFAULT_NICKNAME_RE = /^Stridekeeper-[a-f0-9]{6}$/;
 export default function HomeScreen(): React.JSX.Element {
   useTeamsLiveSync();
   useTeamsCanvasProgressSync();
+  const t = useTranslation();
   const caseState = useGameStore((s) => s.caseState);
   const activeSubTab = useGameStore((s) => s.activeSubTab);
   const setActiveSubTab = useGameStore((s) => s.setActiveSubTab);
@@ -154,16 +156,16 @@ export default function HomeScreen(): React.JSX.Element {
   // wrapping TutorialTarget around the matching tab automatically.
   const tabs = useMemo<TabSpec[]>(
     () => [
-      { label: 'Mural', Icon: IconMural },
+      { label: t('subtabs.mural'), Icon: IconMural },
       {
-        label: 'Cases',
+        label: t('subtabs.cases'),
         Icon: IconCases,
         indicator: casesIndicator,
         tutorialTargetKey: 'cases-tab',
       },
-      { label: 'Profile', Icon: IconPerson },
+      { label: t('subtabs.profile'), Icon: IconPerson },
     ],
-    [casesIndicator],
+    [casesIndicator, t],
   );
 
   const activeIndex = TAB_INDEX[activeSubTab];

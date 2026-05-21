@@ -1,4 +1,5 @@
 import type { ColorDef, PlaceResult } from '../types';
+import { t } from '../i18n';
 
 // Maps a non-OK PlaceResult to a single user-facing line. Used by both
 // TilePicker (status line) and InventoryScreen's PLACE-from-action-sheet
@@ -8,31 +9,36 @@ import type { ColorDef, PlaceResult } from '../types';
 // `palette` is consulted for `wrong_color` so we can show the human color
 // name instead of an opaque colorId. Pass null when no palette is loaded;
 // the function falls back to a generic phrasing.
+//
+// Uses the snapshot `t()` rather than the React hook because callers are
+// outside the component tree (Alert.alert + the inventory action-sheet
+// utility). Snapshot reads the active language at call time so a mid-
+// session Settings → Language flip is honoured on the next error.
 export function placeErrorMessage(
   result: Extract<PlaceResult, { ok: false }>,
   palette: Record<string, ColorDef> | null,
 ): string {
   switch (result.error) {
     case 'pixel_taken':
-      return 'Beat you to it!';
+      return t('place.pixelTaken');
     case 'wrong_color': {
       const expectedName =
         result.expected && palette ? palette[result.expected]?.name : null;
       return expectedName
-        ? `That pixel needs ${expectedName}.`
-        : 'That pixel needs a different color.';
+        ? t('place.wrongColorWithName', { name: expectedName })
+        : t('place.wrongColor');
     }
     case 'canvas_complete':
-      return 'Canvas complete — season just ended.';
+      return t('place.canvasComplete');
     case 'season_mismatch':
-      return 'Season changed — refreshing.';
+      return t('place.seasonMismatch');
     case 'not_owned':
-      return "You don't have this color.";
+      return t('place.notOwned');
     case 'not_authenticated':
-      return 'Not signed in.';
+      return t('place.notAuthenticated');
     case 'network_error':
-      return 'Network error — try again.';
+      return t('place.networkError');
     case 'unknown':
-      return 'Server returned an unknown response. Update the app.';
+      return t('place.unknown');
   }
 }

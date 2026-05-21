@@ -7,6 +7,8 @@ import { TileFeedback } from '../components/TileFeedback';
 import { useGameStore } from '../store/gameStore';
 import { useCanvasLiveSync } from '../hooks/useCanvasLiveSync';
 import { useTeamsCanvasProgressSync } from '../hooks/useTeamsCanvasProgressSync';
+import { useTranslation } from '../i18n';
+import { useFormatCurrency } from '../lib/currency';
 import type { ColorDef } from '../types';
 import { colors, fonts, radii, spacing } from '../theme';
 
@@ -24,6 +26,7 @@ import { colors, fonts, radii, spacing } from '../theme';
 // we don't duplicate it here — the player knows their balance from the
 // shared banner. The BUY button disables when the purse can't cover it.
 export default function ShopScreen(): React.JSX.Element {
+  const t = useTranslation();
   const team = useGameStore((s) => s.team);
   const seasonNumber = useGameStore((s) => s.seasonNumber);
   // Keep canvas state warm so the player can navigate Home → Shop → Home
@@ -53,11 +56,9 @@ export default function ShopScreen(): React.JSX.Element {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.kicker}>SHOP</Text>
+        <Text style={styles.kicker}>{t('shop.title')}</Text>
         {shopColors.length === 0 ? (
-          <Text style={styles.empty}>
-            No shop colors this season — check back next rollover.
-          </Text>
+          <Text style={styles.empty}>{t('shop.empty')}</Text>
         ) : (
           shopColors.map((c) => (
             <ShopRow
@@ -107,6 +108,8 @@ function ShopRow({
   onBuy,
   onTapInfo,
 }: ShopRowProps): React.JSX.Element {
+  const t = useTranslation();
+  const fmtCurrency = useFormatCurrency();
   const price = color.shopPrice ?? 0;
   return (
     <View style={styles.row}>
@@ -121,14 +124,14 @@ function ShopRow({
           <Text style={styles.code}>{color.colorCode}</Text>
         </View>
       </Pressable>
-      <Text style={styles.price}>{`$${price.toLocaleString()}`}</Text>
+      <Text style={styles.price}>{fmtCurrency(price)}</Text>
       <Pressable
         style={[styles.buyBtn, !affordable && styles.buyBtnDisabled]}
         onPress={onBuy}
         disabled={!affordable}
       >
         <Text style={[styles.buyText, !affordable && styles.buyTextDisabled]}>
-          BUY
+          {t('shop.buy')}
         </Text>
       </Pressable>
     </View>

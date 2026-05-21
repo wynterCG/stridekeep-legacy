@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { ONBOARDING_CARDS } from '../data/tutorial';
+import { useTranslation } from '../i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 
 // First-launch welcome. Two cards in a stack, NEXT to advance, GOT IT
@@ -22,6 +23,7 @@ import { colors, fonts, radii, spacing } from '../theme';
 // after the nickname becomes custom AND `tutorialFlags.onboarding` is
 // still false.
 export default function OnboardingTutorial(): React.JSX.Element | null {
+  const t = useTranslation();
   const onboardingActive = useGameStore((s) => s.onboardingActive);
   const onboardingCardIdx = useGameStore((s) => s.onboardingCardIdx);
   const advanceOnboarding = useGameStore((s) => s.advanceOnboarding);
@@ -53,13 +55,16 @@ export default function OnboardingTutorial(): React.JSX.Element | null {
       <View style={styles.center} pointerEvents="box-none">
         <View style={styles.card}>
           <Text style={styles.kicker}>
-            {`STEP ${onboardingCardIdx + 1} OF ${ONBOARDING_CARDS.length}`}
+            {t('onboarding.stepOf', {
+              n: onboardingCardIdx + 1,
+              total: ONBOARDING_CARDS.length,
+            })}
           </Text>
-          <Text style={styles.title}>{card.title}</Text>
-          <Text style={styles.body}>{card.body}</Text>
+          <Text style={styles.title}>{t(card.titleKey)}</Text>
+          <Text style={styles.body}>{t(card.bodyKey)}</Text>
           <View style={styles.buttonRow}>
             <Pressable onPress={completeOnboarding} hitSlop={8}>
-              <Text style={styles.skipBtnText}>SKIP</Text>
+              <Text style={styles.skipBtnText}>{t('onboarding.skip')}</Text>
             </Pressable>
             <Pressable
               onPress={advanceOnboarding}
@@ -67,7 +72,7 @@ export default function OnboardingTutorial(): React.JSX.Element | null {
               hitSlop={8}
             >
               <Text style={styles.primaryBtnText}>
-                {isLast ? 'GOT IT' : 'NEXT'}
+                {isLast ? t('onboarding.gotIt') : t('onboarding.next')}
               </Text>
             </Pressable>
           </View>

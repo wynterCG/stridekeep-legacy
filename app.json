@@ -2,7 +2,7 @@
   "expo": {
     "name": "Stridekeep",
     "slug": "stridekeep",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,12 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "app.stridekeep",
+      "versionCode": 3,
       "permissions": [
         "android.permission.health.READ_STEPS"
       ],
@@ -45,7 +48,8 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "extra": {
       "supabaseUrl": "https://fdygeoihelpgjyhbvxgu.supabase.co",
