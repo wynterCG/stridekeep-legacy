@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    ACTIVITY_RECOGNITION is required on Android 10+ (API 29+) to read
+    Sensor.TYPE_STEP_COUNTER. Pre-API 29 the sensor is readable without
+    a runtime permission. The module's requestPermissionsAsync() handles
+    the runtime prompt; this manifest declaration just registers the
+    permission with the OS so the runtime API can ask for it.
+  -->
+  <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+</manifest>

@@ -372,19 +372,25 @@ export const en = {
   'sound.silentSwitchNote':
     'Respect the iOS silent switch — flipping your phone to silent mutes Stridekeep’s sounds even with these toggles on.',
 
-  // Health Connect gate (blocking modal at App root when the device
-  // either needs the Health Connect provider installed or can't run it
-  // at all). Sees daylight only on devices where the player hasn't
-  // installed the HC system app yet, or on pre-Android 8 devices.
+  // Steps-unavailable gate (blocking modal at App root). v1.0.3 added a
+  // hardware step-counter fallback to Health Connect, so the install-HC
+  // prompt no longer fires — users without HC route through the sensor
+  // instead. The gate now only shows when BOTH sources fail (device
+  // lacks a step counter sensor AND HC isn't available either — a
+  // small minority of older budget hardware).
+  //
+  // The `needsInstall*` keys below are kept for backward-compat — older
+  // code paths reference them, and they're cheap to ship even if no
+  // current UI surfaces them. New surfaces should use `unsupported*`.
   'healthConnect.needsInstallKicker': 'ONE LAST STEP',
   'healthConnect.needsInstallTitle': 'Install Health Connect',
   'healthConnect.needsInstallBody':
     "Stridekeep reads your daily steps from Health Connect — a free Google app that keeps your step data on your phone. Tap below to install it from Play Store; come back to Stridekeep once it's installed.",
   'healthConnect.needsInstallCta': 'INSTALL HEALTH CONNECT',
   'healthConnect.unsupportedKicker': 'UNSUPPORTED DEVICE',
-  'healthConnect.unsupportedTitle': "This device can't use Health Connect",
+  'healthConnect.unsupportedTitle': "This device can't track steps",
   'healthConnect.unsupportedBody':
-    "Stridekeep needs Health Connect to track your steps, and Health Connect requires Android 8 or higher. Sorry — there's nothing we can do on this device.",
+    "Stridekeep needs a way to count your daily steps. Your device doesn't expose a step counter, and Health Connect isn't available here either. Sorry — there's nothing we can do on this device.",
 
   // About section.
   'about.kicker': 'STRIDEKEEP',

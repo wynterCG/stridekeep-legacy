@@ -1,57 +1,36 @@
 import React from 'react';
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { useTranslation } from '../i18n';
 import { colors, fonts, radii, spacing } from '../theme';
 
-// Play Store package id for the Health Connect provider app. Same id
-// across all Android versions; on Android 14+ the OS may surface a
-// "Health Connect is part of Android" screen instead of an install
-// button, which is the right behaviour — the user lands somewhere
-// useful either way.
-const HEALTH_CONNECT_PACKAGE = 'com.google.android.apps.healthdata';
-const PLAY_STORE_MARKET_URI = `market://details?id=${HEALTH_CONNECT_PACKAGE}`;
-const PLAY_STORE_HTTPS_URI = `https://play.google.com/store/apps/details?id=${HEALTH_CONNECT_PACKAGE}`;
-
-// Blocking modal that renders when Stridekeep can't use Health Connect.
-// Two cases:
-//   - 'needs-install' → user has an HC-capable device but the provider
-//     app isn't installed. CTA deep-links to Play Store (market:// first,
-//     https:// fallback). When the user installs HC and returns, App.tsx
-//     re-probes status on foreground → status flips to 'available' →
-//     this gate self-unmounts.
-//   - 'unsupported'    → device is pre-Android 8 or otherwise can't run
-//     HC. No CTA — the game is unplayable on this device and the user
-//     deserves to know that rather than face a silently broken canvas.
+// Steps-unavailable dead-end gate. Renders ONLY when both step sources
+// have failed:
+//   - Health Connect is 'needs-install' or 'unsupported' AND
+//   - The hardware Sensor.TYPE_STEP_COUNTER is missing from this device
 //
-// 'available' and 'unknown' both render nothing. 'unknown' is the boot
-// value before the first probe resolves; rendering during 'unknown'
-// would mean the modal briefly flashes on every cold start which is
-// jarring. The probe is fast (<100ms typical) so the wait is invisible.
+// In practice this is a tiny minority of Android devices (mostly
+// pre-2017 budget hardware with no step sensor; HC can run on anything
+// Android 8+ via install, and the sensor is present on ~98% of phones
+// from the last seven years).
+//
+// Why we don't render for the HC-needs-install case anymore: v1.0.3
+// added the step-counter fallback (modules/expo-step-counter/), so a
+// missing HC just routes through the sensor instead of blocking the UI.
+// The gate now is the dead-end "your device cannot track steps at all"
+// case — there's no install link because there's nothing to install
+// that would make this work.
+//
+// Filename kept as HealthConnectGate.tsx because App.tsx references it
+// and a rename ripples through git blame for no behavioural change.
+// Internally the component renders generic "steps unavailable" copy.
 export default function HealthConnectGate(): React.JSX.Element | null {
   const t = useTranslation();
-  const status = useGameStore((s) => s.healthConnectStatus);
+  const stepsSource = useGameStore((s) => s.stepsSource);
 
-  if (status === 'available' || status === 'unknown') return null;
-
-  const isNeedsInstall = status === 'needs-install';
-
-  // Try market:// (opens Play Store app directly — preferred). If the
-  // user has somehow removed Play Store or the deep link doesn't resolve,
-  // fall back to the https:// URL which opens in the browser → "Open in
-  // Play Store" → same end result.
-  const handleInstall = async () => {
-    try {
-      const canOpenMarket = await Linking.canOpenURL(PLAY_STORE_MARKET_URI);
-      if (canOpenMarket) {
-        await Linking.openURL(PLAY_STORE_MARKET_URI);
-        return;
-      }
-      await Linking.openURL(PLAY_STORE_HTTPS_URI);
-    } catch (err) {
-      console.warn('[stridekeep] HC install link failed:', err);
-    }
-  };
+  // Don't render during the boot-time probe (avoid a flash) or for any
+  // active source. The gate is reserved for the terminal failure state.
+  if (stepsSource !== 'unavailable') return null;
 
   return (
     <Modal visible transparent statusBarTranslucent animationType="fade">
@@ -59,31 +38,12 @@ export default function HealthConnectGate(): React.JSX.Element | null {
       <View style={styles.center} pointerEvents="box-none">
         <View style={styles.card}>
           <Text style={styles.kicker}>
-            {isNeedsInstall
-              ? t('healthConnect.needsInstallKicker')
-              : t('healthConnect.unsupportedKicker')}
+            {t('healthConnect.unsupportedKicker')}
           </Text>
           <Text style={styles.title}>
-            {isNeedsInstall
-              ? t('healthConnect.needsInstallTitle')
-              : t('healthConnect.unsupportedTitle')}
+            {t('healthConnect.unsupportedTitle')}
           </Text>
-          <Text style={styles.body}>
-            {isNeedsInstall
-              ? t('healthConnect.needsInstallBody')
-              : t('healthConnect.unsupportedBody')}
-          </Text>
-          {isNeedsInstall && (
-            <Pressable
-              onPress={handleInstall}
-              style={styles.primaryBtn}
-              hitSlop={8}
-            >
-              <Text style={styles.primaryBtnText}>
-                {t('healthConnect.needsInstallCta')}
-              </Text>
-            </Pressable>
-          )}
+          <Text style={styles.body}>{t('healthConnect.unsupportedBody')}</Text>
         </View>
       </View>
     </Modal>
@@ -137,22 +97,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text.cream,
     lineHeight: 21,
-    marginBottom: spacing.lg,
-  },
-  primaryBtn: {
-    backgroundColor: colors.accent.brassLight,
-    borderWidth: 1.5,
-    borderColor: colors.banner.edge,
-    borderRadius: radii.button,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    fontFamily: fonts.outfitExtraBold,
-    fontSize: 13,
-    color: colors.text.cream,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
   },
 });
