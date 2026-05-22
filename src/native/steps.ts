@@ -9,15 +9,6 @@ import {
   readDailyStepsFromCounter,
 } from './stepCounter';
 
-// Sync result returned by syncSteps(). Source records WHICH path
-// actually delivered the count (so the store + gate can react to
-// fall-through), and steps is the daily total in the same shape
-// `applyRealSteps` expects — or null if no source could deliver.
-export interface StepsSyncResult {
-  source: StepsSource;
-  steps: number | null;
-}
-
 // The unified step-source facade. Two real sources (Health Connect +
 // the custom Sensor.TYPE_STEP_COUNTER module) plus an 'unavailable'
 // terminal. Resolution order is INTENTIONAL:
@@ -44,49 +35,41 @@ export interface StepsSyncResult {
 // any time by installing it.
 export type StepsSource = 'health-connect' | 'step-counter' | 'unavailable';
 
-// Full step-source orchestration with permission-denial fall-through.
-// This is the single entry point App.tsx calls per cold-start or
-// foreground transition. It tries each source in priority order, and
-// IMPORTANTLY falls through on permission denial — not just on source
-// unavailability:
-//   1. HC SDK available?
-//      → request HC permission → granted? read HC steps, return.
-//      → denied? continue to (2). This is the case where the user
-//        revoked Stridekeep's permission inside Health Connect; we
-//        don't strand them, we fall back to the sensor.
-//   2. Step counter sensor available?
-//      → request ACTIVITY_RECOGNITION → granted? read sensor, return.
-//      → denied? continue to (3).
-//   3. Both failed — return 'unavailable' so the gate UI shows.
-//
-// Returns the source that ACTUALLY produced data (which may differ
-// from the highest-priority available source if permission was denied
-// upstream). App.tsx writes this into the store so HealthConnectGate
-// only fires for the terminal 'unavailable' case.
-export async function syncSteps(): Promise<StepsSyncResult> {
+// Probes both sources and returns the FIRST that's available. Cheap
+// (<200ms on the slow path; <50ms when HC is the answer). Caller
+// (App.tsx) runs this on cold start + every foreground transition;
+// the store field stays fresh as users install/uninstall HC between
+// sessions or grant/revoke permissions.
+export async function detectStepsSource(): Promise<StepsSource> {
   const hcStatus = await getHealthConnectStatus();
-  if (hcStatus === 'available') {
-    const granted = await ensureHcStepsPermission();
-    if (granted) {
-      const steps = await readDailyStepsFromHc();
-      return { source: 'health-connect', steps };
-    }
-    // HC installed + ready but the user revoked Stridekeep's permission
-    // (or denied the initial prompt). HC's permission UI uses "don't
-    // ask again" by default on subsequent requests, so we can't reliably
-    // re-prompt — fall through to the sensor instead.
-  }
-
+  if (hcStatus === 'available') return 'health-connect';
   const counterAvailable = await isStepCounterAvailable();
-  if (counterAvailable) {
-    const granted = await ensureStepCounterPermission();
-    if (granted) {
-      const steps = await readDailyStepsFromCounter();
-      return { source: 'step-counter', steps };
-    }
-    // Sensor available but ACTIVITY_RECOGNITION was denied. Fall through
-    // to 'unavailable' so the gate explains what's happening.
-  }
+  if (counterAvailable) return 'step-counter';
+  return 'unavailable';
+}
 
-  return { source: 'unavailable', steps: null };
+// Source-aware permission ensure. The HC path uses the package's
+// permission flow (a system dialog routed via HealthConnectPermissionDelegate);
+// the step-counter path uses our custom module's ACTIVITY_RECOGNITION
+// runtime request. Same boolean return so App.tsx doesn't need to fork
+// downstream logic.
+export async function ensureStepsPermission(
+  source: StepsSource,
+): Promise<boolean> {
+  if (source === 'health-connect') return ensureHcStepsPermission();
+  if (source === 'step-counter') return ensureStepCounterPermission();
+  return false;
+}
+
+// Source-aware daily step read. Both paths return "today's step count
+// since local midnight" in the same shape so the existing
+// applyRealSteps action in the store doesn't need to know which source
+// produced the number. Note: on the step-counter path, the FIRST read
+// after install returns 0 (we need a baseline before we can compute
+// deltas) — the next foreground transition is when real numbers start
+// flowing. Documented in stepCounter.ts.
+export async function readDailySteps(source: StepsSource): Promise<number> {
+  if (source === 'health-connect') return readDailyStepsFromHc();
+  if (source === 'step-counter') return readDailyStepsFromCounter();
+  return 0;
 }

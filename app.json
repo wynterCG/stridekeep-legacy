@@ -2,7 +2,7 @@
   "expo": {
     "name": "Stridekeep",
     "slug": "stridekeep",
-    "version": "1.0.4",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "app.stridekeep",
-      "versionCode": 5,
+      "versionCode": 4,
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.ACTIVITY_RECOGNITION"
