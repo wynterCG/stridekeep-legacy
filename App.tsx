@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, AppState } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -37,6 +37,8 @@ import {
 import { useSeasonEndWatcher } from './src/hooks/useSeasonEndWatcher';
 import { applyMusicVolume, initAudioMode, preloadSfx, startMusic, stopMusic } from './src/lib/sounds';
 import * as Localization from 'expo-localization';
+import { useInAppUpdate } from './src/hooks/useInAppUpdate';
+import LoadingScreen from './src/components/LoadingScreen';
 
 const BOT_TICK_MS = 4_000;
 
@@ -56,6 +58,13 @@ const navTheme = {
 };
 
 export default function App(): React.JSX.Element | null {
+  const { checkUpdate } = useInAppUpdate();
+  const [updateCheckDone, setUpdateCheckDone] = useState(false);
+  const [bootstrapDone, setBootstrapDone] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+  const [progress, setProgress] = useState(0.0);
+  const [statusText, setStatusText] = useState('Initializing...');
+
   const [fontsLoaded] = useFonts({
     BebasNeue_400Regular,
     PlayfairDisplay_900Black_Italic,
@@ -210,25 +219,58 @@ export default function App(): React.JSX.Element | null {
     };
   }, []);
 
+  // Unified App Initialization: Update Check + Data Bootstrapping.
+  // Performs a silent Google Play / App Store update check and preloads
+  // profile/season data. Bypasses blocking loader on emulator or local dev.
   useEffect(() => {
-    // Cold-start: run the full bootstrap once persist has hydrated so
-    // syncSeason reads the persisted seasonNumber (not the initial null).
-    // bootstrapAuthAndSeason is module-level so AccountModal can re-run
-    // it after sign-in / sign-out without going through this effect.
-    const start = () => {
-      void bootstrapAuthAndSeason();
-    };
-    const unsubHydrate = useGameStore.persist.hasHydrated()
-      ? (start(), () => {})
-      : useGameStore.persist.onFinishHydration(start);
+    const initApp = async () => {
+      try {
+        setProgress(0.15);
+        setStatusText('Fonts loaded...');
 
-    // Re-sync on foreground. We call the FULL bootstrap (not just
-    // syncSeasonOnce) so a stranded post-signOut session — where
-    // signOutAccount succeeded but the immediate ensureSignedIn failed
-    // for network reasons — gets a chance to re-mint an anon session
-    // on the next foreground transition. The internal guards short-
-    // circuit if a bootstrap is already in flight (e.g. AccountModal
-    // sign-in mid-call), so this is a no-op in the common case.
+        // 1. Run native update check
+        setProgress(0.3);
+        setStatusText('Checking for updates...');
+        await checkUpdate((hasUpdate) => {
+          setUpdateCheckDone(true);
+          setProgress(0.5);
+          setStatusText('Syncing profile...');
+        });
+
+        // 2. Perform database bootstrapping
+        const runBootstrap = async () => {
+          setProgress(0.75);
+          setStatusText('Loading season data...');
+          await bootstrapAuthAndSeason();
+          setProgress(1.0);
+          setStatusText('Ready!');
+          setBootstrapDone(true);
+        };
+
+        if (useGameStore.persist.hasHydrated()) {
+          await runBootstrap();
+        } else {
+          useGameStore.persist.onFinishHydration(async () => {
+            await runBootstrap();
+          });
+        }
+      } catch (err) {
+        console.warn('[App Init] Startup process error:', err);
+        setUpdateCheckDone(true);
+        setBootstrapDone(true);
+        setProgress(1.0);
+        setStatusText('Ready!');
+      }
+    };
+
+    if (fontsLoaded) {
+      void initApp();
+    }
+  }, [fontsLoaded]);
+
+  // Re-sync on foreground AppState transitions.
+  // Keeps session data fresh after suspend/resume without blocking UI.
+  useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
       if (s !== 'active') return;
       if (!useGameStore.persist.hasHydrated()) return;
@@ -237,7 +279,6 @@ export default function App(): React.JSX.Element | null {
     });
 
     return () => {
-      unsubHydrate();
       sub.remove();
     };
   }, []);
@@ -333,6 +374,18 @@ export default function App(): React.JSX.Element | null {
               overlay (the user must resolve the HC situation before
               they can do anything else). */}
           <HealthConnectGate />
+
+          {/* Themed custom Loading & Auto-Update Screen.
+              Centered 6x6 pixel grid loop animation that runs until both 
+              the database bootstrap and update check complete. */}
+          {showLoader && (
+            <LoadingScreen
+              isReady={bootstrapDone && updateCheckDone}
+              progress={progress}
+              statusText={statusText}
+              onAnimationComplete={() => setShowLoader(false)}
+            />
+          )}
         </View>
       </NavigationContainer>
     </SafeAreaProvider>
