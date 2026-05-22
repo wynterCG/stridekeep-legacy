@@ -197,92 +197,73 @@ let bgmShouldPlay = false;
 // always clear the previous timer before scheduling a new one so the
 // BGM only restores after the LAST sfx in a burst finishes.
 let unduckTimer: ReturnType<typeof setTimeout> | null = null;
-// Tracks whether we've initiated a load. Prevents two simultaneous
-// startMusic() calls from racing and creating two Sound instances —
-// the second startMusic in a foreground-on-toggle-flip scenario would
-// otherwise pile a duplicate over the existing loop.
-let bgmLoading: Promise<void> | null = null;
 
-export async function startMusic(): Promise<void> {
-  // Set playback intent first
+// Serial promise queue to prevent concurrent operations on the native
+// audio bridge (such as overlapping play/pause or volume calls), which
+// causes crackles, clicks, and stutters on some devices.
+let bgmOperationQueue: Promise<void> = Promise.resolve();
+
+function queueBgmOperation(op: () => Promise<void>): void {
+  bgmOperationQueue = bgmOperationQueue.then(async () => {
+    try {
+      await op();
+    } catch {
+      // Swallow errors to prevent blocking subsequent operations
+    }
+  });
+}
+
+export function startMusic(): void {
   bgmShouldPlay = true;
 
-  if (!useGameStore.getState().musicEnabled) return;
+  queueBgmOperation(async () => {
+    if (!useGameStore.getState().musicEnabled || !bgmShouldPlay) return;
 
-  if (bgmLoading !== null) {
-    await bgmLoading;
-  }
-
-  // If intent was cleared or music disabled while awaiting a concurrent load, abort
-  if (!bgmShouldPlay || !useGameStore.getState().musicEnabled) return;
-
-  if (bgmSound === null) {
-    bgmLoading = (async () => {
+    if (bgmSound === null) {
       try {
-        // Eagerly load but keep paused initially, so we don't play a frame of music
-        // if the intent changed or the app went to the background during loading.
         const { sound } = await Audio.Sound.createAsync(
           BGM_SOURCE,
           { isLooping: true, volume: getBgmVolume(), shouldPlay: false },
         );
         bgmSound = sound;
       } catch {
-        // Silent on failure — gameplay never depends on BGM.
-      } finally {
-        bgmLoading = null;
-      }
-    })();
-    await bgmLoading;
-
-    // Double-check our intent once our own load finishes
-    const loadedSound = bgmSound as Audio.Sound | null;
-    if (loadedSound !== null) {
-      if (bgmShouldPlay && useGameStore.getState().musicEnabled) {
-        try {
-          const status = await loadedSound.getStatusAsync();
-          if (status.isLoaded && !status.isPlaying) {
-            await loadedSound.playAsync();
-          }
-        } catch {
-          // Silent
-        }
+        return;
       }
     }
-    return;
-  }
 
-  // Already loaded — just resume. Query playback status to prevent duplicate
-  // play calls which can cause audio glitches or clicks on some Android/iOS engines.
-  try {
-    const status = await bgmSound.getStatusAsync();
-    if (status.isLoaded && !status.isPlaying) {
-      await bgmSound.playAsync();
+    if (!useGameStore.getState().musicEnabled || !bgmShouldPlay) return;
+
+    try {
+      const status = await bgmSound.getStatusAsync();
+      if (status.isLoaded && !status.isPlaying) {
+        await bgmSound.playAsync();
+      }
+    } catch {
+      // Silent
     }
-  } catch {
-    // Silent — see above.
-  }
+  });
 }
 
-export async function stopMusic(): Promise<void> {
-  // Clear the playback intent
+export function stopMusic(): void {
   bgmShouldPlay = false;
 
-  if (bgmSound === null) return;
-  // Cancel any pending un-duck — without this, a pending restore
-  // would fire after stopMusic() and try to set the volume back on a
-  // paused track (harmless but wasted bridge call).
-  if (unduckTimer !== null) {
-    clearTimeout(unduckTimer);
-    unduckTimer = null;
-  }
-  try {
-    const status = await bgmSound.getStatusAsync();
-    if (status.isLoaded && status.isPlaying) {
-      await bgmSound.pauseAsync();
+  queueBgmOperation(async () => {
+    if (bgmSound === null) return;
+
+    if (unduckTimer !== null) {
+      clearTimeout(unduckTimer);
+      unduckTimer = null;
     }
-  } catch {
-    // Silent.
-  }
+
+    try {
+      const status = await bgmSound.getStatusAsync();
+      if (status.isLoaded && status.isPlaying) {
+        await bgmSound.pauseAsync();
+      }
+    } catch {
+      // Silent
+    }
+  });
 }
 
 // Drop BGM volume while a sfx plays, then restore after the clip
@@ -292,36 +273,34 @@ export async function stopMusic(): Promise<void> {
 async function duckBgm(sfxDurationMs: number): Promise<void> {
   if (bgmSound === null) return;
   if (!useGameStore.getState().musicEnabled) return;
-  if (!bgmShouldPlay) return; // If the music should not be playing, no need to duck it
+  if (!bgmShouldPlay) return;
 
   if (unduckTimer !== null) {
     clearTimeout(unduckTimer);
     unduckTimer = null;
   }
-  try {
-    await bgmSound.setVolumeAsync(getBgmVolume() * BGM_DUCK_MULTIPLIER);
-  } catch {
-    // Silent — if duck fails, BGM stays at full volume and the SFX
-    // plays over it. Not great UX but not broken either.
-  }
-  // +120 ms tail so the BGM doesn't pop back up while the SFX is
-  // still tailing off. Cheap insurance — the duck holds slightly
-  // longer than the SFX itself.
+
+  // Queue BGM volume reduction
+  queueBgmOperation(async () => {
+    if (bgmSound === null || !bgmShouldPlay || !useGameStore.getState().musicEnabled) return;
+    try {
+      await bgmSound.setVolumeAsync(getBgmVolume() * BGM_DUCK_MULTIPLIER);
+    } catch {
+      // Silent
+    }
+  });
+
+  // Schedule restoration
   unduckTimer = setTimeout(() => {
-    void (async () => {
+    queueBgmOperation(async () => {
       unduckTimer = null;
-      if (bgmSound === null) return;
-      // Re-check at restore time. The user could have toggled music
-      // off or left the app during the SFX, in which case BGM shouldn't
-      // be restored or playing.
-      if (!useGameStore.getState().musicEnabled) return;
-      if (!bgmShouldPlay) return;
+      if (bgmSound === null || !bgmShouldPlay || !useGameStore.getState().musicEnabled) return;
       try {
         await bgmSound.setVolumeAsync(getBgmVolume());
       } catch {
-        // Silent.
+        // Silent
       }
-    })();
+    });
   }, sfxDurationMs + 120);
 }
 
@@ -330,17 +309,17 @@ async function duckBgm(sfxDurationMs: number): Promise<void> {
 // dev tuner updates the volume in real time without restarting the
 // loop. No-op if BGM hasn't loaded yet (startMusic will read the
 // fresh value on first load).
-export async function applyMusicVolume(v: number): Promise<void> {
+export function applyMusicVolume(v: number): void {
   if (bgmSound === null) return;
-  // If BGM shouldn't be playing, don't update volume now
   if (!bgmShouldPlay) return;
-  // If a duck is currently in progress, don't push the full-volume
-  // value through — the un-duck timer will read fresh from the store
-  // when it fires and apply the latest slider value.
   if (unduckTimer !== null) return;
-  try {
-    await bgmSound.setVolumeAsync(v);
-  } catch {
-    // Silent.
-  }
+
+  queueBgmOperation(async () => {
+    if (bgmSound === null || !bgmShouldPlay || unduckTimer !== null) return;
+    try {
+      await bgmSound.setVolumeAsync(v);
+    } catch {
+      // Silent
+    }
+  });
 }

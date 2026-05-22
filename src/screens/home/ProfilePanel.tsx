@@ -30,6 +30,16 @@ export default function ProfilePanel(): React.JSX.Element {
   const stats = useGameStore((s) => s.lifetimeStats);
   const badges = useGameStore((s) => s.badges);
 
+  // Helper to chunk badges array into rows of 4 for a clean grid layout inside ScrollView.
+  // Avoids nested FlatList performance/stuttering issues.
+  const chunkedBadges = React.useMemo(() => {
+    const chunks = [];
+    for (let i = 0; i < badges.length; i += 4) {
+      chunks.push(badges.slice(i, i + 4));
+    }
+    return chunks;
+  }, [badges]);
+
   return (
     <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
       <Section label={t('profile.lifetime')}>
@@ -53,23 +63,26 @@ export default function ProfilePanel(): React.JSX.Element {
             {t('profile.muralsEmpty')}
           </Text>
         ) : (
-          <FlatList
-            data={badges}
-            keyExtractor={(b) => String(b.seasonNumber)}
-            numColumns={4}
-            scrollEnabled={false}
-            columnWrapperStyle={styles.columnWrapper}
-            renderItem={({ item: b }) => (
-              <View style={styles.badgeCell}>
-                <Image
-                  source={{ uri: badgeImageUrl(b.seasonNumber) }}
-                  style={styles.badgeImage}
-                  resizeMode="cover"
-                />
-                <Text style={styles.badgeSeason}>{`S${b.seasonNumber}`}</Text>
+          <View>
+            {chunkedBadges.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.columnWrapper}>
+                {row.map((b) => (
+                  <View key={b.seasonNumber} style={styles.badgeCell}>
+                    <Image
+                      source={{ uri: badgeImageUrl(b.seasonNumber) }}
+                      style={styles.badgeImage}
+                      resizeMode="cover"
+                    />
+                    <Text style={styles.badgeSeason}>{`S${b.seasonNumber}`}</Text>
+                  </View>
+                ))}
+                {/* Pad out the row with empty cells if it has less than 4 items to keep grid alignment */}
+                {row.length < 4 && Array.from({ length: 4 - row.length }).map((_, i) => (
+                  <View key={`empty-${i}`} style={styles.badgeCellEmpty} />
+                ))}
               </View>
-            )}
-          />
+            ))}
+          </View>
         )}
       </Section>
 
@@ -238,8 +251,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   columnWrapper: {
+    flexDirection: 'row',
     gap: 12,
     marginBottom: spacing.sm,
+  },
+  badgeCellEmpty: {
+    width: 64,
   },
   badgeCell: {
     width: 64,
