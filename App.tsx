@@ -24,11 +24,7 @@ import JitTutorial from './src/components/JitTutorial';
 import HealthConnectGate from './src/components/HealthConnectGate';
 import { colors } from './src/theme';
 import { useGameStore } from './src/store/gameStore';
-import {
-  detectStepsSource,
-  ensureStepsPermission,
-  readDailySteps,
-} from './src/native/steps';
+import { syncSteps } from './src/native/steps';
 import { supabase } from './src/lib/supabase';
 import {
   bootstrapAuthAndSeason,
@@ -166,24 +162,23 @@ export default function App(): React.JSX.Element | null {
     // its result is just discarded.
     let cancelled = false;
 
-    // Two-stage sync via the unified steps source. detectStepsSource
-    // picks HC if available, falls back to the custom step-counter
-    // sensor module, lands on 'unavailable' only if neither works. The
-    // store field drives HealthConnectGate (which now only fires for
-    // the 'unavailable' dead-end case — see HealthConnectGate.tsx).
-    // Foreground transitions re-probe so installing HC or granting the
-    // activity-recognition permission mid-session promotes the source
-    // without an app restart.
+    // Single-call step sync via the unified facade. syncSteps()
+    // tries HC first, falls through to the sensor if HC is unavailable
+    // OR if HC permission was denied/revoked (the critical case —
+    // before v1.0.4, revoking HC permission stranded the user with no
+    // steps and no fall-through to the sensor). Returns the source
+    // that actually delivered data; 'unavailable' if both sources
+    // failed (gate fires) or null steps on transient failures.
+    // Foreground transitions re-run this so granting permission or
+    // installing HC mid-session promotes the source without an app
+    // restart.
     const sync = async () => {
-      const source = await detectStepsSource();
+      const result = await syncSteps();
       if (cancelled) return;
-      useGameStore.getState().setStepsSource(source);
-      if (source === 'unavailable') return;
-      const ok = await ensureStepsPermission(source);
-      if (!ok || cancelled) return;
-      const total = await readDailySteps(source);
-      if (cancelled) return;
-      useGameStore.getState().applyRealSteps(total);
+      useGameStore.getState().setStepsSource(result.source);
+      if (result.steps !== null) {
+        useGameStore.getState().applyRealSteps(result.steps);
+      }
     };
 
     const run = () => {
