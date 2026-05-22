@@ -60,11 +60,3 @@ assets/audio/Untitled.*
 
 # Claude Code runtime state (scheduled-task lock files etc.)
 .claude/
-
-# Local Expo module build artifacts. The Kotlin source lives in
-# modules/<name>/android/src/; gradle's build/.transforms/ subtree has
-# path names long enough to break git add on Windows. Source only —
-# build output regenerates from `gradlew bundleRelease`.
-modules/*/android/build/
-modules/*/android/.gradle/
-modules/*/build/

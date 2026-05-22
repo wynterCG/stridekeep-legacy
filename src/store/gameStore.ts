@@ -14,8 +14,7 @@ import type {
 } from '../types';
 import { CASES } from '../data/cases';
 import { BALANCE } from '../balance';
-import { todayKey } from '../native/healthConnect';
-import type { StepsSource } from '../native/steps';
+import { todayKey, type HealthConnectStatus } from '../native/healthConnect';
 import { rollColorFromCase, rawNextSellPrice } from '../data/colors';
 import { serverPlaceTile } from '../lib/teams';
 import { logFeedEvent } from '../lib/feedEvents';
@@ -311,15 +310,14 @@ interface GameState {
   // music — the standard mobile-game split. App.tsx watches this and
   // starts/stops the loop in lockstep with AppState transitions.
   musicEnabled: boolean;
-  // Which step source the app is using this session. Not persisted —
-  // re-probed on every cold start + every foreground transition (HC can
-  // be installed/uninstalled between sessions; sensor permission can be
-  // granted/revoked at any time). 'unknown' is the boot value before
-  // the first probe resolves; 'unavailable' means neither HC nor the
-  // hardware step counter sensor is usable, which triggers the dead-end
-  // gate UI. Order of preference (resolved by `detectStepsSource` in
-  // src/native/steps.ts): health-connect > step-counter > unavailable.
-  stepsSource: StepsSource | 'unknown';
+  // Health Connect provider availability on this device. Not persisted —
+  // re-probed on every cold start + every foreground transition (since
+  // the user can install / uninstall HC between sessions). 'unknown' is
+  // the boot value before the first probe resolves. HealthConnectGate
+  // reads this and renders a blocking modal for 'needs-install' /
+  // 'unsupported' so the user understands why steps aren't syncing
+  // instead of staring at an empty canvas wondering what's broken.
+  healthConnectStatus: HealthConnectStatus;
   // Per-clip mix levels (0.0 – 1.0). Dev-tunable via the AUDIO TUNER
   // dev button; once the player-acceptable defaults are locked, these
   // values get baked into initialState below and the dev UI removed.
@@ -483,7 +481,7 @@ interface GameActions {
   setMusicEnabled: (enabled: boolean) => void;
   setLanguage: (lang: 'en' | 'pt') => void;
   setCurrency: (currency: 'auto' | 'EUR' | 'USD' | 'GBP') => void;
-  setStepsSource: (source: StepsSource | 'unknown') => void;
+  setHealthConnectStatus: (status: HealthConnectStatus) => void;
   setSfxVolume: (key: keyof GameState['sfxVolumes'], value: number) => void;
   setMusicVolume: (value: number) => void;
   // Tutorial controls. See GameState's tutorial* fields for semantics.
@@ -585,7 +583,7 @@ const initialState: GameState = {
   currency: 'auto',
   // 'unknown' until the first App.tsx probe resolves — see the field
   // doc on GameState above. Always re-detected; never persisted.
-  stepsSource: 'unknown',
+  healthConnectStatus: 'unknown',
   // Mix locked 2026-05-16 via the dev AUDIO TUNER. Tuned against the
   // 320 kbps SFX + 320 kbps BGM. errorBuzz at 1.00 because the WAV is
   // already gentle; the case-open clips ride at 0.50 so they don't
@@ -1072,7 +1070,7 @@ export const useGameStore = create<GameStore>()(
 
       setCurrency: (currency) => set({ currency }),
 
-      setStepsSource: (source) => set({ stepsSource: source }),
+      setHealthConnectStatus: (status) => set({ healthConnectStatus: status }),
 
       setSfxVolume: (key, value) =>
         set((s) => ({
@@ -1287,10 +1285,10 @@ export const useGameStore = create<GameStore>()(
           tutorialTargetRect: _ttr,
           activeSubTab: _ast,
           // Re-probed each launch — persisting would mean a user who
-          // uninstalled HC (or revoked sensor permission) between
-          // sessions would still see a stale source value. Cheap to
-          // re-probe, no benefit to caching.
-          stepsSource: _ss,
+          // uninstalled HC between sessions would still see 'available'
+          // and we'd silently fail to sync. Cheap probe, no benefit to
+          // caching.
+          healthConnectStatus: _hcs,
           ...rest
         } = state;
         return rest as GameStore;

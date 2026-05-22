@@ -1,7 +1,0 @@
-{
-  "name": "expo-step-counter",
-  "version": "1.0.0",
-  "description": "Local Expo module exposing Android's Sensor.TYPE_STEP_COUNTER for Stridekeep's HC-less step fallback.",
-  "main": "index.ts",
-  "private": true
-}

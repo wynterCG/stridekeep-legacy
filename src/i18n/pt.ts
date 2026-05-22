@@ -364,9 +364,9 @@ export const pt: Record<TKey, string> = {
     'O Stridekeep lê os teus passos diários através do Health Connect — uma app gratuita da Google que mantém os dados dos teus passos no telemóvel. Toca abaixo para a instalar a partir da Play Store; volta ao Stridekeep depois de a instalares.',
   'healthConnect.needsInstallCta': 'INSTALAR HEALTH CONNECT',
   'healthConnect.unsupportedKicker': 'DISPOSITIVO NÃO SUPORTADO',
-  'healthConnect.unsupportedTitle': 'Este dispositivo não consegue contar passos',
+  'healthConnect.unsupportedTitle': 'Este dispositivo não suporta o Health Connect',
   'healthConnect.unsupportedBody':
-    'O Stridekeep precisa de uma forma de contar os teus passos diários. Este dispositivo não tem contador de passos e o Health Connect também não está disponível. Desculpa — não há nada que possamos fazer neste dispositivo.',
+    'O Stridekeep precisa do Health Connect para contar os teus passos, e o Health Connect exige Android 8 ou superior. Desculpa — não há nada que possamos fazer neste dispositivo.',
 
   // Secção Sobre.
   'about.kicker': 'STRIDEKEEP',
