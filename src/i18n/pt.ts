@@ -367,6 +367,10 @@ export const pt: Record<TKey, string> = {
   'healthConnect.unsupportedTitle': 'Este dispositivo não suporta o Health Connect',
   'healthConnect.unsupportedBody':
     'O Stridekeep precisa do Health Connect para contar os teus passos, e o Health Connect exige Android 8 ou superior. Desculpa — não há nada que possamos fazer neste dispositivo.',
+  'healthConnect.deniedBannerTitle': 'Sincronização de Passos Desativada',
+  'healthConnect.deniedBannerBody':
+    'O Stridekeep precisa de permissão do Health Connect para contar os teus passos e desbloquear caixas de materiais. Ativa a permissão nas definições do sistema para continuares a tua jornada.',
+  'healthConnect.deniedBannerCta': 'ATIVAR SINCRONIZAÇÃO',
 
   // Secção Sobre.
   'about.kicker': 'STRIDEKEEP',

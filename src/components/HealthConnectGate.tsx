@@ -32,7 +32,7 @@ export default function HealthConnectGate(): React.JSX.Element | null {
   const t = useTranslation();
   const status = useGameStore((s) => s.healthConnectStatus);
 
-  if (status === 'available' || status === 'unknown') return null;
+  if (status === 'available' || status === 'unknown' || status === 'denied') return null;
 
   const isNeedsInstall = status === 'needs-install';
 

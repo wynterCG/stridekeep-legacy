@@ -179,7 +179,13 @@ export default function App(): React.JSX.Element | null {
       useGameStore.getState().setHealthConnectStatus(status);
       if (status !== 'available') return;
       const ok = await ensureStepsPermission();
-      if (!ok || cancelled) return;
+      if (!ok) {
+        if (!cancelled) {
+          useGameStore.getState().setHealthConnectStatus('denied');
+        }
+        return;
+      }
+      if (cancelled) return;
       const total = await readDailySteps();
       if (cancelled) return;
       useGameStore.getState().applyRealSteps(total);

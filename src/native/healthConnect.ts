@@ -11,6 +11,7 @@ export type HealthConnectStatus =
   | 'available'
   | 'needs-install'
   | 'unsupported'
+  | 'denied'
   | 'unknown';
 
 // Probes whether the Health Connect SDK / provider is usable on this

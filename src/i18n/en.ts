@@ -385,6 +385,10 @@ export const en = {
   'healthConnect.unsupportedTitle': "This device can't use Health Connect",
   'healthConnect.unsupportedBody':
     "Stridekeep needs Health Connect to track your steps, and Health Connect requires Android 8 or higher. Sorry — there's nothing we can do on this device.",
+  'healthConnect.deniedBannerTitle': 'Steps Syncing is Disabled',
+  'healthConnect.deniedBannerBody':
+    'Stridekeep needs Health Connect permissions to count your strides and unlock materials cases. Grant permission in system settings to resume your journey.',
+  'healthConnect.deniedBannerCta': 'ENABLE SYNCING',
 
   // About section.
   'about.kicker': 'STRIDEKEEP',

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  FlatList,
 } from 'react-native';
 import { useGameStore } from '../../store/gameStore';
 import { badgeImageUrl } from '../../lib/badges';
@@ -52,9 +53,14 @@ export default function ProfilePanel(): React.JSX.Element {
             {t('profile.muralsEmpty')}
           </Text>
         ) : (
-          <View style={styles.badgeGrid}>
-            {badges.map((b) => (
-              <View key={b.seasonNumber} style={styles.badgeCell}>
+          <FlatList
+            data={badges}
+            keyExtractor={(b) => String(b.seasonNumber)}
+            numColumns={4}
+            scrollEnabled={false}
+            columnWrapperStyle={styles.columnWrapper}
+            renderItem={({ item: b }) => (
+              <View style={styles.badgeCell}>
                 <Image
                   source={{ uri: badgeImageUrl(b.seasonNumber) }}
                   style={styles.badgeImage}
@@ -62,8 +68,8 @@ export default function ProfilePanel(): React.JSX.Element {
                 />
                 <Text style={styles.badgeSeason}>{`S${b.seasonNumber}`}</Text>
               </View>
-            ))}
-          </View>
+            )}
+          />
         )}
       </Section>
 
@@ -231,10 +237,9 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontStyle: 'italic',
   },
-  badgeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  columnWrapper: {
+    gap: 12,
+    marginBottom: spacing.sm,
   },
   badgeCell: {
     width: 64,
