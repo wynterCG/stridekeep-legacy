@@ -3,6 +3,7 @@
 (() => {
   const data = globalThis.StrideData;
   const rules = globalThis.StrideRules;
+  const { t } = globalThis.StrideLocale;
   const example = document.getElementById("mural-example");
   const context = document.getElementById("mural-example-canvas").getContext("2d");
   const status = document.getElementById("mural-example-status");
@@ -19,8 +20,8 @@
   function render() {
     const remaining = Object.fromEntries(palette.map(([id, patches]) => [id, patches.length - (state.painted[id] ?? 0)]));
     const stock = state.pigments[pigment];
-    drawCopperwing(context, art, remaining);
-    status.textContent = `${data.pigments[pigment].name} ×${stock} · ${rules.muralProgress(state, data).percent}%`;
+    drawPlayableCopperwing(context, art, remaining);
+    status.textContent = `${t(data.pigments[pigment].name)} ×${stock} · ${rules.muralProgress(state, data).percent}%`;
     button.textContent = stock ? applyLabel : button.dataset.reset;
   }
 

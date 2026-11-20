@@ -2,8 +2,8 @@
 
 globalThis.StrideLocale = (() => {
   const choice = new URLSearchParams(location.search).get("lang");
-  const portuguese = choice === "pt-PT" || (choice === null && navigator.language?.startsWith("pt"));
-  const language = portuguese ? "pt-PT" : "en";
+  const language = document.documentElement.dataset.fixedLanguage ?? (choice === "en" ? "en" : "pt-PT");
+  const portuguese = language === "pt-PT";
   const pt = {
     "Stridekeep — Playtest": "Stridekeep — Protótipo",
     "Local playtest": "Teste local", "Copper Guild": "Guilda do Cobre", "Playtest sections": "Secções do protótipo",
@@ -14,6 +14,16 @@ globalThis.StrideLocale = (() => {
     "Mine seam": "Minar", "Seam locked": "Veio bloqueado", "Copper district": "Distrito do cobre",
     "Copper Stair": "Escadaria do Cobre", "Pale Quarry": "Pedreira Clara", "Redbank Cut": "Corte Rubro",
     "Violet Galleries": "Galerias Violetas", "Silver Fault": "Falha da Prata",
+    "Malachite": "Malaquite", "Chrysocolla": "Crisocola", "Covellite": "Covelite", "Chalcanthite": "Calcantite",
+    "Pyrolusite": "Pirolusite", "Ferrihydrite": "Ferrihidrite", "Spodumene": "Espodumena", "Elbaite": "Elbaíte", "Silver": "Prata",
+    "Malachite Green": "Verde de Malaquite", "Copper Teal": "Verde-azulado de Cobre", "Azurite Blue": "Azul de Azurite",
+    "Ink Indigo": "Índigo de Tinta", "Copper Crimson": "Carmesim de Cobre", "Chalk White": "Branco de Giz",
+    "Limestone Cream": "Creme de Calcário", "Iron Red": "Vermelho de Ferro", "Burnt Orange": "Laranja Queimado",
+    "Iron Black": "Preto de Ferro", "Manganese Black": "Preto de Manganês", "Umber": "Terra de Sombra", "Rust Brown": "Castanho de Ferrugem",
+    "Lilac": "Lilás", "Rose Pink": "Rosa de Pétala", "Plum": "Ameixa", "Silver Gray": "Cinzento de Prata",
+    "Mintwash": "Véu de Menta", "Slate Shadow": "Sombra de Ardósia", "Terracotta": "Terracota", "Blue Charcoal": "Carvão Azul",
+    "Wisteria Mist": "Névoa de Glicínia", "Copperwing": "Asa de Cobre", "Copperwing mural": "Mural Asa de Cobre",
+    "Original mobile app": "Aplicação móvel original",
     "Chalk terraces": "Terraços de giz", "Iron country": "Terras do ferro", "Pegmatite galleries": "Galerias de pegmatito",
     "Green Seam": "Veio Verde", "Azurite Pocket": "Bolsa de Azurite", "Reinforced Vein": "Veio Reforçado",
     "White Face": "Frente Branca", "Iron Terrace": "Terraço de Ferro", "Magnetite Bench": "Bancada de Magnetite",
@@ -30,11 +40,11 @@ globalThis.StrideLocale = (() => {
     "Pigments": "Pigmentos", "Crush a raw mineral to add a pigment.": "Tritura um mineral em bruto para obter pigmento.",
     "piece": "peça", "pieces": "peças", "{0}, {1}, {2} purity, {3}": "{0}, {1}, {2} de pureza, {3}",
     "Community mural": "Mural da comunidade", "Pigment requirements": "Pigmentos necessários",
-    "{0} owned · {1} left": "{0} em stock · faltam {1}", "patch": "área", "patches": "áreas", "{0} {1} to paint": "{0} {1} por pintar",
+    "{0} owned · {1} left": "Tens {0} · faltam {1}", "patch": "área", "patches": "áreas", "{0} {1} to paint": "{0} {1} por pintar",
     "Mural complete": "Mural completo", "Apply pigment": "Aplicar pigmento", "Color complete": "Cor concluída",
     "How to paint": "Como pintar",
-    "Copperwing mural, {0}% complete": "Mural Copperwing, {0}% completo", "Pigment recipes": "Receitas de pigmentos",
-    "How to mix": "Como misturar", "{0} × {1} · {2} owned": "{0} × {1} · {2} em stock", "Mix": "Misturar",
+    "Copperwing mural, {0}% complete": "Mural Asa de Cobre, {0}% completo", "Pigment recipes": "Receitas de pigmentos",
+    "How to mix": "Como misturar", "{0} × {1} · {2} owned": "{0} × {1} · tens {2}", "Mix": "Misturar",
     "Miner’s Pickaxe": "Picareta de Mineiro", "Copper-Bound Pick": "Picareta Reforçada a Cobre",
     "Fine-Tip Pick": "Picareta de Ponta Fina", "Forged-Iron Pick": "Picareta de Ferro Forjado",
     "Works exposed seams in Copper Stair, Pale Quarry and Redbank Cut.": "Trabalha os veios expostos da Escadaria do Cobre, da Pedreira Clara e do Corte Rubro.",
@@ -47,12 +57,12 @@ globalThis.StrideLocale = (() => {
     "Display piece": "Peça de exposição", "Polish a specimen for your collection.": "Pole um espécime para a coleção.",
     "First sale": "Primeira venda", "Sell a specimen to fund equipment.": "Vende um espécime para financiar equipamento.",
     "Color maker": "Mistura de cor", "Mix a crafted color from base pigments.": "Faz uma receita com pigmentos base.",
-    "Guild hand": "Mão da guilda", "Paint three patches on Copperwing.": "Pinta três áreas do Copperwing.",
-    "Copperwing restored": "Copperwing restaurado", "Finish the eight remaining patches.": "Pinta as oito áreas em falta.",
+    "Guild hand": "Mão da guilda", "Paint three patches on Copperwing.": "Pinta três áreas do mural Asa de Cobre.",
+    "Copperwing restored": "Asa de Cobre restaurado", "Finish the eight remaining patches.": "Pinta as oito áreas em falta.",
     "Claimed": "Recebida", "Claim": "Reclamar", "{0}/{1} · {2} coins": "{0}/{1} · {2} moedas",
     "Guild contracts": "Contratos da guilda", "Quarry Supply": "Fornecimento da Pedreira", "Cabinet Study": "Estudo de Coleção",
     "Guild Banner Order": "Estandarte da Guilda", "Violet Commission": "Encomenda Violeta",
-    "{0} × {1} · {2} in stock": "{0} × {1} · {2} em stock", "{0}+ purity": "Pureza mínima de {0}", "{0}+ weight": "Peso mínimo de {0}",
+    "{0} × {1} · {2} in stock": "{0} × {1} · tens {2}", "{0}+ purity": "Pureza mínima de {0}", "{0}+ weight": "Peso mínimo de {0}",
     "Complete": "Concluído", "Deliver": "Entregar", "Show": "Mostrar", "Uses up the delivery": "Consome a entrega",
     "Keep the specimen": "Ficas com o espécime", "Specimen for {0}": "Espécime para {0}", "{0}/{1} complete": "{0}/{1} concluídos",
     "Deliver for {0}?": "Confirmas a entrega para {0}?", "Deliver supplies": "Entregar",
@@ -61,7 +71,7 @@ globalThis.StrideLocale = (() => {
     "Your best purity and heaviest find for each mineral stay here after you spend the specimen.": "A maior pureza e o maior peso de cada mineral ficam aqui mesmo depois de gastares a peça.",
     "Simulated crew": "Equipa simulada", "Silver Fault Survey": "Exploração da Falha da Prata", "Expedition objectives": "Objetivos da expedição",
     "Silver Fault, a ravine with a silver seam and a timber winch": "Falha da Prata, uma ravina com um veio de prata e um guincho de madeira",
-    "Expedition crew": "Equipa da expedição", "Join crew": "Juntar à equipa", "Leave crew": "Sair da equipa", "You": "Tu", "Miner": "Mineiro", "Scout": "Batedora", "Hauler": "Transportador",
+    "Expedition crew": "Equipa da expedição", "Join crew": "Entrar na equipa", "Leave crew": "Sair da equipa", "You": "Tu", "Miner": "Mineiro", "Scout": "Batedora", "Hauler": "Transportador",
     "Survey the split": "Explorar a fenda", "Secure the shaft": "Proteger o poço", "Recover the sample": "Recuperar a amostra",
     "Mark the vein": "Marcar o veio", "Brace the face": "Escorar a frente", "Raise the basket": "Içar o cesto",
     "Mark a silver seam while the crew maps the split and sets the guide line.": "Marca um veio de prata enquanto a equipa mapeia a fenda e monta a linha de segurança.",
@@ -77,7 +87,8 @@ globalThis.StrideLocale = (() => {
     "Joining": "A juntar-se", "Contributed": "Já contribuiu", "Action needed": "Falta contribuir", "Working": "A trabalhar",
     "Reward · {0} specimen + {1} coins": "Recompensa · Espécime de {0} + {1} moedas",
     "Prospector": "Prospetor", "Seamworker": "Oficial da mina", "Guild Miner": "Mineiro da Guilda", "Master Prospector": "Mestre Prospetor", "{0} · Lv {1}": "{0} · Nível {1}",
-    "Progress is stored in this browser.": "O progresso fica guardado neste browser.", "Progress lasts while this tab is open.": "O progresso dura enquanto este separador estiver aberto.",
+    "{0} XP": "{0} EXP", "{0}/{1} XP": "{0}/{1} EXP",
+    "Progress is stored in this browser.": "O progresso fica guardado neste navegador.", "Progress lasts while this tab is open.": "O progresso dura enquanto este separador estiver aberto.",
     "Reset playtest": "Reiniciar teste", "Cancel": "Cancelar", "Confirm": "Confirmar", "Reset the local playtest?": "Reiniciar o teste local?",
     "This clears the collection, journal, equipment, contracts, expedition and mural progress.": "Isto limpa a coleção, o diário, o equipamento, os contratos, a expedição e o mural.",
     "Reset progress": "Limpar progresso", "A new playtest has started.": "Começou um novo teste.",
@@ -87,8 +98,8 @@ globalThis.StrideLocale = (() => {
     "{0} will leave your collection for {1} coins.": "Vais vender {0} da tua coleção por {1} moedas.",
     "{0} discovered.": "Encontraste {0}.", " New purity record!": " Novo recorde de pureza!",
     "{0} polished. Its purity is preserved.": "{0} polido. A pureza mantém-se.", "{0} sold for {1} coins.": "Vendeste {0} por {1} moedas.",
-    "{0} × {1} added to stock.": "Adicionaste {0} × {1} ao stock.", "{0} mixed.": "Misturaste {0}.",
-    "One patch painted with {0}.": "Pintaste uma área com {0}.", "Copperwing is complete. The guild mural is finished.": "A guilda terminou o mural Copperwing.",
+    "{0} × {1} added to stock.": "Adicionaste {0} × {1} ao inventário.", "{0} mixed.": "Misturaste {0}.",
+    "One patch painted with {0}.": "Pintaste uma área com {0}.", "Copperwing is complete. The guild mural is finished.": "A guilda terminou o mural Asa de Cobre.",
     "{0} purchased and equipped.": "Compraste e equipaste {0}.", "{0} equipped.": "Equipaste {0}.",
     "Mission reward received. +{0} coins.": "Recompensa da missão recebida. +{0} moedas.", "{0} complete. +{1} coins.": "Concluíste {0}. +{1} moedas.",
     "You joined the Silver Fault crew. Wait for the other miners to be ready.": "Juntaste-te à equipa da Falha da Prata. Aguarda pelos restantes mineiros.",
@@ -117,11 +128,13 @@ globalThis.StrideLocale = (() => {
     "Keep polished specimens for display or sale.": "Guarda as peças polidas para exposição ou venda.", "Unknown action.": "Ação desconhecida.",
   };
 
+  const translate = (text) => portuguese && Object.hasOwn(pt, text) ? pt[text] : text;
+
   function t(message, ...values) {
     const key = typeof message === "string" ? message : message.reduce((result, part, index) =>
       index ? `${result}{${index - 1}}${part}` : part, "");
-    const source = portuguese && Object.hasOwn(pt, key) ? pt[key] : key;
-    return values.length ? source.replace(/\{(\d+)\}/g, (_, index) => values[index]) : source;
+    const source = translate(key);
+    return values.length ? source.replace(/\{(\d+)\}/g, (_, index) => translate(values[index])) : source;
   }
 
   return { language, t };

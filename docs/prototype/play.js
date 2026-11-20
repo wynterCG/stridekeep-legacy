@@ -132,7 +132,7 @@ function renderRoute() {
   write("mine-title", mine.name);
   write("mine-district", mine.district);
   write("equipped-pick", data.tools[state.equipped].name);
-  const possible = [...new Set(route.finds)].map((id) => data.minerals[id].name).join(" · ");
+  const possible = [...new Set(route.finds)].map((id) => t(data.minerals[id].name)).join(" · ");
   const requirement = route.power > data.tools[state.equipped].power ? t`Requires ${t(pickNeeded(route.power))}` : "";
   write("route-info", [requirement, possible, t`${route.seconds}s between strikes`].filter(Boolean).join(" · "));
   tickMining();
@@ -176,7 +176,7 @@ function renderFind() {
   const finish = item.polished ? "Polished" : "Raw";
   const image = byId("find-sprite");
   image.setAttribute("src", sprite(item));
-  image.alt = `${mineral.name} · ${t(finish)}`;
+  image.alt = `${t(mineral.name)} · ${t(finish)}`;
   image.parentElement.style.setProperty("--purity", item.purity / 10000);
   write("find-context", item.origin ?? (item.id === state.latest ? "Latest find" : "From your collection"));
   write("find-name", mineral.name);
@@ -245,7 +245,7 @@ function renderMural() {
     const control = button("");
     control.dataset.pigment = id;
     control.setAttribute("aria-pressed", String(id === selectedPigment));
-    control.append(swatch(element("i"), pigment), pigment.name,
+    control.append(swatch(element("i"), pigment), t(pigment.name),
       element("small", "", t`${amount(state.pigments, id)} owned · ${remaining} left`));
     row.append(control);
     return row;
@@ -256,7 +256,7 @@ function renderMural() {
   byId("paint-button").disabled = !amount(state.pigments, selectedPigment) || !left[selectedPigment];
   write("paint-button", left[selectedPigment] ? "Apply pigment" : "Color complete");
   byId("mural-canvas").setAttribute("aria-label", t`Copperwing mural, ${progress.percent}% complete`);
-  drawCopperwing(muralContext, art, left);
+  drawPlayableCopperwing(muralContext, art, left);
 }
 
 function renderRecipes() {
@@ -323,7 +323,7 @@ function renderContracts() {
     const ready = contract.pigment ? amount(state.pigments, contract.pigment) >= contract.quantity : specimens.length > 0;
     const requirement = contract.pigment ?
       t`${contract.quantity} × ${data.pigments[contract.pigment].name} · ${amount(state.pigments, contract.pigment)} in stock` :
-      [`${data.minerals[contract.mineral].name} (${t(contract.finish === "polished" ? "Polished" : "Raw")})`,
+      [`${t(data.minerals[contract.mineral].name)} (${t(contract.finish === "polished" ? "Polished" : "Raw")})`,
         contract.minPurity && t`${percent(contract.minPurity)}+ purity`,
         contract.minWeight && t`${grams(contract.minWeight)}+ weight`].filter(Boolean).join(" · ");
     const consumes = contract.pigment || contract.consume;
@@ -355,7 +355,7 @@ function renderContracts() {
 
 function renderJournal() {
   const discoveries = Object.entries(state.records).sort(([a], [b]) =>
-    data.minerals[a].name.localeCompare(data.minerals[b].name));
+    t(data.minerals[a].name).localeCompare(t(data.minerals[b].name), language));
   const entries = discoveries.map(([id, record]) => {
     const mineral = data.minerals[id];
     const row = element("li", "journal-entry");
@@ -377,7 +377,7 @@ const crewMembers = [{ name: "You", role: "Miner" }, ...mission.crew];
 const crewBadges = crewMembers.map((member) => {
   const row = element("li");
   const badge = element("span");
-  row.append(element("strong", "", `${member.name} · ${member.role}`), badge);
+  row.append(element("strong", "", `${t(member.name)} · ${t(member.role)}`), badge);
   byId("expedition-crew").append(row);
   return badge;
 });
@@ -446,7 +446,7 @@ function tickExpedition() {
 function render() {
   const rank = rules.rank(state);
   write("rank", t`${t(rank.name)} · Lv ${rank.level}`);
-  write("rank-progress", rank.next === undefined ? `${rank.xp} XP` : `${rank.xp}/${rank.next} XP`);
+  write("rank-progress", rank.next === undefined ? t`${rank.xp} XP` : t`${rank.xp}/${rank.next} XP`);
   write("coins", t`${state.coins} coins`);
   write("gear-coins", t`${state.coins} coins`);
   renderRoute();
