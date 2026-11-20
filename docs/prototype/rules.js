@@ -87,7 +87,7 @@ globalThis.StrideRules = (() => {
     const filled = entries.reduce((total, [color]) => total + count(state.painted, color), 0);
     return {
       needed, filled, left: needed - filled,
-      percent: Math.round(100 * (data.mural.base + filled) / (data.mural.base + needed)),
+      percent: needed ? Math.round(100 * filled / needed) : 0,
     };
   }
 

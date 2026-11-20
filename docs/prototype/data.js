@@ -162,7 +162,6 @@ globalThis.StrideData = {
     }
   },
   "mural": {
-    "base": 7,
     "needs": {
       "chalk-white": [
         [
