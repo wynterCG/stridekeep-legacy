@@ -24,17 +24,17 @@
     </header>
 
     <nav class="play-nav" aria-label="Playtest sections">
-      <a href="#mine" data-text>Mining</a>
-      <a href="#guild-expedition" data-text>Guild Expedition</a>
-      <a href="#collection" data-text>Inventory</a>
-      <a href="#mural" data-text>Mural</a>
-      <a href="#workshop" data-text>Recipes</a>
-      <a href="#gear" data-text>Pickaxes</a>
-      <a href="#contracts" data-text>Contracts</a>
-      <a class="guide-link" href="play-guide.html" data-guide data-text>Playtest wiki</a>
+      <a href="#mine" data-game-view data-text>Mining</a>
+      <a href="#collection" data-game-view data-text>Inventory</a>
+      <a href="#workshop" data-game-view data-text>Workshop</a>
+      <a href="#missions" data-game-view data-text>Missions</a>
+      <a href="#mural" data-game-view data-text>Mural</a>
+      <a href="#guild-expedition" data-game-view data-text>Guild Expedition</a>
+      <a href="streams.html" data-stream-link data-text>Live streams</a>
+      <a class="guide-link" href="play-guide.html" data-guide>Wiki</a>
       <a id="language-switch" href="?lang=pt-PT" hreflang="pt-PT" lang="pt-PT">Português</a>
     </nav>
-    <p id="feedback" role="status" aria-live="polite" data-text>Choose a seam to start mining.</p>
+    <p id="feedback" role="status" aria-live="polite"></p>
 
     <main class="game-grid">
       <section class="panel mine" id="mine" aria-labelledby="mine-title">
@@ -174,7 +174,7 @@
 
     <footer class="site-footer">
       <span id="save-status">Progress is stored in this browser.</span>
-      <div><a href="play-guide.html" data-guide data-text>Playtest wiki</a><a href="legacy.html" data-text>Original mobile app</a><button type="button" id="reset-button" data-text>Reset playtest</button></div>
+      <div><a href="play-guide.html" data-guide data-text>Playtest wiki</a><a href="https://stridekeep.app/legacy.html" data-text>Original mobile app</a><button type="button" id="reset-button" data-text>Reset playtest</button></div>
     </footer>
   </div>
 

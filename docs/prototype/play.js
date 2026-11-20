@@ -15,6 +15,16 @@ const muralContext = byId("mural-canvas").getContext("2d");
 const dialog = byId("action-dialog");
 const mineSelect = byId("mine-select");
 const routeSelect = byId("route-select");
+const gameGrid = document.querySelector(".game-grid");
+const viewLinks = document.querySelectorAll("[data-game-view]");
+const gameViews = {
+  mine: ["mine", "find"],
+  collection: ["collection", "find", "journal"],
+  workshop: ["workshop", "gear"],
+  missions: ["missions", "contracts"],
+  mural: ["mural"],
+  "guild-expedition": ["guild-expedition"],
+};
 let storageOn = true;
 let lockingOn = true;
 let state = readSave(rules.create(data));
@@ -24,6 +34,26 @@ let pendingAction;
 
 function announce(message) {
   write("feedback", message);
+}
+
+function showGameView() {
+  const anchor = location.hash.slice(1);
+  const view = Object.keys(gameViews).find((id) => gameViews[id].includes(anchor)) ?? "mine";
+  const panels = gameViews[view];
+  if (view === "collection") byId("collection").after(byId("find"));
+  if (view === "mine") byId("mine").after(byId("find"));
+  for (const panel of gameGrid.children) panel.hidden = !panels.includes(panel.id);
+  gameGrid.dataset.view = view;
+  for (const link of viewLinks) {
+    if (link.hash === `#${view}`) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  byId("language-switch").href = `?lang=${language === "pt-PT" ? "en" : "pt-PT"}${location.hash}`;
+  requestAnimationFrame(() => {
+    if (location.hash.slice(1) !== anchor) return;
+    if (anchor !== view && panels.includes(anchor)) byId(anchor).scrollIntoView();
+    else window.scrollTo(0, 0);
+  });
 }
 
 function readSave(fallback) {
@@ -552,7 +582,11 @@ if (language === "pt-PT") {
   for (const guide of document.querySelectorAll("[data-guide]")) {
     guide.setAttribute("href", `play-guide.pt-PT.html${guide.hash}`);
   }
+} else {
+  document.querySelector("[data-stream-link]").href = "streams.html?lang=en";
 }
+window.addEventListener("hashchange", showGameView);
+showGameView();
 const expeditionArt = byId("expedition-art");
 expeditionArt.src = mission.art;
 expeditionArt.alt = t(expeditionArt.alt);

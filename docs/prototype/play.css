@@ -8,25 +8,37 @@
   white-space: nowrap;
 }
 .playtest .account-stat.coins { color: var(--accent); font-variant-numeric: tabular-nums; }
-.play-nav { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 12px 0 6px; }
+.play-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0; }
 .playtest .play-nav a {
   display: inline-block;
   color: var(--ink);
   text-decoration: none;
   padding: 8px 10px;
   border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--well);
 }
 .playtest .play-nav a:hover { background: var(--panel); color: var(--accent); }
 .playtest .play-nav .guide-link { color: var(--accent); margin-left: auto; }
+.playtest .play-nav [aria-current=page] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: bold; }
+.playtest .play-nav [aria-current=page]:hover { background: var(--accent); color: var(--accent-ink); }
 .playtest #feedback {
   padding: 0 0 10px;
   margin: 0;
   color: var(--dim);
   min-height: 30px;
 }
+.playtest #feedback:empty { display: none; }
 .playtest .game-grid {
   grid-template-areas: "mine find" "collection mural" "workshop gear" "expedition expedition" "contracts journal" "missions missions";
 }
+.playtest .game-grid[data-view] { grid-template-areas: var(--wide-view); }
+.game-grid[data-view=mine] { --wide-view: "mine find"; --narrow-view: "mine" "find"; }
+.game-grid[data-view=collection] { --wide-view: "collection find" "journal journal"; --narrow-view: "collection" "find" "journal"; }
+.game-grid[data-view=workshop] { --wide-view: "workshop gear"; --narrow-view: "workshop" "gear"; }
+.game-grid[data-view=missions] { --wide-view: "missions contracts"; --narrow-view: "missions" "contracts"; }
+.game-grid[data-view=mural] { --wide-view: "mural mural"; --narrow-view: "mural"; }
+.game-grid[data-view=guild-expedition] { --wide-view: "expedition expedition"; --narrow-view: "expedition"; }
 .playtest .panel { scroll-margin-top: 12px; }
 .playtest .mine { min-height: 446px; }
 .playtest .mine::before {
@@ -198,6 +210,8 @@ html[data-mak-report=document] #expedition-name {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "mine" "find" "collection" "mural" "workshop" "gear" "expedition" "contracts" "journal" "missions";
   }
+  .playtest .game-grid[data-view] { grid-template-areas: var(--narrow-view); }
+  .playtest .play-nav .guide-link { margin-left: 0; }
   .playtest .site-header { min-height: 68px; flex-wrap: wrap; justify-content: start; padding: 6px 0; gap: 6px 9px; }
   .playtest .site-header .concept-label { display: none; }
   .playtest .site-header .community { margin-left: auto; }
