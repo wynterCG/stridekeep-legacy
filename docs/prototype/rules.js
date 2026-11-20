@@ -83,7 +83,7 @@ globalThis.StrideRules = (() => {
 
   function muralProgress(state, data) {
     const entries = Object.entries(data.mural.needs);
-    const needed = entries.reduce((total, [, patches]) => total + patches.length, 0);
+    const needed = entries.reduce((total, [, pixels]) => total + pixels.length, 0);
     const filled = entries.reduce((total, [color]) => total + count(state.painted, color), 0);
     return {
       needed, filled, left: needed - filled,
@@ -264,7 +264,7 @@ globalThis.StrideRules = (() => {
       state.painted[id] = count(state.painted, id) + 1;
       state.stats.painted++;
       return muralProgress(state, data).left ?
-        t`One patch painted with ${data.pigments[id].name}.` : "Copperwing is complete. The guild mural is finished.";
+        t`One pixel painted with ${data.pigments[id].name}.` : "Copperwing is complete. The guild mural is finished.";
     },
   };
 

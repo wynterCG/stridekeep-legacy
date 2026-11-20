@@ -44,7 +44,7 @@
 <p>O <strong>Diário de campo</strong> guarda a pureza mais alta e o maior peso de cada mineral descoberto. Os dois recordes podem vir de espécimes diferentes.</p>
 <h2 id="progression">Abre novos veios</h2>
 <p>Com a picareta inicial podes trabalhar na <strong>Escadaria do Cobre</strong>, na <strong>Pedreira Clara</strong> e no <strong>Corte Rubro</strong>. Usa as moedas das missões, vendas e contratos para comprar picaretas. A <strong>Picareta Reforçada a Cobre</strong> abre o Veio Reforçado. A <strong>Picareta de Ponta Fina</strong> pode melhorar a pureza nos veios delicados da Escadaria do Cobre. A <strong>Picareta de Ferro Forjado</strong> abre a Falha de Ferro e as <strong>Galerias Violetas</strong>, onde podes procurar Kunzite e Fluor-liddicoatite.</p>
-<p>Cada contrato paga uma vez. Entrega uma peça pesada de calcite em bruto da Frente Branca, mostra uma malaquite polida com pelo menos 76% de pureza e guarda a peça, ou entrega pigmentos para o Estandarte da Guilda e a Encomenda Violeta. O Véu de Menta serve para o estandarte ou para o mural. Precisas de misturar duas vezes para fazer ambos.</p>
+<p>Cada contrato paga uma vez. Entrega uma peça pesada de calcite em bruto da Frente Branca, mostra uma malaquite polida com pelo menos 76% de pureza e guarda a peça, ou entrega pigmentos para o Estandarte da Guilda e a Encomenda Violeta. O Estandarte da Guilda e o mural usam a mesma reserva de Véu de Menta.</p>
 <h2 id="expedition">Expedição da guilda</h2>
 <p>Depois do primeiro achado a solo, junta-te à <strong>Exploração da Falha da Prata</strong>. Espera por Mara e Ivo e parte com a equipa. Contribui uma vez em cada etapa e aguarda pelo trabalho da equipa antes de avançar. No fim, reclama a Prata e as moedas. Podes continuar a minar a solo durante a expedição.</p>
 <h2 id="pigments">Faz pigmentos</h2>
@@ -76,18 +76,18 @@
 </tbody>
 </table>
 <h2 id="mural">Pinta o mural Asa de Cobre</h2>
-<p>O mural Asa de Cobre começa a <strong>0%</strong>, com oito áreas vazias marcadas por contornos. Cada área precisa de uma cor específica da paleta do mural.</p>
+<p>O mural Asa de Cobre começa a <strong>0%</strong>, com 30 píxeis vazios marcados por contornos. Cada píxel precisa de uma cor específica da paleta do mural.</p>
 <ol>
-<li>Consulta a paleta ao lado do mural. Cada linha mostra quantas unidades tens e quantas áreas ainda precisam dessa cor.</li>
+<li>Consulta a paleta ao lado do mural. Cada linha mostra quantas unidades tens e quantos píxeis ainda precisam dessa cor.</li>
 <li>Obtém a cor ao triturar um mineral em bruto ou ao misturar uma receita. Véu de Menta e Sombra de Ardósia são cores misturadas.</li>
-<li>Seleciona a cor de que precisas e carrega em <strong>Aplicar pigmento</strong>. Cada aplicação gasta uma unidade, preenche uma área dessa cor e revela parte da imagem.</li>
-<li>Pinta as oito áreas e reclama <strong>Asa de Cobre restaurado</strong> nas Missões. Neste protótipo, a tua contribuição fica guardada no navegador.</li>
+<li>Seleciona a cor de que precisas e carrega em <strong>Aplicar pigmento</strong>. Uma unidade pinta o próximo píxel dessa cor. O primeiro píxel leva o mural a <strong>3%</strong>.</li>
+<li>Pinta os 30 píxeis e reclama <strong>Asa de Cobre restaurado</strong> nas Missões. Neste protótipo, a tua contribuição fica guardada no navegador.</li>
 </ol>
 <figure class="guide-mural" id="mural-example" hidden>
   <canvas id="mural-example-canvas" width="64" height="64" role="img" aria-label="Exemplo do mural Asa de Cobre"></canvas>
   <figcaption>
-    <strong>Experimenta pintar uma área</strong>
-    <p>Usa o Véu de Menta do exemplo e vê a área no canto inferior direito mudar de cor. O teu progresso no jogo fica separado.</p>
+    <strong>Experimenta pintar um píxel</strong>
+    <p>Usa o Véu de Menta do exemplo para preencher um quadrado. O teu progresso no jogo fica separado.</p>
     <output id="mural-example-status" aria-live="polite"></output>
     <button type="button" class="primary" id="mural-example-paint" data-reset="Reiniciar exemplo">Aplicar Véu de Menta</button>
   </figcaption>

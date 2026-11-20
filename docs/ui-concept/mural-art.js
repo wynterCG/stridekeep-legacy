@@ -54,46 +54,18 @@ function drawCopperwing(context, pigments, remaining) {
   }
 }
 
-function drawPlayableCopperwing(context, pigments, remaining) {
-  const blank = "#101923";
-  const patches = Object.entries(pigments).flatMap(([id, pigment]) => {
-    const filled = pigment.patches.length - remaining[id];
-    return pigment.patches.map(([x, y], index) => ({ x, y, color: pigment.color, painted: index < filled }));
-  });
-  const filled = patches.filter((patch) => patch.painted).length;
-
-  if (filled === 0) {
-    context.fillStyle = blank;
-    context.fillRect(0, 0, 64, 64);
-  } else {
-    drawCopperwing(context, {}, {});
-    if (filled < patches.length) {
-      // Each 4×4 cell belongs to the nearest patch, so the art is revealed in pixel-aligned areas.
-      context.fillStyle = blank;
-      for (let y = 0; y < 64; y += 4) {
-        for (let x = 0; x < 64; x += 4) {
-          let closest;
-          let distance = Infinity;
-          for (const patch of patches) {
-            const candidate = (patch.x - x) ** 2 + (patch.y - y) ** 2;
-            if (candidate < distance) {
-              distance = candidate;
-              closest = patch;
-            }
-          }
-          if (!closest.painted) context.fillRect(x, y, 4, 4);
-        }
-      }
-    }
-  }
-
+function drawPlayableCopperwing(context, mural, pigments, painted) {
+  const { width, height } = context.canvas;
+  const cell = width / mural.gridSize;
+  context.fillStyle = "#101923";
+  context.fillRect(0, 0, width, height);
   context.strokeStyle = "#526075";
-  for (const { x, y, color, painted } of patches) {
-    if (painted) {
-      context.fillStyle = color;
-      context.fillRect(x, y, 4, 4);
-    } else {
-      context.strokeRect(x + 0.5, y + 0.5, 3, 3);
-    }
+  for (const [id, pixels] of Object.entries(mural.needs)) {
+    context.fillStyle = pigments[id].color;
+    const filled = painted[id] ?? 0;
+    pixels.forEach(([x, y], index) => {
+      if (index < filled) context.fillRect(x * cell, y * cell, cell, cell);
+      else context.strokeRect(x * cell + 0.5, y * cell + 0.5, cell - 1, cell - 1);
+    });
   }
 }

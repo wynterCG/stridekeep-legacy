@@ -14,13 +14,9 @@
   initial.pigments[pigment] = 1;
   let state = initial;
 
-  const palette = Object.entries(data.mural.needs);
-  const art = Object.fromEntries(palette.map(([id, patches]) => [id, { ...data.pigments[id], patches }]));
-
   function render() {
-    const remaining = Object.fromEntries(palette.map(([id, patches]) => [id, patches.length - (state.painted[id] ?? 0)]));
     const stock = state.pigments[pigment];
-    drawPlayableCopperwing(context, art, remaining);
+    drawPlayableCopperwing(context, data.mural, data.pigments, state.painted);
     status.textContent = `${t(data.pigments[pigment].name)} ×${stock} · ${rules.muralProgress(state, data).percent}%`;
     button.textContent = stock ? applyLabel : button.dataset.reset;
   }

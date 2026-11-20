@@ -162,49 +162,138 @@ globalThis.StrideData = {
     }
   },
   "mural": {
+    "gridSize": 8,
     "needs": {
       "chalk-white": [
         [
-          29,
-          11
+          3,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
         ]
       ],
       "malachite-green": [
         [
-          11,
-          13
+          1,
+          1
         ],
         [
-          49,
-          14
+          6,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          6,
+          6
         ]
       ],
       "azurite-blue": [
         [
-          19,
-          20
+          2,
+          3
+        ],
+        [
+          5,
+          3
         ]
       ],
       "iron-red": [
         [
-          40,
-          45
+          2,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          5,
+          5
         ]
       ],
       "mintwash": [
         [
-          48,
-          43
+          1,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          6,
+          5
         ]
       ],
       "slate-shadow": [
         [
-          14,
-          42
+          2,
+          4
         ],
         [
-          39,
-          24
+          5,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          5,
+          6
         ]
       ]
     }
@@ -247,17 +336,17 @@ globalThis.StrideData = {
     },
     "paint": {
       "name": "Guild hand",
-      "text": "Paint three patches on Copperwing.",
+      "text": "Paint three pixels on Copperwing.",
       "metric": "painted",
       "goal": 3,
       "coins": 18
     },
     "complete": {
       "name": "Copperwing restored",
-      "text": "Finish the eight remaining patches.",
+      "text": "Fill every pixel in Copperwing.",
       "metric": "painted",
-      "goal": 8,
-      "coins": 30
+      "coins": 30,
+      "goal": 30
     }
   },
   "contracts": {

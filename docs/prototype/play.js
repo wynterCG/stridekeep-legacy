@@ -234,12 +234,10 @@ function swatch(node, pigment) {
 
 function renderMural() {
   const progress = rules.muralProgress(state, data);
-  const art = {};
   const left = {};
-  const rows = Object.entries(data.mural.needs).map(([id, patches]) => {
+  const rows = Object.entries(data.mural.needs).map(([id, pixels]) => {
     const pigment = data.pigments[id];
-    const remaining = patches.length - amount(state.painted, id);
-    art[id] = { ...pigment, patches };
+    const remaining = pixels.length - amount(state.painted, id);
     left[id] = remaining;
     const row = element("li");
     const control = button("");
@@ -252,11 +250,11 @@ function renderMural() {
   });
   byId("pigments").replaceChildren(...rows);
   write("mural-progress", `${progress.percent}%`);
-  write("mural-status", progress.left ? t`${progress.left} ${t(progress.left === 1 ? "patch" : "patches")} to paint` : "Mural complete");
+  write("mural-status", progress.left ? t`${progress.left} ${progress.left === 1 ? "pixel" : "pixels"} to paint` : "Mural complete");
   byId("paint-button").disabled = !amount(state.pigments, selectedPigment) || !left[selectedPigment];
   write("paint-button", left[selectedPigment] ? "Apply pigment" : "Color complete");
   byId("mural-canvas").setAttribute("aria-label", t`Copperwing mural, ${progress.percent}% complete`);
-  drawPlayableCopperwing(muralContext, art, left);
+  drawPlayableCopperwing(muralContext, data.mural, data.pigments, state.painted);
 }
 
 function renderRecipes() {

@@ -44,7 +44,7 @@
 <p>The <strong>Field journal</strong> keeps your best purity and heaviest find for each discovered mineral. These records can come from different specimens.</p>
 <h2 id="progression">Unlock deeper seams</h2>
 <p>Claim coin rewards from Missions and use the proceeds from sales or Guild Contracts to buy pickaxes. <strong>Copper-Bound</strong> opens the Reinforced Vein. The <strong>Fine-Tip Pick</strong> can improve purity at delicate Copper Stair seams. <strong>Forged-Iron</strong> opens the Iron Fault and Violet Galleries, where you can look for Kunzite and Fluor-liddicoatite.</p>
-<p>Guild contracts each pay once. Deliver a heavy raw Calcite from White Face, show a polished Malachite of at least 76% purity and keep it, or give up pigments for the Banner Order and Violet Commission. Mintwash can go to the Banner Order or to Copperwing. You'll need a second mix to do both.</p>
+<p>Guild contracts each pay once. Deliver a heavy raw Calcite from White Face, show a polished Malachite of at least 76% purity and keep it, or give up pigments for the Banner Order and Violet Commission. The Banner Order and Copperwing draw from the same Mintwash stock.</p>
 <h2 id="expedition">Guild Expedition</h2>
 <p>After your first personal find, join <strong>Silver Fault Survey</strong>. Wait for Mara and Ivo, then depart. Contribute once at each of the three stages and wait for the crew to finish its part. Claim the Silver specimen and coins at the end. You can keep mining on your own while the crew works.</p>
 <h2 id="pigments">Make pigments</h2>
@@ -76,18 +76,18 @@
 </tbody>
 </table>
 <h2 id="mural">Paint Copperwing</h2>
-<p>Copperwing starts at <strong>0%</strong> with eight empty, outlined patches. Each patch needs a specific color from the mural's palette.</p>
+<p>Copperwing starts at <strong>0%</strong> with 30 empty, outlined pixels. Each pixel needs a specific color from the mural's palette.</p>
 <ol>
-<li>Check the palette next to Copperwing. Each row shows how many units you own and how many patches still need that color.</li>
+<li>Check the palette next to Copperwing. Each row shows how many units you own and how many pixels still need that color.</li>
 <li>Get the color by crushing a raw mineral or mixing a recipe. Mintwash and Slate Shadow are mixed colors.</li>
-<li>Select the needed color and choose <strong>Apply pigment</strong>. Each application spends one unit, fills a matching patch and reveals part of the picture.</li>
-<li>Fill the eight patches and claim <strong>Copperwing restored</strong> in Missions. This playtest stores your contribution in your browser.</li>
+<li>Select the needed color and choose <strong>Apply pigment</strong>. One unit fills the next matching pixel. The first pixel takes the mural to <strong>3%</strong>.</li>
+<li>Fill all 30 pixels and claim <strong>Copperwing restored</strong> in Missions. This playtest stores your contribution in your browser.</li>
 </ol>
 <figure class="guide-mural" id="mural-example" hidden>
   <canvas id="mural-example-canvas" width="64" height="64" role="img" aria-label="Copperwing mural example"></canvas>
   <figcaption>
-    <strong>Try one patch</strong>
-    <p>Use the example’s Mintwash and watch the lower right patch change. Your game progress is separate.</p>
+    <strong>Try one pixel</strong>
+    <p>Use the example’s Mintwash to fill one square. Your game progress is separate.</p>
     <output id="mural-example-status" aria-live="polite"></output>
     <button type="button" class="primary" id="mural-example-paint" data-reset="Reset example">Apply Mintwash</button>
   </figcaption>
