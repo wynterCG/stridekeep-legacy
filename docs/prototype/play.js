@@ -212,6 +212,16 @@ function renderCollection() {
   byId("specimens").replaceChildren(...items);
   byId("empty-collection").hidden = items.length > 0;
   write("collection-count", `${items.length} ${t(items.length === 1 ? "piece" : "pieces")}`);
+
+  const pigments = Object.entries(data.pigments).filter(([id]) => amount(state.pigments, id) > 0).map(([id, pigment]) => {
+    const chip = element("li", "stock-pigment");
+    chip.dataset.stockPigment = id;
+    chip.append(swatch(element("span", "swatch"), pigment), element("span", "stock-name", pigment.name),
+      element("strong", "stock-quantity", `×${amount(state.pigments, id)}`));
+    return chip;
+  });
+  byId("pigment-stock").replaceChildren(...pigments);
+  byId("empty-pigment-stock").hidden = pigments.length > 0;
 }
 
 function swatch(node, pigment) {

@@ -26,7 +26,7 @@
     <nav class="play-nav" aria-label="Playtest sections">
       <a href="#mine" data-text>Mining</a>
       <a href="#guild-expedition" data-text>Guild Expedition</a>
-      <a href="#collection" data-text>Collection</a>
+      <a href="#collection" data-text>Inventory</a>
       <a href="#mural" data-text>Mural</a>
       <a href="#workshop" data-text>Recipes</a>
       <a href="#gear" data-text>Pickaxes</a>
@@ -95,11 +95,16 @@
 
       <section class="panel collection" id="collection" aria-labelledby="collection-title">
         <div class="panel-head">
-          <h2 id="collection-title" data-text>Collection</h2>
+          <h2 id="collection-title" data-text>Inventory</h2>
           <span id="collection-count">0 pieces</span>
         </div>
         <p id="empty-collection" data-text>Finds are kept here until you sell or crush them.</p>
         <div id="specimens" class="specimens"></div>
+        <section class="inventory-pigments" aria-labelledby="pigment-stock-title">
+          <h3 id="pigment-stock-title" data-text>Pigments</h3>
+          <p id="empty-pigment-stock" data-text>Crush a raw mineral to add a pigment.</p>
+          <ul id="pigment-stock" class="pigment-stock"></ul>
+        </section>
       </section>
 
       <section class="panel mural" id="mural" aria-labelledby="mural-title">

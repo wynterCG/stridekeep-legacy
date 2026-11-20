@@ -7,7 +7,7 @@ globalThis.StrideLocale = (() => {
   const pt = {
     "Stridekeep — Playtest": "Stridekeep — Protótipo",
     "Local playtest": "Teste local", "Copper Guild": "Guilda do Cobre", "Playtest sections": "Secções do protótipo",
-    "Mining": "Mineração", "Guild Expedition": "Expedição da guilda", "Collection": "Coleção", "Mural": "Mural",
+    "Mining": "Mineração", "Guild Expedition": "Expedição da guilda", "Inventory": "Inventário", "Mural": "Mural",
     "Recipes": "Receitas", "Pickaxes": "Picaretas", "Contracts": "Contratos", "Playtest wiki": "Wiki do protótipo",
     "Choose a seam to start mining.": "Escolhe um veio para começar a minerar.", "Mine": "Mina", "Seam": "Veio",
     "Mine seam": "Minerar", "Seam locked": "Veio bloqueado", "Copper district": "Distrito do cobre",
@@ -24,6 +24,7 @@ globalThis.StrideLocale = (() => {
     "Purity": "Pureza", "Weight": "Peso", "Best purity": "Maior pureza", "Heaviest find": "Peça mais pesada",
     "Polish": "Polir", "Crush": "Triturar", "Sell": "Vender", "Sell · {0}": "Vender · {0}",
     "Finds are kept here until you sell or crush them.": "Os achados ficam aqui até serem vendidos ou triturados.",
+    "Pigments": "Pigmentos", "Crush a raw mineral to add a pigment.": "Tritura um mineral em bruto para obter pigmento.",
     "piece": "peça", "pieces": "peças", "{0}, {1}, {2} purity, {3}": "{0}, {1}, {2} de pureza, {3}",
     "Community mural": "Mural da comunidade", "Pigment requirements": "Pigmentos necessários",
     "{0} owned · {1} left": "{0} em stock · faltam {1}", "patch": "área", "patches": "áreas", "{0} {1} to paint": "{0} {1} por pintar",
