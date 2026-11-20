@@ -1,0 +1,199 @@
+.playtest .site-header .community { margin-left: auto; }
+.playtest .account-stat {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.playtest .account-stat.coins { color: var(--accent); font-variant-numeric: tabular-nums; }
+.play-nav { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 12px 0 6px; }
+.playtest .play-nav a {
+  display: inline-block;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 5px;
+}
+.playtest .play-nav a:hover { background: var(--panel); color: var(--accent); }
+.playtest .play-nav .guide-link { color: var(--accent); margin-left: auto; }
+.playtest #feedback {
+  padding: 0 0 10px;
+  margin: 0;
+  color: var(--dim);
+  min-height: 30px;
+}
+.playtest .game-grid {
+  grid-template-areas: "mine find" "collection mural" "workshop gear" "expedition expedition" "contracts journal" "missions missions";
+}
+.playtest .panel { scroll-margin-top: 12px; }
+.playtest .mine { min-height: 446px; }
+.playtest .mine::before {
+  background-image: linear-gradient(90deg, #160f17dd, #17101715 88%), linear-gradient(0deg, #140e15ed, transparent 68%), var(--mine-art, url("../ui-concept/copper-stair.webp"));
+}
+html[data-mak-report=document] .playtest .mine h2 {
+  font-size: clamp(48px, 7vw, 90px);
+  line-height: .94;
+  max-width: 11ch;
+}
+.mine-routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  max-width: 100%;
+}
+.mine-routes > div { min-width: 0; }
+.mine-routes label {
+  display: block;
+  font-size: 11px;
+  margin: 0 0 3px;
+  color: #ead5bc;
+}
+.mine-routes select {
+  max-width: 100%;
+  min-height: 38px;
+  border: 1px solid #86634e;
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #fcf0dc;
+  background: #25202a;
+  font: inherit;
+}
+.mine-routes select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.route-info { margin: 7px 0; font-size: 12px; color: #e8cbb2; }
+.playtest .mine-action button { min-width: 148px; }
+#mining-status { margin-top: 8px; max-width: 350px; color: #efdaa9; font-size: 12px; }
+#mining-meter { display: block; width: 100%; accent-color: var(--accent); }
+.playtest .find-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#empty-find,
+#empty-collection { color: var(--dim); }
+#empty-find {
+  display: grid;
+  align-content: center;
+  text-align: center;
+  padding: 20px;
+  min-height: 165px;
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+  margin-top: 14px;
+  background: var(--well);
+}
+.playtest .specimens button[aria-pressed=true] { box-shadow: inset 0 0 0 1px var(--accent); }
+.playtest .mural canvas { align-self: start; }
+.playtest .mural .pigments small { line-height: 1.2; }
+.workshop { grid-area: workshop; }
+.gear { grid-area: gear; }
+.guild-expedition { grid-area: expedition; }
+.missions { grid-area: missions; }
+.contracts { grid-area: contracts; align-self: start; }
+.journal { grid-area: journal; align-self: start; }
+.work-row.contract-row { grid-template-columns: minmax(0, 1fr) auto; }
+.contract-row .contract-effect { color: var(--accent); }
+.contract-row select {
+  max-width: 100%; min-height: 34px; margin-top: 6px; padding: 3px 6px;
+  border: 1px solid var(--line); border-radius: 5px;
+  background: var(--panel); color: var(--ink); font: inherit; font-size: 12px;
+}
+.journal p { margin-top: 12px; color: var(--dim); }
+.journal-list { list-style: none; margin: 0; padding: 0; }
+.journal-entry { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.journal-entry img { image-rendering: pixelated; object-fit: contain; }
+.journal-entry small { display: block; color: var(--dim); }
+.play-guide .frame { max-width: 920px; padding-bottom: 32px; }
+.playtest.play-guide .site-header { justify-content: space-between; min-height: 56px; }
+.play-guide .site-header a { color: var(--accent); }
+.play-guide .guide-panel { margin-top: 16px; padding: clamp(15px, 4vw, 34px); }
+.play-guide .guide-art { display: block; width: 100%; height: clamp(105px, 24vw, 200px); object-fit: cover; object-position: center 55%; border-radius: 7px; }
+html[data-mak-report=document] .play-guide h1 { font: 500 clamp(34px, 6vw, 58px)/1.08 var(--display); color: var(--ink); margin: 18px 0 10px; }
+.play-guide h2 { scroll-margin-top: 12px; }
+.play-guide .guide-toc ul { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; padding: 0; font-size: 13px; }
+.play-guide .guide-toc a { color: var(--accent); }
+.play-guide table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.play-guide th, .play-guide td { vertical-align: top; text-align: left; padding: 7px; border: 1px solid var(--line); }
+.expedition-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.1fr) minmax(160px, .85fr) minmax(180px, 1fr);
+  align-items: start;
+  gap: 14px;
+  margin-top: 12px;
+}
+.expedition-layout > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+html[data-mak-report=document] #expedition-name {
+  margin: 1px 0 6px;
+  color: var(--ink);
+  font: 500 22px/1.25 var(--display);
+}
+.expedition-layout p { color: var(--dim); margin: 0 0 8px; font-size: 12px; }
+.expedition-brief .expedition-loot { color: var(--accent); }
+.expedition-stages { margin: 5px 0 10px; padding-left: 20px; font-size: 12px; color: var(--dim); }
+.expedition-stages [aria-current=step] { color: var(--accent); font-weight: bold; }
+.expedition-stages [data-done=true] { color: var(--meter); }
+.expedition-crew { list-style: none; padding: 0; margin: 0 0 10px; }
+.expedition-crew li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 8px;
+  gap: 2px 10px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  margin-bottom: 4px;
+}
+.expedition-crew li span { font-size: 11px; color: var(--dim); }
+.expedition-crew li span[data-ready=true] { color: var(--meter); }
+.expedition-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.work-list { display: grid; gap: 8px; margin-top: 12px; }
+.work-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 9px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.work-list .art { display: block; width: 42px; height: 42px; border-radius: 4px; background: center / contain no-repeat; }
+.work-list .swatch { border: 1px solid #ffffff35; }
+.swatch { background-color: var(--pigment) !important; }
+.work-row strong { display: block; font-size: 13px; }
+.work-row small { display: block; color: var(--dim); }
+.work-row button { min-height: 34px; padding: 4px 7px; font-size: 12px; }
+.work-row .missing { color: #eeb59d; }
+.mission-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(233px, 100%), 1fr)); gap: 8px; margin-top: 12px; }
+.mission-row { display: flex; flex-wrap: wrap; align-items: start; gap: 6px 10px; }
+.mission-row > span { flex: 1 0 150px; }
+.mission-row button { margin-top: auto; }
+@media (max-width: 950px) and (min-width: 711px) {
+  .playtest .game-grid { grid-template-columns: minmax(0, 1.25fr) minmax(275px, 1fr); }
+  .playtest .mural-body { grid-template-columns: 1fr; }
+  .playtest .mural canvas { max-width: 110px; }
+}
+@media (max-width: 710px) {
+  .playtest .game-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "mine" "find" "collection" "mural" "workshop" "gear" "expedition" "contracts" "journal" "missions";
+  }
+  .playtest .site-header { min-height: 68px; flex-wrap: wrap; justify-content: start; padding: 6px 0; gap: 6px 9px; }
+  .playtest .site-header .concept-label { display: none; }
+  .playtest .site-header .community { margin-left: auto; }
+  .playtest .mine { min-height: 356px; padding: 15px; }
+  .playtest .mine h2 { margin-bottom: 11px; }
+  .expedition-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 390px) {
+  .playtest .account-stat { font-size: 11px; }
+  .playtest .mural-body { grid-template-columns: 1fr; }
+  .playtest .mural canvas { max-width: 148px; }
+  .work-row .art { width: 32px; height: 32px; }
+}

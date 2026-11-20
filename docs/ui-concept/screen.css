@@ -1,0 +1,188 @@
+html[data-mak-report=document] body {
+  --ground: #131319;
+  --panel: #1c1b23;
+  --well: #15141a;
+  --line: #37323d;
+  --ink: #fbedd9;
+  --dim: #bcafbd;
+  --accent: #efae67;
+  --accent-ink: #281a17;
+  --meter: #83c4a2;
+  --display: "Baskerville Old Face", Georgia, serif;
+  --body: "Trebuchet MS", "Segoe UI", sans-serif;
+  --mak-accent: var(--accent);
+  background: radial-gradient(ellipse at top, #332230 0%, var(--ground) 58%);
+  color: var(--ink);
+  font: 14px/1.4 var(--body);
+  padding: 0;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.frame { width: min(1320px, 100%); margin: auto; padding: 0 clamp(14px, 3vw, 34px); }
+.site-header { min-height: 76px; display: flex; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand i { width: 18px; height: 18px; border: 2px solid var(--accent); transform: rotate(45deg); box-shadow: inset 0 0 0 3px var(--ground), inset 0 0 0 5px var(--accent); }
+html[data-mak-report=document] .brand h1 { margin: 0; font: 600 clamp(25px, 3vw, 33px)/1 var(--display); letter-spacing: -.025em; color: var(--ink); }
+.concept-label { color: var(--dim); border-left: 1px solid var(--line); padding-left: 14px; }
+.community { margin-left: auto; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.community i, .mine .kicker i { width: 7px; height: 7px; background: var(--accent); transform: rotate(45deg); display: inline-block; }
+.variants { display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 0; }
+button, .site-footer a { -webkit-tap-highlight-color: transparent; }
+button { appearance: none; border: 1px solid var(--line); background: var(--well); color: var(--ink); font: inherit; border-radius: 6px; min-height: 42px; padding: 8px 12px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .48; cursor: default; }
+.primary { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); font-weight: bold; }
+.primary:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.variants button { background: none; color: var(--dim); border-color: transparent; font-weight: bold; }
+.variants button[aria-pressed=true] { color: var(--ink); background: var(--panel); border-color: var(--line); box-shadow: inset 0 -2px var(--accent); }
+
+.game-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.82fr) minmax(288px, 1fr);
+  grid-template-areas: "mine find" "collection mural";
+  gap: 14px;
+}
+.panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+html[data-mak-report=document] .game-grid > .panel { background-color: var(--panel); border-color: var(--line); }
+.mine { grid-area: mine; display: flex; align-items: end; min-height: 407px; overflow: hidden; padding: 24px; background: #2c2531; color: #fff1d8; position: relative; isolation: isolate; }
+.mine::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, #160f17eb, #1710171c 78%), linear-gradient(0deg, #140e15e5, transparent 65%), url("copper-stair.webp") center 57% / cover;
+}
+.mine .kicker { color: #f9bd80; }
+.mine .kicker i { margin-inline-end: 5px; }
+html[data-mak-report=document] .mine h2 { margin: 10px 0 18px; padding: 0; border: 0; color: #fff0d6; font: 500 clamp(48px, 7vw, 113px)/.82 var(--display); letter-spacing: -.04em; }
+.mine-action { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; }
+.mine-action button { min-width: 144px; }
+.mine-action button span { margin-left: 8px; }
+.mine-action > span { color: #e5ccb9; font-size: 12px; }
+.find { grid-area: find; padding: 17px 18px; }
+.panel-head, .purity-label { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.panel-head > :last-child:not(:first-child), .kicker, .purity-label label { color: var(--dim); font-size: 12px; }
+.kicker { font-weight: bold; letter-spacing: .09em; text-transform: uppercase; }
+.panel-head .rarity { padding: 3px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--meter); }
+.panel-head .rarity[data-rarity=Common] { color: var(--dim); }
+.panel-head .rarity[data-rarity=Rare] { color: var(--accent); }
+html[data-mak-report=document] .game-grid h2:not(#mine-title) { color: var(--ink); margin: 0; padding: 0; border: 0; font: 500 25px/1.1 var(--display); }
+html[data-mak-report=document] .game-grid h2#find-name { font-size: clamp(32px, 4vw, 44px); margin: 6px 0 12px; }
+.specimen-stage { display: grid; place-items: center; position: relative; isolation: isolate; overflow: hidden; min-height: 148px; background: radial-gradient(ellipse, #5a485554, transparent 70%), var(--well); border: 1px solid var(--line); border-radius: 7px; }
+.specimen-stage > i { position: absolute; width: 100px; height: 100px; border: 1px solid var(--line); transform: rotate(45deg); z-index: -1; }
+.specimen-stage > i::after { content: ""; position: absolute; inset: -9px; border: 1px solid var(--line); opacity: .45; }
+html[data-mak-report=document] #find-sprite { width: 132px; height: 132px; max-width: 100%; object-fit: contain; image-rendering: pixelated; filter: contrast(calc(.64 + var(--purity, .9742) * .57)) drop-shadow(0 4px 12px #0006); }
+.specimen-stage > span { position: absolute; inset: auto 8px 7px auto; color: var(--dim); font-size: 11px; }
+.specimen-stage.reveal img { animation: reveal-specimen .3s ease-out; }
+@keyframes reveal-specimen { from { translate: 0 6px; opacity: .25; } }
+.purity-label { margin-top: 12px; }
+html[data-mak-report=document] .purity-label strong { color: var(--meter); font-variant-numeric: tabular-nums; }
+meter { width: 100%; height: 12px; margin: 4px 0 6px; display: block; appearance: none; }
+meter::-webkit-meter-bar { background: var(--well); border: 1px solid var(--line); border-radius: 3px; }
+meter::-webkit-meter-optimum-value { background: var(--meter); border-radius: 2px; }
+meter::-moz-meter-bar { background: var(--meter); border-radius: 2px; }
+.find-stats { display: grid; grid-template-columns: 1fr 1fr; margin: 10px 0 11px; gap: 10px; }
+.find-stats div { border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+.find-stats dt { color: var(--dim); font-size: 11px; }
+.find-stats dd { margin: 1px 0 0; font-size: 15px; }
+.find-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.find-actions button { padding-inline: 4px; }
+.find-actions #polish-button:not(:disabled) { background: color-mix(in srgb, var(--accent) 18%, var(--well)); border-color: var(--accent); }
+
+.collection { grid-area: collection; }
+.specimens { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 12px; max-height: 238px; overflow: auto; padding: 2px 2px 5px; }
+.specimens button { position: relative; display: grid; align-content: start; justify-items: center; gap: 2px; text-align: center; background: var(--well); min-width: 0; padding: 8px 4px; }
+.specimens button[aria-pressed=true] { border-color: var(--accent); }
+.specimen-icon { width: 48px; height: 48px; background: center / contain no-repeat; image-rendering: pixelated; }
+.specimens button .title { overflow-wrap: anywhere; }
+.specimens button .specimen-meta { color: var(--dim); font-size: 11px; }
+.specimens button[data-state=Polished] .specimen-meta { color: var(--accent); }
+.specimen-weight { display: none; }
+.mural { grid-area: mural; }
+.mural-body { display: grid; grid-template-columns: minmax(90px, .8fr) 1fr; align-items: start; gap: 12px; margin-top: 12px; }
+.mural canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; image-rendering: pixelated; background: var(--well); }
+.mural-detail p { color: var(--dim); margin: 4px 0 7px; font-size: 12px; }
+.pigments { margin: 6px 0 8px; padding: 0; display: grid; gap: 4px; list-style: none; }
+.pigments button { display: flex; align-items: center; text-align: left; gap: 6px; width: 100%; min-height: 32px; font-size: 11px; padding: 3px 5px; }
+.pigments button[aria-pressed=true] { border-color: var(--accent); }
+.pigments i { flex: 0 0 10px; height: 10px; background: var(--pigment); border: 1px solid #fff4; border-radius: 2px; }
+.pigments small { margin-left: auto; white-space: nowrap; color: var(--dim); }
+#paint-button { min-height: 36px; width: 100%; font-size: 12px; padding-inline: 4px; }
+.session { grid-area: session; display: none; }
+.session ul { list-style: none; margin: 10px 0 0; padding: 0; color: var(--dim); }
+.session li { padding: 6px 0; border-top: 1px solid var(--line); }
+.site-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 16px 0 22px; color: var(--dim); font-size: 12px; }
+.site-footer > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.site-footer button { min-height: 34px; }
+dialog { width: min(440px, calc(100% - 24px)); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; padding: 20px; }
+dialog::backdrop { background: #000a; }
+html[data-mak-report=document] dialog h2 { color: var(--ink); margin: 0; padding: 0; border: 0; font: 500 30px/1.1 var(--display); }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: end; }
+
+html[data-mak-report=document] body[data-variant=cabinet] {
+  --ground: #e8d9bd; --panel: #f7edd9; --well: #eee0c2; --line: #c5b194; --ink: #392a24;
+  --dim: #6c5547; --accent: #9b412d; --accent-ink: #fff4dc; --meter: #38634a;
+  background: radial-gradient(ellipse at top left, #fbf3dc, var(--ground));
+  color-scheme: light;
+}
+[data-variant=cabinet] .game-grid { grid-template-columns: minmax(265px, 1fr) minmax(0, 1.45fr); grid-template-areas: "mine mine" "find collection" "mural mural"; }
+[data-variant=cabinet] .mine { min-height: 146px; padding: 14px 20px; }
+[data-variant=cabinet] .mine::before { background-position: center, center, center 41%; }
+html[data-mak-report=document] [data-variant=cabinet] .mine h2,
+html[data-mak-report=document] [data-variant=stream] .mine h2 { font-size: clamp(31px, 5vw, 54px); margin: 5px 0 8px; line-height: 1; }
+[data-variant=cabinet] .mine h2 br, [data-variant=stream] .mine h2 br { display: none; }
+[data-variant=cabinet] .mural-body { grid-template-columns: minmax(96px, 160px) minmax(0, 230px); }
+[data-variant=cabinet] .specimens { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 478px; }
+[data-variant=cabinet] .specimens button { grid-template-columns: minmax(0, 48px) minmax(0, 1fr); align-items: center; justify-items: start; text-align: left; gap: 1px 7px; padding: 8px; }
+[data-variant=cabinet] .specimen-icon { grid-row: span 3; }
+[data-variant=cabinet] .specimen-weight { display: block; color: var(--dim); font-size: 11px; }
+[data-variant=cabinet] .specimen-stage { background: radial-gradient(ellipse, #fffaf0, transparent 67%), var(--well); min-height: 180px; }
+html[data-mak-report=document] [data-variant=cabinet] #find-sprite { width: 158px; height: 158px; }
+
+html[data-mak-report=document] body[data-variant=guild] {
+  --ground: #0e1c20; --panel: #18282c; --well: #132026; --line: #39525a; --ink: #ebeee0;
+  --dim: #b0c1bc; --accent: #f0c179; --accent-ink: #382b24; --meter: #9dc4a5;
+  background: radial-gradient(ellipse at top left, #263e42, var(--ground) 63%);
+}
+[data-variant=guild] .game-grid { grid-template-columns: minmax(0, 1.6fr) minmax(270px, 1fr); grid-template-areas: "mural find" "mural mine" "collection collection"; }
+[data-variant=guild] .mural-body { display: grid; grid-template-columns: 1fr; gap: 10px; }
+[data-variant=guild] .mural canvas { width: min(100%, 480px); margin: 0 auto; }
+[data-variant=guild] .mural .pigments { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+[data-variant=guild] .mine { min-height: 170px; padding: 18px; }
+html[data-mak-report=document] [data-variant=guild] #mine-title { font-size: clamp(35px, 5vw, 62px); margin-block: 6px 10px; }
+[data-variant=guild] #mine-title br { display: none; }
+
+html[data-mak-report=document] body[data-variant=stream] {
+  --ground: #191624; --panel: #231e30; --well: #1a1626; --line: #473b5a; --ink: #f2e9fa;
+  --dim: #c0b0cb; --accent: #d6b4fc; --accent-ink: #25183b; --meter: #91d9b7;
+  background: radial-gradient(ellipse at top, #372843, var(--ground) 60%);
+}
+[data-variant=stream] .frame { max-width: 900px; }
+[data-variant=stream] .game-grid { grid-template-columns: minmax(0, 1.1fr) minmax(255px, 1fr); grid-template-areas: "mine find" "collection find" "mural session"; gap: 9px; }
+[data-variant=stream] :is(.panel, .site-header) { border-radius: 6px; }
+[data-variant=stream] .mine { min-height: 162px; padding: 15px; }
+[data-variant=stream] .collection, [data-variant=stream] .mural, [data-variant=stream] .session { padding: 12px; }
+[data-variant=stream] .session { display: block; }
+[data-variant=stream] .specimens { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); max-height: 188px; }
+
+@media (max-width: 710px) {
+  .game-grid, [data-variant] .game-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mine" "find" "collection" "mural"; }
+  [data-variant=cabinet] .game-grid { grid-template-areas: "find" "collection" "mine" "mural"; }
+  [data-variant=guild] .game-grid { grid-template-areas: "mural" "find" "mine" "collection"; }
+  [data-variant=stream] .game-grid { grid-template-areas: "mine" "find" "mural" "session" "collection"; }
+  .mine { min-height: 255px; }
+  .site-header { min-height: 58px; gap: 9px; }
+  .concept-label { padding-left: 8px; }
+  .community { font-size: 12px; }
+  [data-variant=guild] .mural .pigments { grid-template-columns: 1fr; }
+}
+@media (max-width: 360px) {
+  .concept-label { display: none; }
+  .variants button { min-height: 38px; padding-inline: 7px; }
+  .mural-body, [data-variant=cabinet] .mural-body { grid-template-columns: minmax(0, 1fr); }
+  .mural canvas { max-width: 192px; }
+}
+@media (max-width: 460px) {
+  [data-variant=cabinet] .specimens button { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  [data-variant=cabinet] .specimen-icon { grid-row: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .specimen-stage.reveal img { animation: none; }
+}
