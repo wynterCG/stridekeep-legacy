@@ -18,7 +18,7 @@ const routeSelect = byId("route-select");
 const gameGrid = document.querySelector(".game-grid");
 const viewLinks = document.querySelectorAll("[data-game-view]");
 const gameViews = {
-  mine: ["mine", "find"],
+  mine: ["mine", "find", "missions"],
   collection: ["collection", "find", "journal"],
   workshop: ["workshop", "gear"],
   missions: ["missions", "contracts"],
@@ -38,7 +38,8 @@ function announce(message) {
 
 function showGameView() {
   const anchor = location.hash.slice(1);
-  const view = Object.keys(gameViews).find((id) => gameViews[id].includes(anchor)) ?? "mine";
+  const view = Object.hasOwn(gameViews, anchor) ? anchor
+    : Object.keys(gameViews).find((id) => gameViews[id].includes(anchor)) ?? "mine";
   const panels = gameViews[view];
   if (view === "collection") byId("collection").after(byId("find"));
   if (view === "mine") byId("mine").after(byId("find"));

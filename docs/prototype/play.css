@@ -33,7 +33,7 @@
   grid-template-areas: "mine find" "collection mural" "workshop gear" "expedition expedition" "contracts journal" "missions missions";
 }
 .playtest .game-grid[data-view] { grid-template-areas: var(--wide-view); }
-.game-grid[data-view=mine] { --wide-view: "mine find"; --narrow-view: "mine" "find"; }
+.game-grid[data-view=mine] { --wide-view: "mine find" "missions missions"; --narrow-view: "mine" "find" "missions"; }
 .game-grid[data-view=collection] { --wide-view: "collection find" "journal journal"; --narrow-view: "collection" "find" "journal"; }
 .game-grid[data-view=workshop] { --wide-view: "workshop gear"; --narrow-view: "workshop" "gear"; }
 .game-grid[data-view=missions] { --wide-view: "missions contracts"; --narrow-view: "missions" "contracts"; }
