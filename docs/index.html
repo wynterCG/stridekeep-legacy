@@ -53,9 +53,10 @@
           </div>
           <p id="route-info" class="route-info"></p>
           <div class="mine-action">
-            <button type="button" class="primary" id="mine-button">Mine seam</button>
+            <button type="button" class="primary" id="mine-button" disabled>Mine seam</button>
             <span id="equipped-pick">Miner’s Pickaxe</span>
           </div>
+          <a class="mine-inventory-link" id="mine-inventory-link" href="#collection" data-text>Inventory</a>
           <div id="mining-status" hidden>
             <label id="mining-label" for="mining-meter"></label>
             <progress id="mining-meter" max="1" value="0"></progress>
@@ -118,6 +119,7 @@
             <p id="mural-status"></p>
             <ul class="pigments" id="pigments" aria-label="Pigment requirements"></ul>
             <button class="primary" type="button" id="paint-button" disabled>Apply pigment</button>
+            <p><a href="play-guide.html#mural" data-guide data-text>How to paint</a></p>
           </div>
         </div>
       </section>

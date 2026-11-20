@@ -212,6 +212,8 @@ function renderCollection() {
   byId("specimens").replaceChildren(...items);
   byId("empty-collection").hidden = items.length > 0;
   write("collection-count", `${items.length} ${t(items.length === 1 ? "piece" : "pieces")}`);
+  const latest = state.items.find((item) => item.id === state.latest && !item.origin);
+  write("mine-inventory-link", latest ? t`${data.minerals[latest.mineral].name} added · Inventory (${items.length})` : t`Inventory · ${items.length}`);
 
   const pigments = Object.entries(data.pigments).filter(([id]) => amount(state.pigments, id) > 0).map(([id, pigment]) => {
     const chip = element("li", "stock-pigment");

@@ -63,6 +63,7 @@ html[data-mak-report=document] .playtest .mine h2 {
 .mine-routes select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .route-info { margin: 7px 0; font-size: 12px; color: #e8cbb2; }
 .playtest .mine-action button { min-width: 148px; }
+.playtest .mine-inventory-link { display: inline-flex; align-items: center; min-height: 34px; margin-top: 6px; color: #ffdfa8; font-size: 13px; }
 #mining-status { margin-top: 8px; max-width: 350px; color: #efdaa9; font-size: 12px; }
 #mining-meter { display: block; width: 100%; accent-color: var(--accent); }
 .playtest .find-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -119,6 +120,11 @@ html[data-mak-report=document] .play-guide h1 { font: 500 clamp(34px, 6vw, 58px)
 .play-guide .guide-toc a { color: var(--accent); }
 .play-guide table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .play-guide th, .play-guide td { vertical-align: top; text-align: left; padding: 7px; border: 1px solid var(--line); }
+.guide-mural { display: grid; grid-template-columns: minmax(86px, 140px) minmax(0, 1fr); align-items: start; gap: 12px; margin: 16px 0; padding: 12px; background: var(--well); border: 1px solid var(--line); border-radius: 7px; }
+.guide-mural canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 5px; }
+.guide-mural figcaption { text-align: left; color: var(--ink); }
+.guide-mural p { margin: 4px 0 8px; }
+.guide-mural output { display: block; margin-bottom: 8px; color: var(--accent); }
 .expedition-layout {
   display: grid;
   grid-template-columns: minmax(160px, 1.1fr) minmax(160px, .85fr) minmax(180px, 1fr);

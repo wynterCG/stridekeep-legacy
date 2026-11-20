@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="_shared/report.css">
   <link rel="stylesheet" href="ui-concept/screen.css">
   <link rel="stylesheet" href="prototype/play.css">
+  <script defer src="ui-concept/mural-art.js"></script>
+  <script defer src="prototype/data.js"></script>
+  <script defer src="prototype/rules.js"></script>
+  <script defer src="prototype/mural-guide.js"></script>
 </head>
 <body data-variant="expedition" class="playtest play-guide">
   <div class="frame">
@@ -23,7 +27,8 @@
 <li><a href="#start">O primeiro achado</a></li>
 <li><a href="#progression">Abre novos veios</a></li>
 <li><a href="#expedition">Expedição da guilda</a></li>
-<li><a href="#pigments">Mistura pigmentos e pinta o Copperwing</a></li>
+<li><a href="#pigments">Faz pigmentos</a></li>
+<li><a href="#mural">Pinta o Copperwing</a></li>
 <li><a href="#save">Progresso e âmbito</a></li>
 </ul>
 </div>
@@ -41,7 +46,7 @@
 <p>Cada contrato paga uma vez. Entrega um Calcite pesado em bruto da Frente Branca, mostra um Malachite polido com pelo menos 76% de pureza e guarda a peça, ou entrega pigmentos para o Estandarte da Guilda e a Encomenda Violeta. O Mintwash serve para o estandarte ou para o mural. Precisas de misturar duas vezes para fazer ambos.</p>
 <h2 id="expedition">Expedição da guilda</h2>
 <p>Depois do primeiro achado a solo, junta-te à <strong>Exploração da Silver Fault</strong>. Espera por Mara e Ivo e parte com a equipa. Contribui uma vez em cada etapa e aguarda pelo trabalho da equipa antes de avançar. No fim, reclama a Prata e as moedas. Podes continuar a minerar a solo durante a expedição.</p>
-<h2 id="pigments">Mistura pigmentos e pinta o Copperwing</h2>
+<h2 id="pigments">Faz pigmentos</h2>
 <p>Tritura Calcite em bruto para obter <strong>Chalk White</strong>, Malachite para <strong>Malachite Green</strong>, Azurite para <strong>Azurite Blue</strong>, Hematite para <strong>Iron Red</strong> e Magnetite para <strong>Iron Black</strong>. Em <strong>Inventário → Pigmentos</strong> vês cada cor que tens e a sua quantidade, incluindo as cores misturadas. O painel <strong>Receitas de pigmentos</strong> mostra o que precisas para cada mistura.</p>
 <table>
 <thead>
@@ -69,7 +74,25 @@
 </tr>
 </tbody>
 </table>
-<p>Escolhe uma cor com áreas por pintar no Copperwing e aplica uma unidade de pigmento para preencher uma área. Completa as oito áreas em falta para cumprir a última missão do mural.</p>
+<h2 id="mural">Pinta o Copperwing</h2>
+<p>O Copperwing começa a <strong>47%</strong>, com <strong>oito áreas sombreadas</strong> por preencher. Cada área precisa de uma cor específica da paleta do mural.</p>
+<ol>
+<li>Consulta a paleta ao lado do Copperwing. Cada linha mostra quantas unidades tens e quantas áreas ainda precisam dessa cor.</li>
+<li>Obtém a cor ao triturar um mineral em bruto ou ao misturar uma receita. Mintwash e Slate Shadow são cores misturadas.</li>
+<li>Seleciona a cor de que precisas e carrega em <strong>Aplicar pigmento</strong>. Cada aplicação gasta uma unidade e preenche uma área dessa cor.</li>
+<li>Pinta as oito áreas e reclama <strong>Copperwing restaurado</strong> nas Missões. Neste protótipo, a tua contribuição fica guardada no browser.</li>
+</ol>
+<figure class="guide-mural" id="mural-example" hidden>
+  <canvas id="mural-example-canvas" width="64" height="64" role="img" aria-label="Exemplo do mural Copperwing"></canvas>
+  <figcaption>
+    <strong>Experimenta pintar uma área</strong>
+    <p>Usa o Mintwash do exemplo e vê a área no canto inferior direito mudar de cor. O teu progresso no jogo fica separado.</p>
+    <output id="mural-example-status" aria-live="polite"></output>
+    <button type="button" class="primary" id="mural-example-paint" data-reset="Reiniciar exemplo">Aplicar Mintwash</button>
+  </figcaption>
+</figure>
+
+<p><a href="index.html?lang=pt-PT#mural">Abre o Copperwing no jogo</a></p>
 <h2 id="save">Progresso e âmbito</h2>
 <p>O progresso fica neste browser e neste site. <strong>Reiniciar teste</strong> limpa-o. Este protótipo inclui jogo local, equipa simulada e valores provisórios. As contas Twitch, as equipas em direto e os murais criados por streamers ficam fora deste teste.</p>
     </main>
