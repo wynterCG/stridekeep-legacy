@@ -30,6 +30,10 @@ const homeAnchors = new Set(["watch", "character", "profile", "mine", "collectio
 const inventoryTabs = [...document.querySelectorAll("[data-inventory-tab]")];
 const inventoryAnchors = new Map(inventoryTabs.map(tab => [tab.getAttribute("aria-controls"), tab.dataset.inventoryTab]));
 const catalogue = Object.entries(data.minerals);
+const sourceMinerals = new Map(catalogue.filter(([, mineral]) => mineral.pigment).map(([id, mineral]) => [mineral.pigment, id]));
+const listPages = { odds: 0, journal: 0, recipe: 0, palette: 0 };
+const journalPageSize = 12;
+const searchKey = value => String(value).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 const percentages = new Intl.NumberFormat(language, { maximumFractionDigits: 10 });
 const chanceLabel = chance => `${percentages.format(chance)}%`;
 const rarityOrder = ["Common", "Uncommon", "Rare", "Very Rare", "Exceptional", "Legendary", "Mythic", "Artifact"];
@@ -38,6 +42,7 @@ let lockingOn = true;
 let state = readSave(rules.create(data), true);
 let selected = state.latest;
 let inspectedPigment = null;
+let journalSelection = null;
 let selectedPigment = Object.keys(data.mural.needs)[0];
 let selectedPixel = null;
 let pendingAction;
@@ -108,7 +113,22 @@ function showGameView() {
     }
   }
   if (view === "home" || view === "missions") renderMissions();
-  if (view === "journal") renderJournal();
+  if (view === "journal") {
+    if (previous !== view && !journalSelection && !byId("journal-query").value && !byId("journal-discovered").checked) {
+      const latestId = state.items.find(item => item.id === state.latest)?.mineral;
+      const index = catalogue.findIndex(([id]) => latestId ? id === latestId : state.records[id]);
+      if (index >= 0) {
+        listPages.journal = Math.floor(index / journalPageSize);
+        journalSelection = catalogue[index][0];
+      }
+    }
+    renderJournal();
+  }
+  if (view === "workshop") {
+    renderRecipes();
+    renderPalette();
+    renderGear();
+  }
   const active = view === "edit-character" ? "home" : view;
   for (const link of viewLinks) {
     if (link.hash === `#${active}`) link.setAttribute("aria-current", "page");
@@ -155,6 +175,7 @@ function save() {
 }
 
 function run(action) {
+  if (action.type === "paint") action.muralId = rules.muralBoard(state, data, action.scope)?.mural.id;
   const applyAction = () => {
     let success = false;
     try {
@@ -172,6 +193,8 @@ function run(action) {
         const landing = action.type === "paint" ? action.pixel ?? rules.nextMuralPixel(state, data, action.pigment, action.scope) : null;
         const result = rules.apply(state, data, action);
         state = result.state;
+        if (action.type === "barter") inspectedPigment = rules.crewOffers[action.pigment];
+        if (action.type === "wash-brush") selectedPixel = null;
         if (landing !== null) {
           selectedPixel = null;
           selectedPigment = action.pigment;
@@ -191,7 +214,7 @@ function run(action) {
           selectedPigment = acquired;
           selectedPixel = null;
         }
-        if (action.type === "new-personal-mural") selectedPixel = null;
+        if (action.type === "new-personal-mural" || action.type.startsWith("community-")) selectedPixel = null;
         if (result.message) announce(result.message);
       }
       save();
@@ -252,24 +275,57 @@ function current() {
   return state.items.find((item) => item.id === selected);
 }
 
+function listPage(key, matches, size) {
+  const pages = Math.max(1, Math.ceil(matches.length / size));
+  const page = listPages[key] = Math.min(listPages[key], pages - 1);
+  const controls = byId(key + "-pages");
+  // Keep the same buttons when changing pages so keyboard focus stays on the pager.
+  if (!controls.firstChild) {
+    for (const [direction, label] of [[-1, "Previous"], [1, "Next"]]) {
+      const control = button(label);
+      control.addEventListener("click", () => {
+        listPages[key] += direction;
+        ({ odds: renderOdds, recipe: renderRecipes, journal: renderJournal, palette: renderPalette })[key]();
+      });
+      controls.append(control);
+      if (direction < 0) {
+        const status = element("span");
+        status.setAttribute("aria-live", "polite");
+        controls.append(status);
+      }
+    }
+  }
+  const [previous, count, next] = controls.children;
+  previous.disabled = page <= 0;
+  next.disabled = page >= pages - 1;
+  previous.hidden = next.hidden = pages === 1;
+  const start = page * size;
+  count.textContent = matches.length ? t`${start + 1}–${Math.min(start + size, matches.length)} of ${matches.length}` : t("No results");
+  return matches.slice(start, start + size);
+}
+
 function renderMine() {
   byId("mine").style.setProperty("--mine-art", `url("${new URL(data.mine.art, document.baseURI).href}")`);
   write("equipped-pick", data.tools[state.equipped].name);
   write("mine-interval", t`${data.mine.seconds}s between strikes`);
+  renderOdds();
+  tickMining();
+}
+
+function renderOdds() {
+  if (!byId("mine-odds").closest("details").open) return;
   const chances = rules.miningOdds(data, state.equipped);
-  const rows = [];
-  catalogue.forEach(([id, mineral], index) => {
-    if (!Object.hasOwn(chances, id)) return;
+  const slots = catalogue.map(([id, mineral], index) => ({ id, mineral, index })).filter(({ id }) => Object.hasOwn(chances, id));
+  const rows = listPage("odds", slots, 16).map(({ id, mineral, index }) => {
     const slot = `#${String(index + 1).padStart(2, "0")}`;
     const name = state.records[id] ? t(mineral.name) : t("Unknown mineral");
     const row = element("div");
     const term = element("dt");
     term.append(element("span", "odds-slot", slot), document.createTextNode(name));
     row.append(term, element("dd", "", chanceLabel(chances[id])));
-    rows.push(row);
+    return row;
   });
   byId("mine-odds").replaceChildren(...rows);
-  tickMining();
 }
 
 function tickMining() {
@@ -336,7 +392,10 @@ function renderFind() {
   byId("polish-button").disabled = item.polished;
   byId("collector-note").hidden = !mineral.collectibleOnly;
   byId("crush-button").hidden = Boolean(mineral.collectibleOnly);
-  byId("crush-button").disabled = item.polished || Boolean(mineral.collectibleOnly);
+  byId("crush-button").disabled = item.polished || Boolean(mineral.collectibleOnly) || Boolean(item.protected);
+  byId("sell-button").disabled = Boolean(item.protected);
+  byId("protect-button").setAttribute("aria-pressed", String(Boolean(item.protected)));
+  write("protect-button", item.protected ? "Remove protection" : "Protect specimen");
   write("crush-button", mineral.material ? "Crush for powder" : "Crush");
   write("sell-button", t`Sell · ${rules.salePrice(item, data)}`);
   const powder = amount(state.materials, "diamond-powder");
@@ -420,6 +479,15 @@ function renderPigmentDetails(id) {
   dye.dataset.dye = id;
   uses.append(dye);
   actions.append(uses);
+  if (Object.hasOwn(rules.crewOffers, id)) {
+    const received = data.pigments[rules.crewOffers[id]];
+    const offer = element("div", "pigment-uses");
+    const exchange = button(t`Trade 2 for 1 × ${received.name}`, amount(state.pigments, id) < 2);
+    exchange.addEventListener("click", () => ask({ type: "barter", pigment: id }, "Crew exchange",
+      t`Give the simulated crew 2 × ${pigment.name} for 1 × ${received.name}?`, "Trade"));
+    offer.append(swatch(element("i", "art swatch"), received), exchange);
+    actions.append(offer);
+  }
   for (const [recipeId, recipe] of Object.entries(data.recipes)) {
     if (Object.hasOwn(recipe.ingredients, id)) actions.append(recipeRow(recipeId, recipe));
   }
@@ -498,6 +566,7 @@ byId("mural-zoom").addEventListener("change", event => {
 });
 
 function renderMural() {
+  StrideCommunityUI.render(state, data, muralScope, run);
   const board = rules.muralBoard(state, data, muralScope);
   const { mural, painted, filledPixels } = board;
   muralSize = mural.gridSize;
@@ -533,6 +602,11 @@ function renderMural() {
   const filled = Object.hasOwn(filledPixels, selectedPixel);
   byId("paint-button").disabled = !target || filled || !amount(state.pigments, target);
   write("paint-button", "Apply pigment");
+  const stroke = rules.brushStroke(board, target, selectedPixel);
+  const wash = byId("wash-brush");
+  wash.hidden = stroke.length < 2;
+  wash.disabled = stroke.length > amount(state.pigments, target);
+  if (!wash.hidden) write("wash-brush", t`Wide brush · ${stroke.length} units`);
   write("pixel-selection", selectedPixel === null ? "" : filled ? "This pixel is already painted." :
     t`Column ${selectedPixel % muralSize + 1}, row ${Math.floor(selectedPixel / muralSize) + 1} · ${data.pigments[target].name} · In stock: ${amount(state.pigments, target)}`);
   const complete = progress.left === 0;
@@ -548,10 +622,13 @@ function renderMural() {
 
 function renderBackgroundPicker() {
   byId("mural-background-option").value = data.mural.id;
-  byId("mural-background-option").disabled = rules.muralProgress(state, data).left > 0;
+  byId("mural-background-option").disabled = !rules.backgroundMural(state, data, data.mural.id);
   write("mural-background-option", byId("mural-background-option").disabled ? t`${data.mural.name} — complete the mural` : data.mural.name);
   const backgrounds = byId("character-background");
   while (backgrounds.options.length > 2) backgrounds.remove(2);
+  for (const entry of StrideCommunity.allBoards(state, data)) {
+    if (entry.mural.id !== data.mural.id && StrideCommunity.complete(entry)) backgrounds.append(option(entry.mural.id, entry.mural.name));
+  }
   const currentPersonal = state.personal.mural;
   const activeOption = option(currentPersonal.id, currentPersonal.name);
   activeOption.disabled = rules.muralProgress(state, data, "personal").left > 0;
@@ -569,7 +646,37 @@ function updateBackgroundLink() {
 }
 
 function renderRecipes() {
-  byId("recipe-list").replaceChildren(...Object.entries(data.recipes).map(([id, recipe]) => recipeRow(id, recipe)));
+  const query = searchKey(byId("recipe-query").value);
+  const ready = byId("recipe-ready").checked;
+  const matches = Object.entries(data.recipes).filter(([, recipe]) => {
+    if (ready && !rules.hasStock(state, recipe.ingredients)) return false;
+    const names = [recipe.name, ...Object.keys(recipe.ingredients).map(id => data.pigments[id].name)];
+    return names.some(name => searchKey(t(name)).includes(query));
+  });
+  byId("recipe-list").replaceChildren(...listPage("recipe", matches, 8).map(([id, recipe]) => recipeRow(id, recipe)));
+}
+
+function renderPalette() {
+  if (!byId("palette-book").open) return;
+  const query = searchKey(byId("palette-query").value);
+  const source = byId("palette-source").value;
+  const matches = Object.entries(data.pigments).filter(([id, pigment]) =>
+    (!source || source === (data.recipes[id] ? "recipe" : "base")) && searchKey(t(pigment.name)).includes(query));
+  const rows = listPage("palette", matches, 16).map(([id, pigment]) => {
+    const row = element("li");
+    const detail = element("div");
+    detail.append(element("strong", "", pigment.name));
+    const mineral = sourceMinerals.get(id);
+    if (data.recipes[id]) {
+      const parts = Object.entries(data.recipes[id].ingredients).map(([ingredient, n]) => `${n} × ${t(data.pigments[ingredient].name)}`);
+      detail.append(element("small", "", parts.join(" + ")));
+    } else {
+      detail.append(element("small", "", state.records[mineral] ? t`Crush ${data.minerals[mineral].name}` : "Mineral source undiscovered"));
+    }
+    row.append(swatch(element("i", "swatch"), pigment), detail);
+    return row;
+  });
+  byId("palette-list").replaceChildren(...rows);
 }
 
 function recipeRow(id, recipe) {
@@ -716,38 +823,42 @@ function contractRow(id, contract) {
 }
 
 function renderJournal() {
-  let discoveries = 0;
-  const entries = catalogue.map(([id, mineral], index) => {
-    const record = state.records[id];
+  const discoveries = catalogue.filter(([id]) => state.records[id]).length;
+  const query = searchKey(byId("journal-query").value).replace(/^#/, "");
+  const discoveredOnly = byId("journal-discovered").checked;
+  const matches = catalogue.map(([id, mineral], index) => ({ id, mineral, index })).filter(({ id, mineral, index }) => {
+    if (!state.records[id] && discoveredOnly) return false;
+    return String(index + 1).padStart(3, "0").includes(query) || (state.records[id] && searchKey(t(mineral.name)).includes(query));
+  });
+  const page = listPage("journal", matches, journalPageSize);
+  if (!page.some(({ id }) => id === journalSelection && state.records[id])) {
+    journalSelection = page.find(({ id }) => state.records[id])?.id ?? null;
+  }
+  const entries = page.map(({ id, mineral, index }) => {
+    const found = Boolean(state.records[id]);
     const row = element("li", "journal-entry");
     row.dataset.slot = index + 1;
-    row.dataset.discovered = Boolean(record);
-    row.append(element("span", "journal-number", `#${String(index + 1).padStart(2, "0")}`));
-    if (!record) {
-      const mystery = element("span", "journal-mystery", "?");
-      mystery.setAttribute("aria-hidden", "true");
-      row.append(mystery, element("strong", "journal-name", "Unknown mineral"));
-      return row;
+    row.dataset.discovered = found;
+    const slot = found ? button("") : element("div");
+    slot.className = "journal-slot";
+    const number = "#" + String(index + 1).padStart(3, "0");
+    slot.append(element("span", "journal-number", number));
+    if (found) {
+      const icon = element("img");
+      icon.src = sprite({ mineral: id });
+      icon.alt = "";
+      slot.dataset.mineral = id;
+      slot.setAttribute("aria-pressed", String(id === journalSelection));
+      slot.append(icon, element("strong", "journal-name", mineral.name));
+    } else {
+      row.setAttribute("aria-label", number + " · " + t("Unknown mineral"));
+      slot.append(element("span", "journal-mystery", "?"));
     }
-
-    discoveries++;
-    const icon = element("img");
-    icon.src = sprite({ mineral: id });
-    icon.alt = t(mineral.name);
-    icon.width = icon.height = 64;
-    icon.loading = "lazy";
-    const rarity = element("span", "rarity", mineral.rarity);
-    rarity.dataset.rarity = mineral.rarity;
-    const detail = element("dl", "journal-records");
-    for (const [label, value] of [["Best purity", percent(record.purity)], ["Heaviest find", grams(record.weight)]]) {
-      const stat = element("div");
-      stat.append(element("dt", "", label), element("dd", "", value));
-      detail.append(stat);
-    }
-    row.append(icon, element("strong", "journal-name", mineral.name), rarity, detail);
+    row.append(slot);
     return row;
   });
   byId("journal-list").replaceChildren(...entries);
+  renderJournalDetail();
   const progress = t`${discoveries}/${catalogue.length} discovered`;
   write("journal-progress", progress);
   const meter = byId("journal-meter");
@@ -755,6 +866,36 @@ function renderJournal() {
   meter.value = discoveries;
   meter.setAttribute("aria-valuetext", progress);
 }
+
+function renderJournalDetail() {
+  const record = state.records[journalSelection];
+  byId("journal-species").hidden = !record;
+  byId("journal-empty").hidden = Boolean(record);
+  if (!record) {
+    write("journal-empty", Object.keys(state.records).length ? "No discoveries on this page." : "Mine a mineral to reveal its collection entry.");
+    return;
+  }
+  const mineral = data.minerals[journalSelection];
+  write("journal-name", mineral.name);
+  write("journal-rarity", mineral.rarity);
+  byId("journal-rarity").dataset.rarity = mineral.rarity;
+  byId("journal-raw").src = sprite({ mineral: journalSelection });
+  byId("journal-polished").src = sprite({ mineral: journalSelection, polished: true });
+  write("journal-purity", percent(record.purity));
+  write("journal-weight", grams(record.weight));
+  byId("journal-purity-meter").value = record.purity;
+}
+
+byId("journal-list").addEventListener("click", event => {
+  const slot = event.target.closest("button[data-mineral]");
+  if (!slot) return;
+  journalSelection = slot.dataset.mineral;
+  for (const entry of byId("journal-list").querySelectorAll("button")) {
+    entry.setAttribute("aria-pressed", String(entry === slot));
+  }
+  renderJournalDetail();
+  if (matchMedia("(max-width: 760px)").matches) byId("journal-species").scrollIntoView({ block: "start" });
+});
 
 const crewMembers = [{ name: "You", role: "Miner" }, ...mission.crew];
 const crewBadges = crewMembers.map((member) => {
@@ -805,10 +946,13 @@ function tickExpedition() {
     const step = t`Stage ${group.stage + 1}/${mission.stages.length}`;
     status = !group.worked ? t`${step} · Your action is needed.` :
       (remaining ? t`${step} · Crew working · ${seconds}s` : t`${step} · Crew finished.`);
-  } else if (phase === "complete" || phase === "claimed") {
+  } else if (phase === "claimed") {
+    text = StrideCommunity.text("Join another survey", "Participar noutra expedição");
+    status = "Reward claimed";
+  } else if (phase === "complete") {
     type = "expedition-claim";
-    text = phase === "claimed" ? "Reward claimed" : "Claim reward";
-    disabled = phase === "claimed";
+    text = "Claim reward";
+    disabled = false;
     status = "Silver Fault Survey complete.";
   }
   const control = byId("expedition-button");
@@ -838,8 +982,11 @@ function render() {
   renderFind();
   renderCollection();
   if (usingPigmentAction && gameGrid.dataset.view === "home") byId("find-context").focus({ preventScroll: true });
-  renderRecipes();
-  renderGear();
+  if (gameGrid.dataset.view === "workshop") {
+    renderRecipes();
+    renderPalette();
+    renderGear();
+  }
   renderMissions();
   renderContracts();
   if (gameGrid.dataset.view === "journal") renderJournal();
@@ -867,9 +1014,21 @@ for (const [slot, choices] of Object.entries(rules.styles)) {
   label.append(element("span", "", slotLabels[slot]), control);
   byId("look-options").append(label);
 }
-for (const [id, neutral] of [["cloth-dye", "Undyed fabric"], ["scarf-dye", "Natural linen"]]) {
-  byId(id).replaceChildren(option("undyed", neutral),
-    ...Object.entries(data.pigments).map(([key, pigment]) => option(key, pigment.name)));
+function prepareDyes() {
+  const unlocked = new Set(state.scarfDyes);
+  const groups = ["Unlocked dyes", "Pigments in stock", "Preview colours"].map(label => {
+    const group = element("optgroup");
+    group.label = t(label);
+    return group;
+  });
+  const pigments = Object.entries(data.pigments).sort(([, a], [, b]) => t(a.name).localeCompare(t(b.name), language));
+  for (const [id, pigment] of pigments) {
+    const group = unlocked.has(id) ? 0 : amount(state.pigments, id) > 0 ? 1 : 2;
+    groups[group].append(option(id, pigment.name));
+  }
+  const available = groups.filter(group => group.children.length);
+  byId("scarf-dye").replaceChildren(option("undyed", "Natural linen"), ...available.map(group => group.cloneNode(true)));
+  byId("cloth-dye").replaceChildren(option("undyed", "Undyed fabric"), ...available);
 }
 
 function selectGarmentDye() {
@@ -877,6 +1036,7 @@ function selectGarmentDye() {
 }
 
 function openWardrobe() {
+  prepareDyes();
   const look = state.character ?? starterLook;
   draftBackground = state.background;
   byId("character-name").value = look.name;
@@ -919,7 +1079,8 @@ function completedBackground(background) {
 function drawLook(canvas, look, backgroundId = state.background, portrait = false) {
   const cloth = look.cloth ?? look.clothDyes?.[look.jacket];
   const background = completedBackground(backgroundId);
-  globalThis.drawStrideCharacter(canvas, look, data.pigments[look.scarf]?.color ?? "#d8b48b", state.equipped, portrait, data.pigments[cloth]?.color, background)
+  const carry = data.tools[state.equipped].carry ?? state.equipped;
+  globalThis.drawStrideCharacter(canvas, look, data.pigments[look.scarf]?.color ?? "#d8b48b", carry, portrait, data.pigments[cloth]?.color, background)
     .catch(() => announce("The character art could not be loaded."));
 }
 
@@ -963,7 +1124,7 @@ byId("equip-mural").addEventListener("click", async () => {
 });
 byId("next-personal-mural").addEventListener("click", () => run({ type: "new-personal-mural" }));
 byId("background-mural-link").addEventListener("click", event => {
-  const archive = state.personalHistory[draftBackground];
+  const archive = state.personalHistory[draftBackground] ?? StrideCommunity.allBoards(state, data).find(entry => entry.mural.id === draftBackground && StrideCommunity.complete(entry));
   if (!archive) return;
   event.preventDefault();
   write("archived-mural-name", archive.mural.name);
@@ -1075,6 +1236,18 @@ onChoice("pigments", "pigment", (id) => {
   byId("pigments").querySelector("[aria-pressed=true]").focus({ preventScroll: true });
 });
 onChoice("recipe-list", "recipe", (recipe) => run({ type: "mix", recipe }));
+for (const [key, renderList, controls] of [
+  ["journal", renderJournal, ["journal-query", "journal-discovered"]],
+  ["recipe", renderRecipes, ["recipe-query", "recipe-ready"]],
+  ["palette", renderPalette, ["palette-query", "palette-source"]],
+]) {
+  for (const id of controls) byId(id).addEventListener("input", () => {
+    listPages[key] = 0;
+    renderList();
+  });
+}
+byId("mine-odds").closest("details").addEventListener("toggle", renderOdds);
+byId("palette-book").addEventListener("toggle", renderPalette);
 onChoice("pigment-actions", "recipe", (recipe) => run({ type: "mix", recipe }));
 onChoice("pigment-actions", "dye", (pigment) => {
   previewDye = pigment;
@@ -1083,10 +1256,22 @@ onChoice("pigment-actions", "dye", (pigment) => {
 onChoice("tool-list", "tool", (tool) => run({ type: state.owned.includes(tool) ? "equip" : "buy", tool }));
 onChoice("mission-list", "mission", (mission) => run({ type: "claim", mission }));
 onChoice("pigment-actions", "place", (pigment, target) => run({ type: "paint", pigment, scope: target.dataset.scope }));
-byId("paint-button").addEventListener("click", () => run({ type: "paint", pigment: muralTargets[selectedPixel], pixel: selectedPixel, scope: muralScope }));
+byId("paint-button").addEventListener("click", () => run({ type: "paint", pigment: muralTargets[selectedPixel], pixel: selectedPixel, scope: muralScope, boardId: rules.muralBoard(state, data, muralScope).mural.id }));
+byId("wash-brush").addEventListener("click", () => {
+  const board = rules.muralBoard(state, data, muralScope);
+  const pigment = muralTargets[selectedPixel];
+  const units = rules.brushStroke(board, pigment, selectedPixel).length;
+  if (units < 2) return;
+  ask({ type: "wash-brush", pigment, pixel: selectedPixel, scope: muralScope, boardId: board.mural.id, units },
+    "Wide brush", t`Paint ${units} consecutive pixels to the right using ${units} × ${data.pigments[pigment].name}?`, "Apply pigment");
+});
 byId("polish-button").addEventListener("click", () => {
   const item = current();
   if (item) run({ type: "polish", id: item.id });
+});
+byId("protect-button").addEventListener("click", () => {
+  const item = current();
+  if (item) run({ type: "toggle-protection", id: item.id });
 });
 byId("finish-button").addEventListener("click", () => {
   const item = current();

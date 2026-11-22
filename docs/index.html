@@ -7,12 +7,16 @@
   <link rel="stylesheet" href="_shared/report.css">
   <link rel="stylesheet" href="ui-concept/screen.css">
   <link rel="stylesheet" href="prototype/play.css">
+  <link rel="stylesheet" href="prototype/community.css">
   <script defer src="ui-concept/mural-art.js"></script>
   <script defer src="prototype/data.js"></script>
   <script defer src="prototype/locale.js"></script>
+  <script defer src="prototype/community.js"></script>
   <script defer src="prototype/rules.js"></script>
   <script defer src="prototype/character-art.js"></script>
   <link rel="stylesheet" href="prototype/streams.css">
+  <script defer src="prototype/lotus-study.js"></script>
+  <script defer src="prototype/community-ui.js"></script>
   <script defer src="prototype/play.js"></script>
   <script defer src="prototype/streams.js"></script>
 </head>
@@ -22,6 +26,7 @@
       <div class="brand"><i aria-hidden="true"></i><h1>Stridekeep</h1></div>
       <nav class="play-nav" aria-label="Playtest sections">
         <a href="#home" data-game-view data-text>Home</a>
+        <a href="#journal" data-game-view data-text>Collection</a>
         <a href="#workshop" data-game-view data-text>Workshop</a>
         <a href="#missions" data-game-view data-text>Missions</a>
         <a href="#mural" data-game-view data-text>Mural</a>
@@ -81,6 +86,7 @@
             <summary data-text>Find chances</summary>
             <p id="mine-interval"></p>
             <dl id="mine-odds" class="mine-odds"></dl>
+            <div id="odds-pages" class="list-pages"></div>
           </details>
         </div>
       </section>
@@ -164,6 +170,7 @@
               <button type="button" id="polish-button" data-text>Polish</button>
               <button type="button" id="crush-button" data-text>Crush</button>
               <button type="button" id="sell-button">Sell</button>
+              <button type="button" id="protect-button" aria-pressed="false" data-text>Protect specimen</button>
             </div>
             <div class="specimen-finish" id="finish-controls" hidden>
               <button type="button" id="finish-button" data-text>Apply high-gloss finish</button>
@@ -201,6 +208,7 @@
         <div class="panel-head">
           <nav class="mural-tabs" aria-label="Murals"><a href="#mural" data-scope="community" data-text>Community mural</a><a href="#personal-mural" data-scope="personal" data-text>Personal mural</a></nav><span id="mural-progress"></span>
         </div>
+        <div id="community-studio"></div>
         <div class="mural-body">
           <div class="mural-board">
             <div class="mural-scroll"><div class="mural-surface">
@@ -219,6 +227,7 @@
             <ul class="pigments" id="pigments" aria-label="Pigment requirements"></ul>
             <p id="pixel-selection" role="status"></p>
             <button class="primary" type="button" id="paint-button" disabled>Apply pigment</button>
+            <button type="button" id="wash-brush" hidden></button>
             <button class="primary" type="button" id="equip-mural" hidden data-text>Use as background</button>
             <button type="button" id="next-personal-mural" hidden data-text>Start another pattern</button>
             <p><a href="play-guide.html#mural" data-guide data-text>How to paint</a></p>
@@ -228,7 +237,21 @@
 
       <section class="panel workshop" id="workshop" aria-labelledby="workshop-title">
         <div class="panel-head"><h2 id="workshop-title" data-text>Pigment recipes</h2><a href="play-guide.html#pigments" data-guide data-text>How to mix</a></div>
+        <div class="list-filters">
+          <label><span data-text>Colour or ingredient</span><input type="search" id="recipe-query"></label>
+          <label class="check-filter"><input id="recipe-ready" type="checkbox"><span data-text>Ready to mix</span></label>
+        </div>
         <div class="work-list" id="recipe-list"></div>
+        <div id="recipe-pages" class="list-pages"></div>
+        <details id="palette-book" class="palette-book">
+          <summary data-text>Colour catalogue</summary>
+          <div class="list-filters">
+            <label><span data-text>Find a colour</span><input type="search" id="palette-query"></label>
+            <label><span data-text>Colour source</span><select id="palette-source"><option value="" data-text>All colours</option><option value="base" data-text>From minerals</option><option value="recipe" data-text>From recipes</option></select></label>
+          </div>
+          <ul id="palette-list" class="palette-list" role="list"></ul>
+          <div id="palette-pages" class="list-pages"></div>
+        </details>
       </section>
 
       <section class="panel gear" id="gear" aria-labelledby="gear-title">
@@ -272,17 +295,36 @@
 
       <section class="panel journal" id="journal" aria-labelledby="journal-title" hidden>
         <div class="panel-head journal-heading">
-          <h2 id="journal-title" tabindex="-1" data-text>Mineral catalogue</h2>
-          <a href="#collection" data-text>Back to inventory</a>
-        </div>
-        <div class="journal-overview">
-          <p data-text>Find each mineral to reveal it. Your best purity and heaviest find stay here after you spend the specimen.</p>
+          <h2 id="journal-title" tabindex="-1" data-text>Minerals found</h2>
           <div class="journal-progress">
             <span id="journal-progress"></span>
             <progress id="journal-meter" max="1" value="0" aria-label="Mineral discoveries"></progress>
           </div>
         </div>
+        <div class="journal-layout"><div class="journal-drawer">
+        <div class="list-filters">
+          <label><span data-text>Name or catalogue number</span><input type="search" id="journal-query"></label>
+          <label class="check-filter"><input id="journal-discovered" type="checkbox"><span data-text>Discovered only</span></label>
+        </div>
         <ol id="journal-list" class="journal-list" role="list"></ol>
+        <div id="journal-pages" class="list-pages"></div>
+        </div>
+        <section class="journal-detail" aria-live="polite">
+          <p id="journal-empty" data-text>Mine a mineral to reveal its collection entry.</p>
+          <div id="journal-species" hidden>
+            <h3 id="journal-name"></h3>
+            <span id="journal-rarity" class="rarity"></span>
+            <div class="journal-art">
+              <figure><img id="journal-raw" alt=""><figcaption data-text>Raw</figcaption></figure>
+              <figure><img id="journal-polished" alt=""><figcaption data-text>Polished</figcaption></figure>
+            </div>
+            <dl class="journal-records">
+              <div><dt id="journal-purity-label" data-text>Best purity</dt><dd><span id="journal-purity"></span><progress id="journal-purity-meter" max="10000" aria-labelledby="journal-purity-label"></progress></dd></div>
+              <div><dt data-text>Heaviest find</dt><dd id="journal-weight"></dd></div>
+            </dl>
+          </div>
+        </section></div>
+        <a href="#collection" data-text>Back to inventory</a>
       </section>
 
     </main>

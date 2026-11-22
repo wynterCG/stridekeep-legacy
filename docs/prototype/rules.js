@@ -19,6 +19,11 @@ globalThis.StrideRules = (() => {
   };
   const undyed = "undyed";
   const validPigment = (id, data) => typeof id === "string" && known(data.pigments, id);
+  // The local crew only exchanges the four pigments used by its starter mural.
+  const crewOffers = {
+    "iron-red": "limestone-cream", "limestone-cream": "iron-black",
+    "iron-black": "yellow-ochre", "yellow-ochre": "iron-red",
+  };
   const copperwingNeeds = {
     "chalk-white": 6, "malachite-green": 8, "azurite-blue": 2,
     "iron-red": 6, mintwash: 4, "slate-shadow": 4,
@@ -56,7 +61,7 @@ globalThis.StrideRules = (() => {
       route: data.mine.id, mineReadyAt: 0, mining: null, expedition: null,
       items: [], latest: null, records: {}, visits: {}, pigments: {}, materials: {}, painted: {}, claimed: [], contracts: [],
       muralId: data.mural.id, filledPixels: {},
-      personalHistory: {}, personalSeed: validSeed(seed) ? seed : newPersonalSeed(),
+      personalHistory: {}, personalSeed: validSeed(seed) ? seed : newPersonalSeed(), recipeBook: [],
       character: null, scarfDyes: [], background: "plain",
       stats: Object.fromEntries(metrics.map((metric) => [metric, 0])),
     };
@@ -99,7 +104,10 @@ globalThis.StrideRules = (() => {
             integer(saved.mining.endsAt) && validItem(saved.mining.find))) ||
           !validExpedition(saved.expedition, data.expedition)) return fallback ?? create(data);
       saved.route = data.mine.id;
+      saved.recipeBook = Array.isArray(saved.recipeBook)
+        ? [...new Set(saved.recipeBook.filter(id => typeof id === "string" && known(data.recipes, id)))] : [];
       for (const item of saved.items) {
+        if (item.protected !== true) delete item.protected;
         if (!item.polished || item.finish !== highGloss) delete item.finish;
       }
       if (!Array.isArray(saved.scarfDyes)) saved.scarfDyes = [];
@@ -124,6 +132,7 @@ globalThis.StrideRules = (() => {
       if (!validSeed(saved.personalSeed)) saved.personalSeed = legacyPersonalSeed(saved);
       saved.personalHistory = restorePersonalHistory(saved.personalHistory, data);
       saved.personal = restorePersonalMural(saved.personal, data) ?? assignPersonalMural(saved, data);
+      globalThis.StrideCommunity?.restore(saved, data, restoreBoard);
       saved.background = backgroundMural(saved, data)?.id ?? "plain";
       return saved;
     } catch {
@@ -159,6 +168,7 @@ globalThis.StrideRules = (() => {
 
   function contractSpecimens(state, contract) {
     return state.items.filter((item) => item.mineral === contract.mineral &&
+      !(contract.consume && item.protected) &&
       item.polished === (contract.finish === "polished") &&
       item.weight >= (contract.minWeight ?? 0) && item.purity >= (contract.minPurity ?? 0));
   }
@@ -202,7 +212,11 @@ globalThis.StrideRules = (() => {
     return chances.at(-1)[0];
   }
 
+  const pigmentCostsByCatalogue = new WeakMap();
   function reachablePigmentCosts(data, toolId) {
+    if (!pigmentCostsByCatalogue.has(data)) pigmentCostsByCatalogue.set(data, new Map());
+    const cached = pigmentCostsByCatalogue.get(data);
+    if (cached.has(toolId)) return cached.get(toolId);
     const yields = new Map();
     for (const [id, chance] of Object.entries(miningOdds(data, toolId))) {
       const mineral = data.minerals[id];
@@ -229,7 +243,9 @@ globalThis.StrideRules = (() => {
       }
       if (!changed) break;
     }
-    return { miningCosts, requirements };
+    const costs = { miningCosts, requirements };
+    cached.set(toolId, costs);
+    return costs;
   }
 
   function newPersonalSeed() {
@@ -275,15 +291,16 @@ globalThis.StrideRules = (() => {
     return chosen.sort((a, b) => a.light - b.light).map((swatch) => swatch.id);
   }
 
-  function affordablePersonalPalette(pattern, { miningCosts, requirements }, data, random) {
+  function affordablePersonalPalette(pattern, { miningCosts, requirements }, data, stock, random) {
     const colors = [...requirements.keys()].sort();
     const unitCost = new Map(colors.map((id) => [id, [...requirements.get(id)].reduce((total, [pigment, quantity]) =>
       total + quantity * miningCosts.get(pigment), 0)]));
     const byCost = colors.slice().sort((a, b) => unitCost.get(a) - unitCost.get(b));
-    const medianCost = unitCost.get(byCost[Math.floor(byCost.length / 2)]);
-    const affordable = byCost.filter((id) => unitCost.get(id) <= 3 * medianCost);
-    const budget = affordable.length >= pattern.slots ? affordable : byCost.slice(0, pattern.slots);
-    const pools = [colors, budget, ...[0, 1, 2, 3].map((extra) => byCost.slice(0, pattern.slots + extra))];
+    const budget = byCost.slice(0, Math.max(pattern.slots * 3, 16));
+    const pools = [budget, ...[0, 1, 2, 3].map((extra) => byCost.slice(0, pattern.slots + extra))];
+    // A stockpile can make an unusual contrast practical on the next board.
+    const held = colors.filter(id => stock[id] > 0);
+    if (held.length) pools.push([...new Set([...held, ...byCost.slice(0, pattern.slots)])]);
     const coverage = Array(pattern.slots).fill(0);
     for (const row of pattern.rows) {
       for (const slot of row) coverage[parseInt(slot, 16)]++;
@@ -293,18 +310,25 @@ globalThis.StrideRules = (() => {
     const tried = new Set();
     for (const pool of pools) {
       const palette = personalPalette(pool, pattern.slots, data, random);
-      for (const candidate of [palette, palette.slice().reverse()]) {
+      // Abstract patterns support rotating their shade sequence. This lets a
+      // large field use a plentiful paint and reserves scarce colours for accents.
+      for (let order = 0; order < palette.length * 2; order++) {
+        const offset = order % palette.length;
+        const candidate = palette.slice(offset).concat(palette.slice(0, offset));
+        if (order >= palette.length) candidate.reverse();
         const key = candidate.join(",");
         if (tried.has(key)) continue;
         tried.add(key);
         const totals = new Map();
         candidate.forEach((color, slot) => {
+          const needed = miningCosts.has(color) ? coverage[slot] : Math.max(0, coverage[slot] - count(stock, color));
           for (const [pigment, quantity] of requirements.get(color)) {
-            totals.set(pigment, (totals.get(pigment) ?? 0) + coverage[slot] * quantity);
+            totals.set(pigment, (totals.get(pigment) ?? 0) + needed * quantity);
           }
         });
         // Strikes supply multiple colours over time, so the slowest shared input governs the estimate.
-        const cost = Math.max(...[...totals].map(([pigment, quantity]) => quantity * miningCosts.get(pigment)));
+        const cost = Math.max(...[...totals].map(([pigment, quantity]) =>
+          Math.max(0, quantity - count(stock, pigment)) * miningCosts.get(pigment)));
         sampled.push({ palette: candidate, cost });
       }
     }
@@ -317,7 +341,8 @@ globalThis.StrideRules = (() => {
     if (!data.personalPatterns?.length) return null;
     const bestTool = state.owned.reduce((best, id) => data.tools[id].tier > data.tools[best].tier ? id : best, "starter");
     const costs = reachablePigmentCosts(data, bestTool);
-    const [minSlots, maxSlots] = [[3, 4], [8, 10], [8, 10], [11, 16]][data.tools[bestTool].tier - 1];
+    const tier = data.tools[bestTool].tier;
+    const [minSlots, maxSlots] = tier === 1 ? [3, 4] : tier <= 3 ? [8, 10] : [11, 16];
     const eligible = data.personalPatterns.filter((pattern) => pattern.slots <= Math.min(costs.requirements.size, maxSlots));
     if (!eligible.length) return null;
     const preferred = eligible.filter((pattern) => pattern.slots >= minSlots);
@@ -329,7 +354,7 @@ globalThis.StrideRules = (() => {
     const candidates = stageAlternatives.length ? stageAlternatives : alternatives.length ? alternatives : eligible;
     const random = personalRandom(state.personalSeed, ordinal);
     const pattern = candidates[Math.floor(random() * candidates.length)];
-    const palette = affordablePersonalPalette(pattern, costs, data, random);
+    const palette = affordablePersonalPalette(pattern, costs, data, state.pigments, random);
     const needs = Object.fromEntries(palette.map((id) => [id, []]));
     pattern.rows.forEach((row, y) => {
       Array.from(row).forEach((slot, x) => needs[palette[parseInt(slot, 16)]].push([x, y]));
@@ -374,14 +399,19 @@ globalThis.StrideRules = (() => {
   }
 
   function backgroundMural(state, data, background = state.background) {
-    if (background === data.mural.id && muralComplete(state, data)) return data.mural;
+    const communities = globalThis.StrideCommunity;
+    if (communities) {
+      const entry = communities.allBoards(state, data).find(board => board.mural.id === background);
+      if (communities.complete(entry)) return entry.mural;
+    } else if (background === data.mural.id && muralComplete(state, data)) return data.mural;
     const personal = personalBackground(state, background);
     return personalComplete(personal) ? personal.mural : null;
   }
 
   function checkedBackground(state, data, background) {
     if (background === "plain") return "plain";
-    if (typeof background !== "string" || (background !== data.mural.id && background !== "personal" && !personalBackground(state, background))) {
+    const community = globalThis.StrideCommunity?.allBoards(state, data).some(board => board.mural.id === background);
+    if (typeof background !== "string" || (!community && background !== data.mural.id && background !== "personal" && !personalBackground(state, background))) {
       fail("Unknown background.");
     }
     const mural = backgroundMural(state, data, background);
@@ -391,7 +421,8 @@ globalThis.StrideRules = (() => {
 
   function muralBoard(state, data, scope = "community") {
     if (scope === "personal") return state.personal ?? null;
-    if (scope === "community") return { mural: data.mural, filledPixels: state.filledPixels, painted: state.painted };
+    if (scope === "community") return globalThis.StrideCommunity?.board(state, data) ??
+      { mural: data.mural, filledPixels: state.filledPixels, painted: state.painted };
     return null;
   }
 
@@ -404,6 +435,20 @@ globalThis.StrideRules = (() => {
       if (!known(board.filledPixels, index) && (result === null || index < result)) result = index;
     }
     return result;
+  }
+
+  function brushStroke(board, pigment, pixel) {
+    const width = board?.mural.gridSize;
+    if (!width || !integer(pixel, 0, width * width - 1)) return [];
+    const cells = board.mural.needs[pigment];
+    if (!Array.isArray(cells)) return [];
+    const stroke = [];
+    const end = Math.min(pixel + 3, (Math.floor(pixel / width) + 1) * width);
+    for (let at = pixel; at < end; at++) {
+      if (known(board.filledPixels, at) || !cells.some(point => pixelIndex(point, board.mural) === at)) break;
+      stroke.push(at);
+    }
+    return stroke;
   }
 
   function muralProgress(state, data, scope = "community") {
@@ -423,7 +468,12 @@ globalThis.StrideRules = (() => {
 
   function missionProgress(state, data, id) {
     const mission = data.missions[id];
-    const progress = mission.metric === "painted" ? muralProgress(state, data).filled : state.stats[mission.metric];
+    if (mission.metric === "discovered") return Math.min(mission.goal, Object.keys(state.records).length);
+    if (mission.metric === "recipe-variety") return Math.min(mission.goal, state.recipeBook.length);
+    const community = globalThis.StrideCommunity;
+    const progress = mission.metric !== "painted" ? state.stats[mission.metric] : community
+      ? Math.max(...Object.keys(community.directory(state).groups).map(id => Object.keys(community.board(state, data, id, "fox").filledPixels).length))
+      : muralProgress(state, data).filled;
     return Math.min(mission.goal, progress);
   }
 
@@ -442,7 +492,7 @@ globalThis.StrideRules = (() => {
   function giveSpecimen(state, find) {
     const item = { ...find, id: state.nextId++ };
     const previous = state.records[item.mineral] ?? { purity: 0, weight: 0 };
-    const record = previous.purity > 0 && item.purity > previous.purity;
+    const record = known(state.records, item.mineral) && item.purity > previous.purity;
     state.items.unshift(item);
     state.latest = item.id;
     state.records[item.mineral] = {
@@ -459,6 +509,24 @@ globalThis.StrideRules = (() => {
   }
 
   const actions = {
+    "toggle-protection"(state, _data, { id }) {
+      const item = state.items.find(piece => piece.id === id);
+      if (!item) fail("This specimen is no longer in the collection.");
+      if (item.protected) {
+        delete item.protected;
+        return "Specimen protection removed.";
+      }
+      item.protected = true;
+      return "Specimen protected.";
+    },
+    barter(state, data, { pigment }) {
+      if (!known(crewOffers, pigment) || !validPigment(pigment, data)) fail("Choose a guild exchange offer.");
+      const received = crewOffers[pigment];
+      if (!validPigment(received, data) || count(state.pigments, pigment) < 2) fail("This offer needs two pigment units.");
+      state.pigments[pigment] -= 2;
+      state.pigments[received] = count(state.pigments, received) + 1;
+      return t`Exchange complete. Received ${data.pigments[received].name}.`;
+    },
     background(state, data, { background }) {
       state.background = checkedBackground(state, data, background);
       return "Background equipped.";
@@ -493,7 +561,7 @@ globalThis.StrideRules = (() => {
       if (now < state.mineReadyAt) fail("Your miner is not ready to strike again yet.");
       const mineral = rollMineral(data, state.equipped, random);
       const [minWeight, maxWeight] = data.minerals[mineral].weight ?? defaultWeightRange;
-      const purity = 4100 + Math.floor(random() * 5851);
+      const purity = Math.floor(random() * 10001);
       const weight = minWeight + Math.floor(random() * (maxWeight - minWeight + 1));
       state.mineReadyAt = now + 1000 * data.mine.seconds;
       return recordMine(state, data, data.mine.id, { mineral, purity, weight, polished: false });
@@ -506,7 +574,7 @@ globalThis.StrideRules = (() => {
       return recordMine(state, data, mining.route, mining.find);
     },
     "expedition-join"(state, data, _action, now) {
-      if (state.expedition) fail("You have already joined this expedition.");
+      if (state.expedition && state.expedition.phase !== "claimed") fail("You have already joined this expedition.");
       if (state.stats.mined < data.expedition.minFinds) fail("Collect your first mining find to join the crew.");
       state.expedition = { phase: "lobby", stage: 0, readyAt: now + data.expedition.lobbySeconds * 1000, worked: false };
       return "You joined the Silver Fault crew. Wait for the other miners to be ready.";
@@ -605,11 +673,21 @@ globalThis.StrideRules = (() => {
       for (const [id, parts] of Object.entries(recipe.ingredients)) state.pigments[id] -= parts;
       state.pigments[action.recipe] = count(state.pigments, action.recipe) + 1;
       state.stats.mixed++;
+      if (!state.recipeBook.includes(action.recipe)) state.recipeBook.push(action.recipe);
       return t`${recipe.name} mixed.`;
     },
-    paint(state, data, { pigment: id, pixel, scope = "community" }) {
+    "wash-brush"(state, data, { pigment, pixel, scope, boardId, units }) {
+      const board = muralBoard(state, data, scope);
+      const stroke = brushStroke(board, pigment, pixel);
+      if (board?.mural.id !== boardId || units < 2 || units !== stroke.length) fail("Select the brush stroke again.");
+      if (count(state.pigments, pigment) < units) fail("You need more of this pigment.");
+      for (const at of stroke) actions.paint(state, data, { pigment, pixel: at, scope });
+      return t`Painted ${units} pixels with ${data.pigments[pigment].name}.`;
+    },
+    paint(state, data, { pigment: id, pixel, scope = "community", boardId }) {
       const board = muralBoard(state, data, scope);
       if (!board) fail("Unknown mural.");
+      if (boardId !== undefined && boardId !== board.mural.id) fail("Select the pixel again.");
       if (typeof id !== "string" || !known(board.mural.needs, id)) fail("This color is outside the mural palette.");
       const size = board.mural.gridSize;
       if (pixel === undefined) {
@@ -633,6 +711,7 @@ globalThis.StrideRules = (() => {
     const index = state.items.findIndex((item) => item.id === action.id);
     if (index < 0) fail("This specimen is no longer in the collection.");
     const item = state.items[index];
+    if (item.protected && (action.type === "crush" || action.type === "sell")) fail("Remove protection from this specimen first.");
     const mineral = data.minerals[item.mineral];
     if (action.type === "polish") {
       if (item.polished) fail("This specimen is already polished.");
@@ -667,6 +746,13 @@ globalThis.StrideRules = (() => {
 
   function apply(state, data, action, { now = Date.now(), random = Math.random } = {}) {
     const draft = structuredClone(state);
+    if (globalThis.StrideCommunity && action.type.startsWith("community-")) {
+      globalThis.StrideCommunity.act(draft, data, action);
+      return { state: draft, message: "" };
+    }
+    if (action.type === "paint" && action.muralId && muralBoard(state, data, action.scope)?.mural.id !== action.muralId) {
+      throw Error(globalThis.StrideCommunity?.text("The active mural changed. Try again.", "O mural ativo mudou. Tenta novamente.") ?? "The active mural changed. Try again.");
+    }
     if (["polish", "finish", "crush", "sell"].includes(action.type)) {
       return { state: draft, message: processItem(draft, data, action) };
     }
@@ -675,7 +761,7 @@ globalThis.StrideRules = (() => {
   }
 
   return {
-    create, restore, apply, salePrice, yieldFrom, muralBoard, muralProgress, nextMuralPixel, missionProgress, backgroundMural,
-    rank, hasStock, contractSpecimens, styles, newOutfitDyes, crushOutput, miningOdds,
+    create, restore, apply, salePrice, yieldFrom, muralBoard, muralProgress, nextMuralPixel, missionProgress, backgroundMural, brushStroke,
+    rank, hasStock, contractSpecimens, styles, newOutfitDyes, crushOutput, miningOdds, crewOffers,
   };
 })();

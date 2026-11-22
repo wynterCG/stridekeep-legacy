@@ -158,33 +158,38 @@ html[data-mak-report=document] .inventory-pigments h3 { margin: 0 0 8px; color: 
   border: 1px solid var(--line); border-radius: 5px;
   background: var(--panel); color: var(--ink); font: inherit; font-size: 12px;
 }
-.journal-heading { align-items: center; flex-wrap: wrap; }
-.journal-heading a { display: inline-flex; align-items: center; min-height: 38px; }
-.journal-overview { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin: 10px 0 18px; }
-.journal-overview p { max-width: 55ch; margin: 0; color: var(--dim); }
-.journal-progress { display: grid; gap: 4px; min-width: min(100%, 165px); color: var(--accent); font-variant-numeric: tabular-nums; }
-#journal-meter { width: 100%; height: 10px; accent-color: var(--accent); }
-.journal-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(142px,100%),1fr)); gap: 10px; list-style: none; margin: 0; padding: 0; }
-.journal-entry {
-  display: grid; align-content: start; justify-items: center; gap: 6px; min-width: 0; min-height: 132px;
-  padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--well); text-align: center;
-}
-.journal-entry[data-discovered=true] { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
-.journal-entry[data-discovered=false] { border-style: dashed; color: var(--dim); }
-.journal-number { justify-self: start; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
-.journal-entry img { image-rendering: pixelated; object-fit: contain; }
-.journal-mystery {
-  display: grid; place-items: center; width: 64px; height: 64px; border: 1px solid var(--line); border-radius: 50%;
-  background: radial-gradient(circle at 50% 42%, var(--panel), var(--well)); color: var(--dim); font: 600 27px/1 var(--display);
-}
-.journal-name { overflow-wrap: anywhere; line-height: 1.22; }
-.journal-entry .rarity { max-width: 100%; padding: 2px 7px; border: 1px solid var(--line); border-radius: 12px; font-size: 11px; overflow-wrap: anywhere; }
-.journal-records { display: grid; gap: 4px; width: 100%; margin: 3px 0 0; padding-top: 5px; border-top: 1px solid var(--line); font-size: 12px; }
-.journal-records dt { color: var(--dim); }
-.journal-records dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
-@media (max-width: 600px) {
-  .journal-list { grid-template-columns: repeat(auto-fit,minmax(min(110px,100%),1fr)); gap: 7px; }
-  .journal-entry { padding: 7px 5px; }
+.journal-heading { align-items:center; flex-wrap:wrap; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+html[data-mak-report=document] #journal-title { font:500 clamp(28px,3.4vw,52px)/1.1 var(--display); }
+.journal-progress { display:grid; gap:5px; width:min(100%,260px); font-variant-numeric:tabular-nums; }
+#journal progress { width:100%; accent-color:var(--accent); height:10px; }
+.journal-layout { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); margin:18px 0; gap:clamp(14px,2vw,34px); }
+.journal-list { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; list-style:none; margin:0; padding:0; }
+.journal-slot { box-sizing:border-box; width:100%; height:100%; display:grid; grid-template-rows:auto 1fr auto; justify-items:center;
+  min-height:102px; gap:3px; padding:8px; border:1px solid var(--line); border-radius:7px; background:var(--well); color:var(--ink); }
+.journal-slot[aria-pressed=true] { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+.journal-number { justify-self:start; color:var(--dim); font:12px/1.2 monospace; }
+.journal-slot img { width:clamp(38px,5vw,74px); aspect-ratio:1; object-fit:contain; align-self:center; image-rendering:pixelated; }
+.journal-mystery { align-self:center; color:var(--dim); font:500 32px/1 var(--display); }
+.journal-name { font:600 clamp(11px,1vw,14px)/1.2 var(--body); overflow-wrap:anywhere; }
+.journal-detail { min-width:0; border-left:1px solid var(--line); padding:12px 0 0 clamp(14px,2vw,32px); }
+html[data-mak-report=document] #journal-name { margin:0 0 8px; font:500 clamp(28px,3.4vw,54px)/1.1 var(--display); overflow-wrap:anywhere; }
+.journal-art { display:grid; grid-template-columns:2fr 3fr; align-items:end; gap:8px; margin:20px 0; padding:18px 0;
+  background:radial-gradient(ellipse at 70% 65%,#49405659,transparent 68%); }
+.journal-art figure { margin:0; min-width:0; text-align:center; }
+.journal-art img { display:block; width:100%; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; }
+.journal-records { display:grid; gap:8px; margin:0; padding-top:12px; border-top:1px solid var(--line); }
+.journal-records div { display:flex; justify-content:space-between; gap:12px; }
+.journal-records dd { margin:0; font-variant-numeric:tabular-nums; font-weight:600; }
+.journal-records div:first-child { display:grid; grid-template-columns:auto 1fr; }
+.journal-records div:first-child dd { display:contents; }
+#journal-purity { text-align:right; }
+#journal-purity-meter { grid-column:1/-1; }
+@media (max-width:760px) {
+  .journal-layout { grid-template-columns:minmax(0,1fr); }
+  .journal-detail { border-left:0; border-top:1px solid var(--line); padding:18px 0 0; }
+  .journal-art { max-width:380px; margin-inline:auto; }
+  .journal-list { gap:5px; }
+  .journal-slot { min-height:84px; padding:5px 3px; }
 }
 .play-guide .frame { max-width: 920px; padding-bottom: 32px; }
 .playtest.play-guide .site-header { justify-content: space-between; min-height: 56px; }
@@ -244,6 +249,22 @@ html[data-mak-report=document] #expedition-name {
 .expedition-crew li span[data-ready=true] { color: var(--meter); }
 .expedition-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .work-list { display: grid; gap: 8px; margin-top: 12px; }
+.list-filters, .list-pages { display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
+.list-filters { margin:12px 0; }
+.list-filters label { display:grid; gap:4px; min-width:0; color:var(--dim); font-size:.85rem; }
+.list-filters label:first-child { flex:1 1 145px; }
+.list-filters input[type=search], .list-filters select { width:100%; min-width:0; padding:7px; border:1px solid #655e5a; border-radius:4px; color:#f3e9d9; background:#19232b; font:inherit; }
+.list-filters label.check-filter { display:flex; align-items:center; padding-block:7px; }
+.list-pages { align-items:center; justify-content:center; margin-block:12px; color:var(--dim); font-size:.8rem; }
+.list-pages button { min-height:32px; padding:4px 10px; font-size:inherit; }
+.palette-book { border-top:1px solid #51463f; padding-top:12px; }
+.palette-book summary { cursor:pointer; color:var(--accent); }
+.palette-list { list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr)); padding:0; gap:7px; }
+.palette-list li { display:flex; gap:8px; align-items:center; min-width:0; }
+.palette-list .swatch { flex:0 0 22px; height:22px; border-radius:4px; border:1px solid #ffffff35; }
+.palette-list small, .palette-list strong { display:block; overflow-wrap:anywhere; }
+.palette-list strong { font-size:.86rem; }
+.palette-list small { color:var(--dim); font-size:.76rem; }
 .work-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -372,9 +393,10 @@ html[data-mak-report=document] .mine-identity #mine-title { font:italic 500 clam
 .mine-info summary, #find-more summary { width:fit-content; cursor:pointer; padding:3px 0; color:var(--dim); font-size:12px; }
 .mine-info[open] { margin-top:10px; }
 #mine-interval { margin:3px 0; }
-.game-grid[data-home-mode=watch] .mine-hero { height:auto; border-radius:0; background:none; }
-.game-grid[data-home-mode=watch] .mine-identity { position:static; padding:0; background:none; color:var(--ink); }
-.game-grid[data-home-mode=watch] .mine-controls { flex-direction:column-reverse; align-items:stretch; gap:8px; }
+.game-grid[data-home-mode=watch] .mine-hero,
+.game-grid[data-home-mode=watch] .mine-loadout { display:none; }
+.game-grid[data-home-mode=watch] .mine-content { padding-top:0; }
+.game-grid[data-home-mode=watch] .mine-controls { display:block; }
 .game-grid[data-home-mode=watch] #mine-button { width:100%; }
 .game-grid[data-home-mode=watch] .mine-info[open] .mine-odds { max-height:200px; overflow:auto; }
 .game-grid[data-view=home] #find { border-left:1px solid var(--line); padding-left:clamp(14px,2vw,28px); align-self:stretch; }
@@ -446,7 +468,6 @@ html[data-mak-report=document] .pigment-summary h3 { margin:0 0 2px; overflow-wr
     grid-template-areas:"broadcast broadcast" "chat chat" "mine mine" "missions missions" "collection find";
     grid-template-rows:auto;
   }
-  .game-grid[data-home-mode=watch] .mine-controls { flex-direction:row; align-items:center; }
 }
 @media (max-width:710px) {
   .playtest .game-masthead { gap:5px 7px; }

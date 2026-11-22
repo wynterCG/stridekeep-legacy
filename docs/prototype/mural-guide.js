@@ -7,8 +7,7 @@
   const oddsPanel = document.getElementById("guide-pick-odds");
   const oddsTable = document.createElement("table");
   const pickaxes = Object.entries(data.tools);
-  const distributions = pickaxes.map(([id]) => rules.miningOdds(data, id));
-  const percent = new Intl.NumberFormat(document.documentElement.lang, { maximumFractionDigits: 6 });
+  const percent = new Intl.NumberFormat(document.documentElement.lang, { maximumFractionDigits: 10 });
   const header = oddsTable.createTHead().insertRow();
   function heading(row, label, scope) {
     const cell = document.createElement("th");
@@ -17,14 +16,38 @@
     row.appendChild(cell);
   }
   heading(header, "Mineral", "col");
-  for (const [, pick] of pickaxes) heading(header, t(pick.name), "col");
+  heading(header, t("Find chances"), "col");
   const body = oddsTable.createTBody();
-  for (const id of Object.keys(distributions[0])) {
-    const row = body.insertRow();
-    heading(row, t(data.minerals[id].name), "row");
-    for (const odds of distributions) row.insertCell().textContent = percent.format(odds[id]) + "%";
+  const picker = document.createElement("select");
+  for (const [id, pick] of pickaxes) picker.add(new Option(t(pick.name), id));
+  const query = document.createElement("input");
+  query.type = "search";
+  for (const [control, title] of [[picker, "Pickaxe"], [query, "Mineral name"]]) {
+    const label = document.createElement("label");
+    label.append(t(title) + " ", control);
+    const line = document.createElement("p");
+    line.append(label);
+    oddsPanel.append(line);
   }
+  const key = text => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+  function showOdds() {
+    if (!oddsPanel.closest("details").open) return;
+    const filter = key(query.value);
+    body.replaceChildren();
+    for (const [id, chance] of Object.entries(rules.miningOdds(data, picker.value))) {
+      const name = t(data.minerals[id].name);
+      if (!key(name).includes(filter)) continue;
+      const row = body.insertRow();
+      heading(row, name, "row");
+      row.insertCell().textContent = percent.format(chance) + "%";
+    }
+    if (!body.rows.length) body.insertRow().insertCell().textContent = t("No results");
+  }
+  query.addEventListener("input", showOdds);
+  picker.addEventListener("change", showOdds);
+  oddsPanel.closest("details").addEventListener("toggle", showOdds);
   oddsPanel.appendChild(oddsTable);
+  showOdds();
 
   const example = document.getElementById("mural-example");
   const context = document.getElementById("mural-example-canvas").getContext("2d");

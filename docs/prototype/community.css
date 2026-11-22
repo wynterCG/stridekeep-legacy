@@ -1,0 +1,21 @@
+﻿#community-studio { padding: .75rem 0; border-bottom: 1px solid var(--line, #48403d); margin: 0 0 1rem; }
+#community-studio details { margin-top: .65rem; }
+#community-studio summary { cursor: pointer; color: var(--gold, #e5b377); width: fit-content; }
+.guild-controls { display: flex; gap: .55rem 1rem; align-items: end; flex-wrap: wrap; }
+.guild-controls label, .guild-editor label { display: grid; gap: .28rem; font-size: .88rem; min-width: 0; }
+.guild-controls small { align-self: center; }
+.guild-controls input, .guild-controls select, .guild-editor input:not([type=checkbox]), .guild-editor select { max-width: 100%; min-width: 0; font: inherit; color: inherit; background: #201e26; border: 1px solid #5a5157; border-radius: .3rem; padding: .4rem; }
+#community-studio form, .guild-editor { margin-top: .75rem; }
+.guild-editor { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 1rem; align-items: start; }
+.guild-editor > div:first-child { display: grid; gap: .65rem; }
+.guild-editor fieldset { min-width: 0; border: 1px solid #514851; padding: .6rem; }
+.guild-swatches { max-height: 12rem; overflow-y: auto; display: grid; gap: .35rem; margin-top: .4rem; }
+.guild-swatches label { display: flex; align-items: center; }
+.guild-swatches i { width: .85rem; height: .85rem; border-radius: 2px; border: 1px solid #998c83; }
+.guild-preview canvas { display: block; width: min(100%,12rem); height: auto; image-rendering: pixelated; background: #101923; }
+.guild-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: .5rem; }
+.guild-comparison figure { margin: 0; min-width: 0; }
+.guild-comparison figcaption { font-size: .8rem; margin-top: .25rem; }
+.guild-preview ul { max-height: 10rem; overflow: auto; padding-left: 1.25rem; margin: .3rem 0 .65rem; }
+#community-studio [hidden] { display: none; }
+@media (max-width: 580px) { .guild-editor { grid-template-columns: 1fr; } .guild-controls { align-items: stretch; } }
