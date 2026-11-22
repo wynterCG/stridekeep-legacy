@@ -49,7 +49,12 @@
     <p id="feedback" role="status" aria-live="polite"></p>
 
     <main class="game-grid">
-      <section id="watch-stream" class="panel stream-video" aria-labelledby="video-title" hidden></section>
+      <section id="watch-stream" class="panel stream-video" aria-labelledby="video-title" data-watch-only hidden></section>
+      <section id="watch-chat" class="panel" aria-labelledby="watch-chat-title" data-watch-only hidden>
+        <h2 id="watch-chat-title" data-text>Stream chat</h2>
+        <p id="stream-chat-placeholder" data-text>Choose a channel to open its chat.</p>
+        <div id="stream-chat"></div>
+      </section>
 
       <section class="panel mine" id="mine" aria-labelledby="mine-title">
         <div class="mine-hero">
@@ -117,6 +122,13 @@
           <button type="button" id="show-latest-find" data-text hidden>Show latest find</button>
         </div>
         <p id="empty-find" data-text>Mine to see your first raw mineral, its purity and weight.</p>
+        <div id="pigment-details" hidden>
+          <div class="pigment-summary">
+            <span class="swatch" id="stock-pigment-swatch" aria-hidden="true"></span>
+            <div><h3 id="stock-pigment-name"></h3><span id="stock-pigment-count"></span></div>
+          </div>
+          <div id="pigment-actions"></div>
+        </div>
         <div id="find-details" hidden>
           <div class="find-summary">
             <div class="specimen-stage">
@@ -171,7 +183,7 @@
         </section>
         <section class="inventory-pigments" id="inventory-pigments" role="tabpanel" aria-labelledby="inventory-tab-pigments" tabindex="0" hidden>
           <p id="empty-pigment-stock" data-text>Crush a raw mineral to add a pigment.</p>
-          <ul id="pigment-stock" class="pigment-stock"></ul>
+          <div id="pigment-stock" class="specimens"></div>
         </section>
         <section class="inventory-pigments" id="inventory-materials" role="tabpanel" aria-labelledby="inventory-tab-materials" tabindex="0" hidden>
           <p id="empty-material-stock" data-text>Crush a raw diamond to get powder for a high-gloss finish.</p>

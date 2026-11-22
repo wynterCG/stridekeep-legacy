@@ -60,3 +60,12 @@
 .stream-placeholder { padding: 16px; margin: 0; color: var(--dim); }
 .stream-player iframe { display: block; width: 100%; height: auto; min-height: 300px; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; }
 #watch-stream [hidden] { display: none; }
+#stream-chat iframe {
+  display: block;
+  width: 100%;
+  height: clamp(300px, 36vh, 480px);
+  border: 0;
+  border-radius: 6px;
+  background: var(--well);
+}
+#stream-chat-placeholder { color: var(--dim); margin: 8px 0; }

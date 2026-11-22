@@ -5,6 +5,8 @@ globalThis.StrideLocale = (() => {
   const language = document.documentElement.dataset.fixedLanguage ?? (choice === "en" ? "en" : "pt-PT");
   const portuguese = language === "pt-PT";
   const pt = {
+    "Inventory pigment": "Pigmento do inventário", "Try clothing dye": "Experimentar na roupa",
+    "{0} · {1} in stock": "{0} · {1} em stock", "{0} in stock": "{0} em stock",
     "Clasp": "Fecho", "Forked key": "Chave bifurcada",
     "Split cradle": "Berço fendido", "Hourglass gate": "Portal de ampulheta",
     "Four hooks": "Quatro ganchos", "Notched comb": "Pente entalhado",
@@ -111,6 +113,9 @@ globalThis.StrideLocale = (() => {
     "Choose a channel to watch here.": "Escolhe um canal para ver a transmissão aqui.",
     "Widen the window or rotate the screen to watch.": "Alarga a janela ou roda o ecrã para ver o direto.",
     "Twitch live video": "Vídeo em direto da Twitch",
+    "Stream chat": "Chat da transmissão",
+    "Choose a channel to open its chat.": "Escolhe um canal para abrir o chat.",
+    "Open the standalone site to use stream chat.": "Abre o site do Stridekeep num navegador para usar o chat da transmissão.",
     "Open the local Stridekeep site to use the Twitch video player.": "Abre o site local do Stridekeep para usar o leitor da Twitch.",
     "Open local preview": "Abrir pré-visualização local",
     "Enter a Twitch channel name or a link to its channel page.": "Escreve o nome de um canal Twitch ou cola a ligação da página do canal.",

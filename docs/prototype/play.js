@@ -37,10 +37,12 @@ let storageOn = true;
 let lockingOn = true;
 let state = readSave(rules.create(data), true);
 let selected = state.latest;
+let inspectedPigment = null;
 let selectedPigment = Object.keys(data.mural.needs)[0];
 let selectedPixel = null;
 let pendingAction;
 let draftBackground;
+let previewDye = null;
 
 function announce(message) {
   write("feedback", message);
@@ -53,6 +55,11 @@ function syncLanguageLink() {
 }
 
 function setInventoryTab(id, updateLocation = false) {
+  if (id !== "pigments" && inspectedPigment) {
+    inspectedPigment = null;
+    renderFind();
+    renderCollection();
+  }
   for (const tab of inventoryTabs) {
     const active = tab.dataset.inventoryTab === id;
     tab.setAttribute("aria-selected", String(active));
@@ -82,18 +89,23 @@ function showGameView() {
     renderMural();
   }
   const watch = anchor === "watch";
+  if (watch && gameGrid.dataset.homeMode !== "watch") byId("collection").after(byId("find"));
+  if (!watch && gameGrid.dataset.homeMode === "watch") byId("collection").before(byId("find"));
   gameGrid.dataset.homeMode = watch ? "watch" : "play";
   byId("home-bar").hidden = view !== "home";
-  for (const link of document.querySelectorAll("[data-home-mode]")) {
+  for (const link of document.querySelectorAll("a[data-home-mode]")) {
     if (link.dataset.homeMode === gameGrid.dataset.homeMode) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  for (const panel of gameGrid.children) panel.hidden = panel.id === "watch-stream" ? !watch : !panels.includes(panel.id);
+  for (const panel of gameGrid.children) panel.hidden = panel.hasAttribute("data-watch-only") ? !watch : !panels.includes(panel.id);
   gameGrid.dataset.view = view;
   if (view === "edit-character" && previous !== view) openWardrobe();
   if (view === "home") {
     if (inventoryTab || anchor === "collection") setInventoryTab(inventoryTab ?? "minerals");
-    if (anchor === "find") byId("find-more").open = true;
+    if (anchor === "find") {
+      setInventoryTab("minerals");
+      byId("find-more").open = true;
+    }
   }
   if (view === "home" || view === "missions") renderMissions();
   if (view === "journal") renderJournal();
@@ -150,6 +162,7 @@ function run(action) {
       if (action.type === "reset") {
         state = { ...rules.create(data), nextId: state.nextId };
         selected = null;
+        inspectedPigment = null;
         selectedPigment = Object.keys(data.mural.needs)[0];
         selectedPixel = null;
         if (gameGrid.dataset.view === "edit-character") openWardrobe();
@@ -163,15 +176,17 @@ function run(action) {
           selectedPixel = null;
           selectedPigment = action.pigment;
           muralScope = action.scope ?? "community";
-          if (action.pixel === undefined) location.hash = muralScope === "personal" ? "personal-mural" : "mural";
+          if (action.pixel === undefined && gameGrid.dataset.homeMode !== "watch") location.hash = muralScope === "personal" ? "personal-mural" : "mural";
           muralSize = rules.muralBoard(state, data, muralScope).mural.gridSize;
           pulseMuralPixel(landing, action.pigment);
         }
         if (["mine", "collect", "expedition-claim"].includes(action.type)) {
           selected = state.latest;
+          inspectedPigment = null;
           byId("find-more").open = false;
         }
         const acquired = consumed ? data.minerals[consumed.mineral].pigment : action.type === "mix" ? action.recipe : null;
+        if (action.type === "mix" && inspectedPigment && !amount(state.pigments, inspectedPigment)) inspectedPigment = acquired;
         if (acquired && Object.hasOwn(rules.muralBoard(state, data, muralScope).mural.needs, acquired)) {
           selectedPigment = acquired;
           selectedPixel = null;
@@ -280,6 +295,15 @@ function tickMining() {
 function renderFind() {
   if (!current()) selected = state.items.find((item) => item.id === state.latest)?.id ?? state.items[0]?.id;
   const item = current();
+  if (!amount(state.pigments, inspectedPigment)) inspectedPigment = null;
+  byId("pigment-details").hidden = !inspectedPigment;
+  if (inspectedPigment) {
+    byId("empty-find").hidden = byId("find-details").hidden = true;
+    byId("show-latest-find").hidden = !state.items.some(candidate => candidate.id === state.latest);
+    write("find-context", "Inventory pigment");
+    renderPigmentDetails(inspectedPigment);
+    return;
+  }
   byId("find-details").hidden = !item;
   byId("empty-find").hidden = Boolean(item);
   byId("find-rarity").hidden = !item;
@@ -339,30 +363,21 @@ function renderCollection() {
     control.append(icon);
     return control;
   });
-  const slots = items.slice();
-  while (slots.length < 28) {
-    const empty = element("span", "empty-slot");
-    empty.setAttribute("aria-hidden", "true");
-    slots.push(empty);
-  }
-  byId("specimens").replaceChildren(...slots);
+  fillSlots("specimens", items);
   byId("empty-collection").hidden = items.length > 0;
   write("collection-count", `${items.length} ${t(items.length === 1 ? "piece" : "pieces")}`);
-  const pigments = Object.entries(data.pigments).filter(([id]) => amount(state.pigments, id) > 0).map(([id, pigment]) => {
-    const chip = element("li", "stock-pigment");
-    chip.dataset.stockPigment = id;
-    chip.append(swatch(element("span", "swatch"), pigment), element("span", "stock-name", pigment.name),
-      element("strong", "stock-quantity", `×${amount(state.pigments, id)}`));
-    for (const scope of ["personal", "community"]) {
-      if (rules.nextMuralPixel(state, data, id, scope) === null) continue;
-      const place = button(scope === "personal" ? "Paint personal mural" : "Paint community mural");
-      place.dataset.place = id;
-      place.dataset.scope = scope;
-      chip.append(place);
-    }
-    return chip;
+  const pigments = Object.entries(data.pigments).filter(([id]) => amount(state.pigments, id) > 0).map(([id, pigment], index) => {
+    const stock = amount(state.pigments, id);
+    const control = button("");
+    control.dataset.stockPigment = id;
+    control.setAttribute("aria-pressed", String(inspectedPigment === id));
+    control.tabIndex = (inspectedPigment ? inspectedPigment === id : index === 0) ? 0 : -1;
+    control.title = t`${pigment.name} · ${stock} in stock`;
+    control.setAttribute("aria-label", control.title);
+    control.append(swatch(element("span", "swatch"), pigment), element("span", "pigment-quantity", `×${stock}`));
+    return control;
   });
-  byId("pigment-stock").replaceChildren(...pigments);
+  fillSlots("pigment-stock", pigments);
   byId("empty-pigment-stock").hidden = pigments.length > 0;
 
   const materials = Object.entries(data.materials).filter(([id]) => amount(state.materials, id) > 0).map(([id, material]) => {
@@ -374,6 +389,43 @@ function renderCollection() {
   });
   byId("material-stock").replaceChildren(...materials);
   byId("empty-material-stock").hidden = materials.length > 0;
+}
+
+function fillSlots(id, cells) {
+  const slots = cells.slice();
+  while (slots.length < 28) {
+    const empty = element("span", "empty-slot");
+    empty.setAttribute("aria-hidden", "true");
+    slots.push(empty);
+  }
+  byId(id).replaceChildren(...slots);
+}
+
+function renderPigmentDetails(id) {
+  const pigment = data.pigments[id];
+  write("stock-pigment-name", pigment.name);
+  write("stock-pigment-count", t`${amount(state.pigments, id)} in stock`);
+  swatch(byId("stock-pigment-swatch"), pigment);
+  const actions = byId("pigment-actions");
+  actions.replaceChildren();
+  const uses = element("div", "pigment-uses");
+  for (const scope of ["personal", "community"]) {
+    if (rules.nextMuralPixel(state, data, id, scope) === null) continue;
+    const place = button(scope === "personal" ? "Paint personal mural" : "Paint community mural");
+    place.dataset.place = id;
+    place.dataset.scope = scope;
+    uses.append(place);
+  }
+  const dye = button("Try clothing dye");
+  dye.dataset.dye = id;
+  uses.append(dye);
+  actions.append(uses);
+  for (const [recipeId, recipe] of Object.entries(data.recipes)) {
+    if (Object.hasOwn(recipe.ingredients, id)) actions.append(recipeRow(recipeId, recipe));
+  }
+  for (const [contractId, contract] of Object.entries(data.contracts)) {
+    if (contract.pigment === id && !state.contracts.includes(contractId)) actions.append(contractRow(contractId, contract));
+  }
 }
 
 function swatch(node, pigment) {
@@ -517,20 +569,21 @@ function updateBackgroundLink() {
 }
 
 function renderRecipes() {
-  const rows = Object.entries(data.recipes).map(([id, recipe]) => {
-    const row = element("div", "work-row");
-    const detail = element("div");
-    detail.append(element("strong", "", recipe.name));
-    for (const [pigment, parts] of Object.entries(recipe.ingredients)) {
-      const owned = amount(state.pigments, pigment);
-      detail.append(element("small", owned < parts ? "missing" : "", t`${parts} × ${data.pigments[pigment].name} · ${owned} owned`));
-    }
-    const mix = button("Mix", !rules.hasStock(state, recipe.ingredients));
-    mix.dataset.recipe = id;
-    row.append(swatch(element("i", "art swatch"), data.pigments[id]), detail, mix);
-    return row;
-  });
-  byId("recipe-list").replaceChildren(...rows);
+  byId("recipe-list").replaceChildren(...Object.entries(data.recipes).map(([id, recipe]) => recipeRow(id, recipe)));
+}
+
+function recipeRow(id, recipe) {
+  const row = element("div", "work-row");
+  const detail = element("div");
+  detail.append(element("strong", "", recipe.name));
+  for (const [pigment, parts] of Object.entries(recipe.ingredients)) {
+    const owned = amount(state.pigments, pigment);
+    detail.append(element("small", owned < parts ? "missing" : "", t`${parts} × ${data.pigments[pigment].name} · ${owned} owned`));
+  }
+  const mix = button("Mix", !rules.hasStock(state, recipe.ingredients));
+  mix.dataset.recipe = id;
+  row.append(swatch(element("i", "art swatch"), data.pigments[id]), detail, mix);
+  return row;
 }
 
 function renderGear() {
@@ -622,42 +675,44 @@ function renderMissions() {
 
 function renderContracts() {
   const contracts = Object.entries(data.contracts);
-  const rows = contracts.map(([id, contract]) => {
-    const row = element("div", "work-row contract-row");
-    const detail = element("div", "contract-detail");
-    const fulfilled = state.contracts.includes(id);
-    const specimens = contract.pigment ? [] : rules.contractSpecimens(state, contract);
-    const ready = contract.pigment ? amount(state.pigments, contract.pigment) >= contract.quantity : specimens.length > 0;
-    const requirement = contract.pigment ?
-      t`${contract.quantity} × ${data.pigments[contract.pigment].name} · ${amount(state.pigments, contract.pigment)} in stock` :
-      [`${t(data.minerals[contract.mineral].name)} (${t(contract.finish === "polished" ? "Polished" : "Raw")})`,
-        contract.minPurity && t`${percent(contract.minPurity)}+ purity`,
-        contract.minWeight && t`${grams(contract.minWeight)}+ weight`].filter(Boolean).join(" · ");
-    const consumes = contract.pigment || contract.consume;
-    const action = button(fulfilled ? "Complete" : consumes ? "Deliver" : "Show", fulfilled || !ready);
-    detail.append(element("strong", "", contract.name), element("small", "", requirement),
-      element("small", "contract-effect", `${t(consumes ? "Uses up the delivery" : "Keep the specimen")} · +${t`${contract.coins} coins`}`));
-    row.append(detail, action);
-    // Keep the selected inventory ID when another action refreshes this panel.
-    const prior = byId(`contract-${id}`)?.value;
-    const select = element("select");
-    if (specimens.length && !fulfilled) {
-      select.id = `contract-${id}`;
-      select.setAttribute("aria-label", t`Specimen for ${t(contract.name)}`);
-      select.replaceChildren(...specimens.map((item) => option(item.id, `#${item.id} · ${percent(item.purity)} · ${grams(item.weight)}`)));
-      if (specimens.some((item) => String(item.id) === prior)) select.value = prior;
-      detail.append(select);
-    }
-    action.addEventListener("click", () => {
-      const claim = { type: "claim-contract", contract: id, id: Number(select.value) };
-      if (consumes) ask(claim, t`Deliver for ${t(contract.name)}?`,
-        t`${requirement}. The delivery leaves your inventory and pays ${contract.coins} coins.`, "Deliver supplies");
-      else run(claim);
-    });
-    return row;
-  });
-  byId("contract-list").replaceChildren(...rows);
+  byId("contract-list").replaceChildren(...contracts.map(([id, contract]) => contractRow(id, contract)));
   write("contract-progress", t`${state.contracts.length}/${contracts.length} complete`);
+}
+
+function contractRow(id, contract) {
+  const row = element("div", "work-row contract-row");
+  const detail = element("div", "contract-detail");
+  const fulfilled = state.contracts.includes(id);
+  const specimens = contract.pigment ? [] : rules.contractSpecimens(state, contract);
+  const ready = contract.pigment ? amount(state.pigments, contract.pigment) >= contract.quantity : specimens.length > 0;
+  const requirement = contract.pigment ?
+    t`${contract.quantity} × ${data.pigments[contract.pigment].name} · ${amount(state.pigments, contract.pigment)} in stock` :
+    [`${t(data.minerals[contract.mineral].name)} (${t(contract.finish === "polished" ? "Polished" : "Raw")})`,
+      contract.minPurity && t`${percent(contract.minPurity)}+ purity`,
+      contract.minWeight && t`${grams(contract.minWeight)}+ weight`].filter(Boolean).join(" · ");
+  const consumes = contract.pigment || contract.consume;
+  const action = button(fulfilled ? "Complete" : consumes ? "Deliver" : "Show", fulfilled || !ready);
+  action.dataset.contract = id;
+  detail.append(element("strong", "", contract.name), element("small", "", requirement),
+    element("small", "contract-effect", `${t(consumes ? "Uses up the delivery" : "Keep the specimen")} · +${t`${contract.coins} coins`}`));
+  row.append(detail, action);
+  // Keep the selected inventory ID when another action refreshes this panel.
+  const prior = byId(`contract-${id}`)?.value;
+  const select = element("select");
+  if (specimens.length && !fulfilled) {
+    select.id = `contract-${id}`;
+    select.setAttribute("aria-label", t`Specimen for ${t(contract.name)}`);
+    select.replaceChildren(...specimens.map((item) => option(item.id, `#${item.id} · ${percent(item.purity)} · ${grams(item.weight)}`)));
+    if (specimens.some((item) => String(item.id) === prior)) select.value = prior;
+    detail.append(select);
+  }
+  action.addEventListener("click", () => {
+    const claim = { type: "claim-contract", contract: id, id: Number(select.value) };
+    if (consumes) ask(claim, t`Deliver for ${t(contract.name)}?`,
+      t`${requirement}. The delivery leaves your inventory and pays ${contract.coins} coins.`, "Deliver supplies");
+    else run(claim);
+  });
+  return row;
 }
 
 function renderJournal() {
@@ -772,6 +827,7 @@ function tickExpedition() {
 }
 
 function render() {
+  const usingPigmentAction = byId("pigment-actions").contains(document.activeElement);
   renderMural();
   renderCharacter();
   const rank = rules.rank(state);
@@ -781,6 +837,7 @@ function render() {
   renderMine();
   renderFind();
   renderCollection();
+  if (usingPigmentAction && gameGrid.dataset.view === "home") byId("find-context").focus({ preventScroll: true });
   renderRecipes();
   renderGear();
   renderMissions();
@@ -827,6 +884,10 @@ function openWardrobe() {
   byId("scarf-dye").value = look.scarf;
   byId("wardrobe-feedback").hidden = true;
   selectGarmentDye();
+  if (previewDye) {
+    byId("cloth-dye").value = previewDye;
+    previewDye = null;
+  }
   renderBackgroundPicker();
   previewOutfit();
 }
@@ -947,7 +1008,7 @@ function ask(action, title, copy, confirm) {
 function onChoice(id, attribute, handler) {
   byId(id).addEventListener("click", (event) => {
     const target = event.target.closest(`[data-${attribute}]`);
-    if (target && !target.disabled) handler(target.dataset[attribute], target);
+    if (target && !target.disabled) handler(target.getAttribute(`data-${attribute}`), target);
   });
 }
 
@@ -958,19 +1019,26 @@ byId("expedition-leave").addEventListener("click", () => run({ type: "expedition
 
 function inspectSpecimen(id) {
   selected = id;
+  inspectedPigment = null;
   renderFind();
-  for (const control of byId("specimens").querySelectorAll("[data-specimen]")) {
-    const active = Number(control.dataset.specimen) === id;
-    control.setAttribute("aria-pressed", String(active));
-    control.tabIndex = active ? 0 : -1;
-  }
+  renderCollection();
+  focusInspector();
+}
+
+function focusInspector() {
   byId("find").scrollIntoView({ block: "nearest" });
   byId("find-context").focus({ preventScroll: true });
 }
 
 onChoice("specimens", "specimen", id => inspectSpecimen(Number(id)));
-byId("specimens").addEventListener("keydown", event => {
-  const cells = [...event.currentTarget.querySelectorAll("[data-specimen]")];
+onChoice("pigment-stock", "stock-pigment", id => {
+  inspectedPigment = id;
+  renderFind();
+  renderCollection();
+  focusInspector();
+});
+function navigateSlots(event) {
+  const cells = [...event.currentTarget.querySelectorAll("button")];
   const current = cells.indexOf(event.target);
   if (current < 0) return;
   const columns = getComputedStyle(event.currentTarget).gridTemplateColumns.split(" ").length;
@@ -981,7 +1049,9 @@ byId("specimens").addEventListener("keydown", event => {
   if (!Object.hasOwn(positions, event.key)) return;
   event.preventDefault();
   cells[Math.min(cells.length - 1, Math.max(0, positions[event.key]))].focus();
-});
+}
+byId("specimens").addEventListener("keydown", navigateSlots);
+byId("pigment-stock").addEventListener("keydown", navigateSlots);
 byId("show-latest-find").addEventListener("click", () => inspectSpecimen(state.latest));
 for (const tab of inventoryTabs) tab.addEventListener("click", () => setInventoryTab(tab.dataset.inventoryTab, true));
 byId("inventory-tabs").addEventListener("keydown", event => {
@@ -1005,9 +1075,14 @@ onChoice("pigments", "pigment", (id) => {
   byId("pigments").querySelector("[aria-pressed=true]").focus({ preventScroll: true });
 });
 onChoice("recipe-list", "recipe", (recipe) => run({ type: "mix", recipe }));
+onChoice("pigment-actions", "recipe", (recipe) => run({ type: "mix", recipe }));
+onChoice("pigment-actions", "dye", (pigment) => {
+  previewDye = pigment;
+  location.hash = "edit-character";
+});
 onChoice("tool-list", "tool", (tool) => run({ type: state.owned.includes(tool) ? "equip" : "buy", tool }));
 onChoice("mission-list", "mission", (mission) => run({ type: "claim", mission }));
-onChoice("pigment-stock", "place", (pigment, target) => run({ type: "paint", pigment, scope: target.dataset.scope }));
+onChoice("pigment-actions", "place", (pigment, target) => run({ type: "paint", pigment, scope: target.dataset.scope }));
 byId("paint-button").addEventListener("click", () => run({ type: "paint", pigment: muralTargets[selectedPixel], pixel: selectedPixel, scope: muralScope }));
 byId("polish-button").addEventListener("click", () => {
   const item = current();

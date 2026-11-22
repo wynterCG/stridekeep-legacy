@@ -58,6 +58,8 @@
   for (const node of panel.querySelectorAll("[data-stream-text]")) node.textContent = t(node.textContent);
   const chooser = byId("stream-chooser");
   const player = byId("stream-player");
+  const chat = byId("stream-chat");
+  const chatPlaceholder = byId("stream-chat-placeholder");
   const placeholder = byId("stream-placeholder");
   const results = byId("stream-results");
   const search = byId("search-channels");
@@ -70,6 +72,7 @@
   const localReport = !location.hostname || /^(\/mobile)?\/view\//.test(location.pathname);
   if (localReport || window !== window.top) {
     chooser.hidden = true;
+    chatPlaceholder.textContent = t("Open the standalone site to use stream chat.");
     byId("stream-bridge").hidden = false;
     const link = byId("stream-preview");
     const message = localReport && !mobileReport
@@ -130,6 +133,26 @@
     player.replaceChildren(frame);
   }
 
+  function renderEmbeds() {
+    renderPlayer();
+    const channel = !panel.hidden && current;
+    chatPlaceholder.hidden = Boolean(channel);
+    if (!channel) {
+      if (chat.firstChild) chat.replaceChildren();
+      return;
+    }
+    if (chat.firstElementChild?.dataset.channel === channel.login) return;
+    const url = new URL(`https://www.twitch.tv/embed/${channel.login}/chat`);
+    url.searchParams.set("parent", location.hostname);
+    url.searchParams.set("darkpopout", "");
+    const frame = document.createElement("iframe");
+    frame.title = `${t("Stream chat")} · ${channel.name}`;
+    frame.dataset.channel = channel.login;
+    frame.setAttribute("sandbox", "allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals");
+    frame.src = url;
+    chat.replaceChildren(frame);
+  }
+
   function watch(login, name) {
     current = login ? { login, name } : null;
     byId("video-title").textContent = current ? current.name : "Twitch";
@@ -142,7 +165,7 @@
       else button.removeAttribute("aria-current");
     }
     if (current) direct.value = login;
-    renderPlayer();
+    renderEmbeds();
     if (current) byId("choose-channel-label").focus({ preventScroll: true });
     else direct.focus({ preventScroll: true });
   }
@@ -223,7 +246,7 @@
     }
   });
 
-  // Game inventory renders do not own the iframe. Stop playback off-screen, including on mode exit.
+  // Resizing the video never disconnects the chat. Leaving Watch mode releases both embeds.
   new ResizeObserver(renderPlayer).observe(player);
-  new MutationObserver(renderPlayer).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+  new MutationObserver(renderEmbeds).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
 })();
