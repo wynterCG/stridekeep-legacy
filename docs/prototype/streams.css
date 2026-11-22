@@ -77,3 +77,55 @@
   #stream-chat[data-expanded] iframe { min-height: 960px; }
 }
 #stream-chat-placeholder { color: var(--dim); margin: 8px 0; }
+
+.discovery-plate {
+  --trim: #92c6ea;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 16px);
+  padding: 12px;
+  margin: 4px 0 12px;
+  border: 1px solid color-mix(in srgb, var(--trim) 65%, #40353e);
+  border-left: 3px solid var(--trim);
+  border-radius: 4px 14px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--trim) 15%, #201b21), #19181f 72%);
+  color: #fff2dc;
+}
+.discovery-mount {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: clamp(44px, 5vw, 68px);
+  aspect-ratio: 1;
+}
+.discovery-mount::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  z-index: -1;
+  transform: rotate(45deg);
+  border: 1px solid var(--trim);
+  border-radius: 5px;
+  background: #26232b;
+  box-shadow: inset 0 0 0 3px #29252e, inset 0 0 0 4px color-mix(in srgb, var(--trim) 55%, #29252e);
+}
+.discovery-mount img { width: 100%; height: auto; image-rendering: pixelated; }
+.discovery-copy { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.discovery-tier { color: var(--trim); font: 700 11px/1.3 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .13em; }
+.discovery-name { font: 700 clamp(18px, 2vw, 26px)/1.1 Georgia, serif; }
+.discovery-miner, .discovery-stats dt { color: #d0c6bd; font-size: 12px; }
+.discovery-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 5px 0 0; padding-top: 4px; border-top: 1px solid #ffffff35; }
+.discovery-stats dd { margin: 0; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.discovery-stats > :first-child::after { content: ""; display: block; height: 2px; background: linear-gradient(to right, var(--trim) var(--discovery-purity), #615859 var(--discovery-purity)); }
+.discovery-plate[data-rarity="Very Rare"] { --trim: #d2a7ef; }
+.discovery-plate[data-rarity="Very Rare"] .discovery-mount::before { transform: rotate(22.5deg); outline: 1px solid var(--trim); outline-offset: 2px; }
+.discovery-plate[data-rarity="Exceptional"] { --trim: #edb37b; }
+.discovery-plate[data-rarity="Exceptional"] .discovery-mount::before { inset: 4%; transform: none; clip-path: polygon(25% 0, 75% 0, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0 75%, 0 25%); background: linear-gradient(135deg, #c4965f, #312823 35%, #172022 65%, #c4965f); }
+.discovery-plate[data-rarity="Legendary"] { --trim: #efa4af; }
+.discovery-plate[data-rarity="Legendary"] .discovery-mount::before { border-radius: 0; outline: 3px double var(--trim); outline-offset: 2px; }
+.discovery-plate[data-rarity="Mythic"] { --trim: #b4f0ff; }
+.discovery-plate[data-rarity="Mythic"] .discovery-mount::before { border-radius: 0; background: conic-gradient(from 45deg, #c1faff, #24394a, #869eaf, #1a293b, #c1faff); }
+.discovery-plate[data-rarity="Artifact"] { --trim: #ffd385; }
+.discovery-plate[data-rarity="Artifact"] .discovery-mount::before { inset: 0; transform: none; border: 3px double var(--trim); border-radius: 50%; background: repeating-conic-gradient(#5d482c 0deg 8deg, #211d20 8deg 15deg); }

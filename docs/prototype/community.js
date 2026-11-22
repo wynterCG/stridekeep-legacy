@@ -6,6 +6,7 @@ globalThis.StrideCommunity = (() => {
   const sizes = [12, 16, 24, 32];
   const maxGroups = 8;
   const maxWorks = 6;
+  const illustratedMuralCreation = false;
   const text = (en, pt) => globalThis.StrideLocale?.language === "pt-PT" ? pt : en;
   const fail = (en, pt) => { throw Error(text(en, pt)); };
   const cleanName = value => typeof value === "string" && value.trim().length > 0 && value.trim().length <= 45;
@@ -107,6 +108,7 @@ globalThis.StrideCommunity = (() => {
       if (action.id !== FOX && !Object.hasOwn(current.works, action.id)) fail("Unknown mural.", "Mural desconhecido.");
       current.selected = action.id;
     } else if (action.type === "community-work-create") {
+      if (!illustratedMuralCreation) fail("Mural creation is paused.", "A criação de murais está em pausa.");
       if (!validArtwork(action.mural, data)) fail("Check the image, title and grid.", "Verifica a imagem, o título e a grelha.");
       const reachable = new Set(availableColors(state, data));
       if (Object.keys(action.mural.needs).some(color => !reachable.has(color))) fail("Choose colours available to this community.", "Escolhe cores disponíveis para esta comunidade.");
@@ -140,5 +142,5 @@ globalThis.StrideCommunity = (() => {
     return needs;
   }
 
-  return { sizes, text, directory, groupTitle, board, allBoards, complete, restore, availableColors, act, mapImage };
+  return { sizes, text, directory, groupTitle, board, allBoards, complete, restore, availableColors, act, mapImage, illustratedMuralCreation };
 })();

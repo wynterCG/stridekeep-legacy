@@ -5394,13 +5394,31 @@ globalThis.StrideData = {
   },
   "missions": {
     "first": {
+      "lesson": "first",
       "name": "First discovery",
       "text": "Collect your first personal mining find.",
       "metric": "mined",
       "goal": 1,
       "coins": 10
     },
+    "first-pigment": {
+      "lesson": "discovery",
+      "name": "First pigment",
+      "text": "Crush a spare pigment-bearing specimen. You can keep your first find.",
+      "metric": "pigment-stocked",
+      "goal": 1,
+      "coins": 4
+    },
+    "first-pixel": {
+      "lesson": "pigment",
+      "name": "First brushstroke",
+      "text": "Use a matching pigment to paint one cell on a personal or guild mural.",
+      "metric": "first-stroke",
+      "goal": 1,
+      "coins": 4
+    },
     "routes": {
+      "level": 2,
       "name": "Regular rounds",
       "text": "Collect three personal mining finds.",
       "metric": "mined",
@@ -5408,6 +5426,7 @@ globalThis.StrideData = {
       "coins": 14
     },
     "polish": {
+      "lesson": "affordable",
       "name": "Display piece",
       "text": "Polish a specimen for your collection.",
       "metric": "polished",
@@ -5415,6 +5434,7 @@ globalThis.StrideData = {
       "coins": 12
     },
     "polish-five": {
+      "level": 2,
       "name": "First display shelf",
       "text": "Polish five different mineral species.",
       "metric": "polish-variety",
@@ -5422,6 +5442,7 @@ globalThis.StrideData = {
       "coins": 10
     },
     "polish-twenty": {
+      "level": 3,
       "name": "Collector’s cabinet",
       "text": "Polish twenty different mineral species.",
       "metric": "polish-variety",
@@ -5429,6 +5450,7 @@ globalThis.StrideData = {
       "coins": 30
     },
     "sell": {
+      "lesson": "discovery",
       "name": "First sale",
       "text": "Sell a specimen to fund equipment.",
       "metric": "sold",
@@ -5436,6 +5458,7 @@ globalThis.StrideData = {
       "coins": 8
     },
     "mix": {
+      "lesson": "recipe",
       "name": "Color maker",
       "text": "Mix a crafted color from base pigments.",
       "metric": "mixed",
@@ -5443,6 +5466,7 @@ globalThis.StrideData = {
       "coins": 16
     },
     "paint": {
+      "level": 2,
       "name": "Guild hand",
       "text": "Paint three pixels on Sleeping Fox.",
       "metric": "painted",
@@ -5450,6 +5474,7 @@ globalThis.StrideData = {
       "coins": 18
     },
     "complete": {
+      "level": 4,
       "name": "Sleeping Fox restored",
       "text": "Fill every target pixel in Sleeping Fox.",
       "metric": "painted",
@@ -5457,6 +5482,7 @@ globalThis.StrideData = {
       "goal": 415
     },
     "collection-25": {
+      "level": 2,
       "name": "Field collection",
       "text": "Discover 25 different specimens.",
       "metric": "discovered",
@@ -5464,6 +5490,7 @@ globalThis.StrideData = {
       "coins": 45
     },
     "collection-100": {
+      "level": 3,
       "name": "Mineral archive",
       "text": "Discover 100 different specimens.",
       "metric": "discovered",
@@ -5471,6 +5498,7 @@ globalThis.StrideData = {
       "coins": 120
     },
     "collection-272": {
+      "level": 4,
       "name": "Complete collection",
       "text": "Discover 272 different specimens.",
       "metric": "discovered",
@@ -5478,6 +5506,7 @@ globalThis.StrideData = {
       "coins": 350
     },
     "recipes-5": {
+      "level": 2,
       "name": "Color apprentice",
       "text": "Mix 5 different recipes.",
       "metric": "recipe-variety",
@@ -5485,6 +5514,7 @@ globalThis.StrideData = {
       "coins": 30
     },
     "recipes-25": {
+      "level": 3,
       "name": "Palette specialist",
       "text": "Mix 25 different recipes.",
       "metric": "recipe-variety",
@@ -5492,6 +5522,7 @@ globalThis.StrideData = {
       "coins": 75
     },
     "recipes-50": {
+      "level": 4,
       "name": "Master colorist",
       "text": "Mix 50 different recipes.",
       "metric": "recipe-variety",
@@ -5501,6 +5532,7 @@ globalThis.StrideData = {
   },
   "contracts": {
     "quarry-supply": {
+      "level": 2,
       "name": "Quarry Supply",
       "mineral": "calcite",
       "finish": "raw",
@@ -5509,6 +5541,7 @@ globalThis.StrideData = {
       "coins": 20
     },
     "cabinet-study": {
+      "level": 3,
       "name": "Cabinet Study",
       "mineral": "malachite",
       "finish": "polished",
@@ -5517,12 +5550,14 @@ globalThis.StrideData = {
       "coins": 18
     },
     "banner-order": {
+      "level": 2,
       "name": "Guild Banner Order",
       "pigment": "mintwash",
       "quantity": 1,
       "coins": 16
     },
     "violet-commission": {
+      "level": 4,
       "name": "Violet Commission",
       "pigment": "wisteria-mist",
       "quantity": 1,

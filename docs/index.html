@@ -63,6 +63,20 @@
             <a id="standalone-chat" target="_blank" rel="noopener" data-text>Open chat on Twitch</a>
           </div>
         </div>
+        <div id="watch-discovery" role="status" aria-live="polite" aria-atomic="true"></div>
+        <template id="watch-discovery-template">
+          <div class="discovery-plate">
+            <div class="discovery-mount"><img width="64" height="64" alt=""></div>
+            <div class="discovery-copy">
+              <span class="discovery-tier"></span>
+              <strong class="discovery-name"></strong>
+              <span class="discovery-miner"></span>
+              <dl class="discovery-stats">
+                <div><dt></dt><dd></dd></div><div><dt></dt><dd></dd></div><div><dt></dt><dd></dd></div>
+              </dl>
+            </div>
+          </div>
+        </template>
         <p id="stream-chat-placeholder" data-text>Choose a channel to open its chat.</p>
         <div id="stream-chat"></div>
       </section>
@@ -94,6 +108,7 @@
       <section class="panel missions" id="missions" aria-labelledby="mission-title">
         <div class="panel-head"><h2 id="mission-title" data-text>Missions</h2><span id="rank-progress"></span><a id="view-all-missions" href="#missions" data-text>All missions</a></div>
         <div class="mission-list" id="mission-list"></div>
+        <p id="mission-preview" hidden></p>
         <p id="empty-home-missions" data-text hidden>All mission rewards claimed.</p>
       </section>
 
@@ -117,8 +132,17 @@
           <form id="wardrobe-form">
             <label><span data-text>Display name</span><input id="character-name" maxlength="24" required autocomplete="off"></label>
             <div id="look-options"></div>
-            <label><span data-text>Fabric colour</span><select id="cloth-dye"></select></label>
-            <label><span data-text>Scarf dye</span><select id="scarf-dye"></select></label>
+            <details class="piece-browser" id="piece-browser">
+              <summary data-text>Browse pieces by image</summary>
+              <label><span data-text>Category</span><select id="piece-category"></select></label>
+              <div id="piece-gallery" role="group" aria-label="Wardrobe pieces"></div>
+            </details>
+            <div class="outfit-dyes">
+              <label><span data-text>Top colour</span><select id="cloth-dye"></select></label>
+              <label><span data-text>Headwear colour</span><select id="hat-dye"></select></label>
+              <label><span data-text>Trouser colour</span><select id="trouser-dye"></select></label>
+              <label><span data-text>Scarf</span><select id="scarf-dye"></select></label>
+            </div>
             <p id="dye-cost" aria-live="polite"></p>
             <p id="wardrobe-feedback" role="status" hidden></p>
             <div class="wardrobe-actions">
@@ -158,6 +182,7 @@
               <meter id="find-purity" min="0" max="100" value="0">0%</meter>
             </div>
           </div>
+          <div class="mineral-hints" id="find-hints" hidden></div>
           <details id="find-more">
             <summary data-text>Specimen details</summary>
             <dl class="find-stats">
@@ -243,15 +268,16 @@
           <label><span data-text>Colour or ingredient</span><input type="search" id="recipe-query"></label>
           <label class="check-filter"><input id="recipe-ready" type="checkbox"><span data-text>Ready to mix</span></label>
         </div>
-        <div class="work-list" id="recipe-list"></div>
-        <div id="recipe-pages" class="list-pages"></div>
+        <div class="work-list" id="recipe-list" role="region" tabindex="0" aria-labelledby="workshop-title"></div>
+        <p id="recipe-empty" data-text hidden>No results</p>
         <details id="palette-book" class="palette-book">
           <summary data-text>Colour catalogue</summary>
           <div class="list-filters">
             <label><span data-text>Find a colour</span><input type="search" id="palette-query"></label>
             <label><span data-text>Colour source</span><select id="palette-source"><option value="" data-text>All colours</option><option value="base" data-text>From minerals</option><option value="recipe" data-text>From recipes</option></select></label>
           </div>
-          <ul id="palette-list" class="palette-list" role="list"></ul>
+          <ul id="palette-list" class="palette-list" role="list" tabindex="0"></ul>
+          <p id="palette-empty" data-text hidden>No results</p>
           <div id="palette-pages" class="list-pages"></div>
         </details>
       </section>
@@ -318,8 +344,9 @@
             <span id="journal-rarity" class="rarity"></span>
             <div class="journal-art">
               <figure><img id="journal-raw" alt=""><figcaption data-text>Raw</figcaption></figure>
-              <figure><img id="journal-polished" alt=""><figcaption id="journal-polish-status" data-text>Polished preview</figcaption></figure>
+              <figure><span id="journal-locked" class="journal-mystery" aria-hidden="true">?</span><img id="journal-polished" alt="" hidden><figcaption id="journal-polish-status" data-text>Polished form undiscovered</figcaption></figure>
             </div>
+            <div class="mineral-hints" id="journal-hints" hidden></div>
             <dl class="journal-records">
               <div><dt id="journal-purity-label" data-text>Best purity</dt><dd><span id="journal-purity"></span><progress id="journal-purity-meter" max="10000" aria-labelledby="journal-purity-label"></progress></dd></div>
               <div><dt data-text>Heaviest find</dt><dd id="journal-weight"></dd></div>

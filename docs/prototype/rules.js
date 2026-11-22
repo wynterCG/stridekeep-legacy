@@ -15,9 +15,16 @@ globalThis.StrideRules = (() => {
     skin: ["Porcelain", "Ochre", "Umber", "Ebony"],
     hair: ["Crop", "Curls", "Long braid"],
     face: ["Clean-shaven", "Freckles", "Beard"],
-    jacket: ["Field jacket", "Survey coat"], hat: ["Bareheaded", "Miner’s cap"],
+    head: ["base", "sunny", "keen", "veteran", "dimple", "stout", "quiet"],
+    jacket: ["Field jacket", "Survey coat", "waistcoat", "capelet", "apron", "lace-shirt", "henley", "sailor", "cable-knit", "quilted", "hoodie"],
+    hat: ["Bareheaded", "Miner’s cap", "watch-cap", "pith-helmet", "beret", "alpine", "baker", "trail", "stovepipe", "trapper", "peaked"],
+    trousers: ["work-pants", "cargo", "corduroy", "knee-patch", "riding", "pinstripe", "joggers"],
+    boots: ["work-boots", "ranger", "steel-toe", "canvas-boots", "buckle", "brogue", "waders"],
   };
   const undyed = "undyed";
+  const fittedSlots = ["head", "trousers", "boots"];
+  const dyeableHats = styles.hat.slice(2);
+  const dyeableTrousers = styles.trousers.filter(id => id !== "work-pants");
   const validPigment = (id, data) => typeof id === "string" && known(data.pigments, id);
   // The local crew only exchanges the four pigments used by its starter mural.
   const crewOffers = {
@@ -38,21 +45,35 @@ globalThis.StrideRules = (() => {
   const highGloss = "high-gloss";
 
   function newOutfitDyes(state, look) {
-    return [...new Set([look.cloth, look.scarf].filter((id) =>
-      typeof id === "string" && id !== undyed && !state.scarfDyes.includes(id)))];
+    const colours = [look.cloth, look.scarf];
+    if (dyeableHats.includes(look.hat)) colours.push(look.hatDye);
+    if (dyeableTrousers.includes(look.trousers ?? state.character?.trousers)) colours.push(look.trouserDye);
+    return [...new Set(colours.filter(id =>
+      typeof id === "string" && id !== undyed && id !== "none" && !state.scarfDyes.includes(id)))];
   }
 
-  function garmentDyes(owned, saved) {
-    return Object.fromEntries(styles.jacket.map((jacket) => {
-      const id = saved?.[jacket];
-      return [jacket, owned.includes(id) ? id : undyed];
-    }));
+  function garmentDyes(owned, saved, items) {
+    return Object.fromEntries(items.filter(item => owned.includes(saved?.[item])).map(item => [item, saved[item]]));
+  }
+
+  function outfitDyeMaps(owned, saved) {
+    return {
+      clothDyes: { "Field jacket": undyed, "Survey coat": undyed, ...garmentDyes(owned, saved?.clothDyes, styles.jacket) },
+      hatDyes: garmentDyes(owned, saved?.hatDyes, dyeableHats),
+      trouserDyes: garmentDyes(owned, saved?.trouserDyes, dyeableTrousers),
+    };
+  }
+
+  function fittedDefaults(look, previous) {
+    if (!record(look)) return null;
+    const defaults = Object.fromEntries(fittedSlots.map(slot => [slot, previous?.[slot] ?? styles[slot][0]]));
+    return { ...defaults, ...look };
   }
 
   function validLook(look, data) {
     return look && typeof look.name === "string" && look.name.trim().length > 0 && look.name.length <= 24 &&
       Object.entries(styles).every(([slot, options]) => options.includes(look[slot])) &&
-      (look.scarf === undyed || validPigment(look.scarf, data));
+      (look.scarf === undyed || look.scarf === "none" || validPigment(look.scarf, data));
   }
 
   function create(data, { seed } = {}) {
@@ -61,7 +82,7 @@ globalThis.StrideRules = (() => {
       route: data.mine.id, mineReadyAt: 0, mining: null, expedition: null,
       items: [], latest: null, records: {}, visits: {}, pigments: {}, materials: {}, painted: {}, claimed: [], contracts: [],
       muralId: data.mural.id, filledPixels: {},
-      personalHistory: {}, personalSeed: validSeed(seed) ? seed : newPersonalSeed(), recipeBook: [],
+      personalHistory: {}, personalSeed: validSeed(seed) ? seed : newPersonalSeed(), recipeBook: [], lessonUnlocks: [],
       character: null, scarfDyes: [], background: "plain",
       stats: Object.fromEntries(metrics.map((metric) => [metric, 0])),
     };
@@ -114,10 +135,11 @@ globalThis.StrideRules = (() => {
       }
       if (!Array.isArray(saved.scarfDyes)) saved.scarfDyes = [];
       saved.scarfDyes = [...new Set(saved.scarfDyes.filter((id) => validPigment(id, data)))];
+      saved.character = fittedDefaults(saved.character);
       if (!validLook(saved.character, data)) saved.character = null;
       if (saved.character) {
-        if (!saved.scarfDyes.includes(saved.character.scarf)) saved.character.scarf = undyed;
-        saved.character.clothDyes = garmentDyes(saved.scarfDyes, saved.character.clothDyes);
+        if (saved.character.scarf !== "none" && !saved.scarfDyes.includes(saved.character.scarf)) saved.character.scarf = undyed;
+        Object.assign(saved.character, outfitDyeMaps(saved.scarfDyes, saved.character));
       }
       if (saved.version === 2 && record(saved.painted)) {
         for (const [id, spent] of Object.entries(saved.painted)) {
@@ -136,6 +158,9 @@ globalThis.StrideRules = (() => {
       saved.personal = restorePersonalMural(saved.personal, data) ?? assignPersonalMural(saved, data);
       globalThis.StrideCommunity?.restore(saved, data, restoreBoard);
       saved.background = backgroundMural(saved, data)?.id ?? "plain";
+      saved.lessonUnlocks = Array.isArray(saved.lessonUnlocks)
+        ? [...new Set(saved.lessonUnlocks.filter(key => ["pigment", "recipe", "affordable"].includes(key)))] : [];
+      updateLessons(saved, data);
       return saved;
     } catch {
       return fallback ?? create(data);
@@ -156,7 +181,10 @@ globalThis.StrideRules = (() => {
     const rarityAnchor = data.specimenPrices[mineral.rarity].raw;
     const speciesFactor = 0.8 + mineral.base / 10;
     const purityFactor = 0.42 + 1.18 * (item.purity / 10000) ** 2;
-    return Math.max(2, Math.round(rarityAnchor * speciesFactor * purityFactor));
+    // Above 99.00%, fewer possible rolls can match or beat this specimen.
+    const matchingOrBetterRolls = 10001 - item.purity;
+    const collectorPremium = Math.sqrt(101 / Math.min(101, matchingOrBetterRolls));
+    return Math.max(2, Math.round(rarityAnchor * speciesFactor * purityFactor * collectorPremium));
   }
 
   function polishFee(item, data) {
@@ -490,6 +518,8 @@ globalThis.StrideRules = (() => {
 
   function missionProgress(state, data, id) {
     const mission = data.missions[id];
+    if (mission.metric === "pigment-stocked") return Number(state.lessonUnlocks.includes("pigment"));
+    if (mission.metric === "first-stroke") return Math.min(state.stats.painted, mission.goal);
     if (mission.metric === "discovered") return Math.min(mission.goal, Object.keys(state.records).length);
     if (mission.metric === "polish-variety") return Math.min(mission.goal, Object.values(state.records).filter(r => r.polished === true).length);
     if (mission.metric === "recipe-variety") return Math.min(mission.goal, state.recipeBook.length);
@@ -498,6 +528,25 @@ globalThis.StrideRules = (() => {
       ? Math.max(...Object.keys(community.directory(state).groups).map(id => Object.keys(community.board(state, data, id, "fox").filledPixels).length))
       : muralProgress(state, data).filled;
     return Math.min(mission.goal, progress);
+  }
+
+  function updateLessons(state, data) {
+    const unlocks = state.lessonUnlocks;
+    if (!unlocks.includes("pigment") && (state.stats.painted || state.stats.mixed ||
+        state.scarfDyes.length || Object.values(state.pigments).some(units => units > 0))) unlocks.push("pigment");
+    if (!unlocks.includes("recipe") && (state.stats.mixed ||
+        Object.values(data.recipes).some(recipe => hasStock(state, recipe.ingredients)))) unlocks.push("recipe");
+    if (!unlocks.includes("affordable") && (state.stats.polished ||
+        state.items.some(item => !item.polished && state.coins >= polishFee(item, data)))) unlocks.push("affordable");
+  }
+
+  function missionAvailable(state, data, id) {
+    const mission = data.missions[id];
+    if (state.claimed.includes(id)) return true;
+    if (mission.lesson === "first") return true;
+    if (mission.lesson === "discovery") return state.stats.mined > 0;
+    if (mission.lesson) return state.lessonUnlocks.includes(mission.lesson);
+    return rank(state).level >= (mission.level ?? 1);
   }
 
   function rank(state) {
@@ -563,8 +612,11 @@ globalThis.StrideRules = (() => {
       return "New personal mural assigned.";
     },
     wardrobe(state, data, { look, background }) {
+      look = fittedDefaults(look, state.character);
+      const validDye = (id, dyeable) => id === undefined || id === undyed || (dyeable && validPigment(id, data));
       if (!validLook(look, data) ||
-          (look.cloth !== undefined && look.cloth !== undyed && !validPigment(look.cloth, data))) {
+          !validDye(look.cloth, true) || !validDye(look.hatDye, dyeableHats.includes(look.hat)) ||
+          !validDye(look.trouserDye, dyeableTrousers.includes(look.trousers))) {
         fail("Choose a name and valid outfit.");
       }
       const dyes = newOutfitDyes(state, look);
@@ -572,12 +624,18 @@ globalThis.StrideRules = (() => {
       if (background !== undefined) state.background = checkedBackground(state, data, background);
       for (const id of dyes) state.pigments[id]--;
       state.scarfDyes.push(...dyes);
-      const clothDyes = garmentDyes(state.scarfDyes, state.character?.clothDyes);
-      clothDyes[look.jacket] = look.cloth ?? undyed;
+      const previous = state.character;
+      const colours = {
+        clothDyes: { ...previous?.clothDyes, [look.jacket]: look.cloth ?? undyed },
+        hatDyes: { ...previous?.hatDyes },
+        trouserDyes: { ...previous?.trouserDyes },
+      };
+      if (look.hatDye !== undefined) colours.hatDyes[look.hat] = look.hatDye;
+      if (look.trouserDye !== undefined) colours.trouserDyes[look.trousers] = look.trouserDye;
       state.character = Object.fromEntries(Object.keys(styles).map((slot) => [slot, look[slot]]));
       state.character.name = look.name.trim();
       state.character.scarf = look.scarf;
-      state.character.clothDyes = clothDyes;
+      Object.assign(state.character, outfitDyeMaps(state.scarfDyes, colours));
       return "Character saved.";
     },
     mine(state, data, _action, now, random) {
@@ -667,6 +725,7 @@ globalThis.StrideRules = (() => {
       if (!known(data.missions, action.mission)) fail("Unknown mission.");
       const mission = data.missions[action.mission];
       if (state.claimed.includes(action.mission)) fail("This reward has already been claimed.");
+      if (!missionAvailable(state, data, action.mission)) fail("This mission is still locked.");
       if (missionProgress(state, data, action.mission) < mission.goal) fail("Complete the mission first.");
       state.claimed.push(action.mission);
       state.coins += mission.coins;
@@ -675,6 +734,7 @@ globalThis.StrideRules = (() => {
     "claim-contract"(state, data, action) {
       const key = action.contract;
       if (!known(data.contracts, key)) fail("Unknown contract.");
+      if (rank(state).level < (data.contracts[key].level ?? 1)) fail("This contract is still locked.");
       if (state.contracts.includes(key)) fail("This contract has already been claimed.");
       const contract = data.contracts[key];
       if (contract.pigment) {
@@ -774,22 +834,24 @@ globalThis.StrideRules = (() => {
 
   function apply(state, data, action, { now = Date.now(), random = Math.random } = {}) {
     const draft = structuredClone(state);
-    if (globalThis.StrideCommunity && action.type.startsWith("community-")) {
-      globalThis.StrideCommunity.act(draft, data, action);
-      return { state: draft, message: "" };
-    }
+    let message = "";
     if (action.type === "paint" && action.muralId && muralBoard(state, data, action.scope)?.mural.id !== action.muralId) {
       throw Error(globalThis.StrideCommunity?.text("The active mural changed. Try again.", "O mural ativo mudou. Tenta novamente.") ?? "The active mural changed. Try again.");
     }
-    if (["polish", "finish", "crush", "sell"].includes(action.type)) {
-      return { state: draft, message: processItem(draft, data, action) };
+    if (globalThis.StrideCommunity && action.type.startsWith("community-")) {
+      globalThis.StrideCommunity.act(draft, data, action);
+    } else if (["polish", "finish", "crush", "sell"].includes(action.type)) {
+      message = processItem(draft, data, action);
+    } else {
+      if (!known(actions, action.type)) fail("Unknown action.");
+      message = actions[action.type](draft, data, action, now, random);
     }
-    if (!known(actions, action.type)) fail("Unknown action.");
-    return { state: draft, message: actions[action.type](draft, data, action, now, random) };
+    updateLessons(draft, data);
+    return { state: draft, message };
   }
 
   return {
     create, restore, apply, salePrice, polishFee, yieldFrom, muralBoard, muralProgress, nextMuralPixel, missionProgress, backgroundMural, brushStroke,
-    rank, hasStock, contractSpecimens, styles, newOutfitDyes, crushOutput, miningOdds, crewOffers,
+    rank, missionAvailable, hasStock, contractSpecimens, styles, newOutfitDyes, crushOutput, miningOdds, crewOffers,
   };
 })();

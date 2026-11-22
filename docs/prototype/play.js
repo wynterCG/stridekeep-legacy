@@ -31,7 +31,7 @@ const inventoryTabs = [...document.querySelectorAll("[data-inventory-tab]")];
 const inventoryAnchors = new Map(inventoryTabs.map(tab => [tab.getAttribute("aria-controls"), tab.dataset.inventoryTab]));
 const catalogue = Object.entries(data.minerals);
 const sourceMinerals = new Map(catalogue.filter(([, mineral]) => mineral.pigment).map(([id, mineral]) => [mineral.pigment, id]));
-const listPages = { odds: 0, recipe: 0, palette: 0 };
+const listPages = { odds: 0, palette: 0 };
 const searchKey = value => String(value).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 const percentages = new Intl.NumberFormat(language, { maximumFractionDigits: 10 });
 const chanceLabel = chance => `${percentages.format(chance)}%`;
@@ -42,6 +42,7 @@ let state = readSave(rules.create(data), true);
 let selected = state.latest;
 let inspectedPigment = null;
 let journalSelection = null;
+let journalFinish = "Raw";
 let selectedPigment = Object.keys(data.mural.needs)[0];
 let selectedPixel = null;
 let pendingAction;
@@ -112,6 +113,7 @@ function showGameView() {
     }
   }
   if (view === "home" || view === "missions") renderMissions();
+  if (view === "missions") renderContracts();
   if (view === "journal") {
     if (previous !== view && !journalSelection && !byId("journal-query").value && !byId("journal-discovered").checked) {
       const latestId = state.items.find(item => item.id === state.latest)?.mineral;
@@ -173,6 +175,33 @@ function save() {
   write("save-status", storageOn ? "Progress is stored in this browser." : "Progress lasts while this tab is open.");
 }
 
+let discoveryTimeout;
+function showWatchDiscovery(item) {
+  if (gameGrid.dataset.homeMode !== "watch" || !item) return;
+  const mineral = data.minerals[item.mineral];
+  if (rarityOrder.indexOf(mineral.rarity) < rarityOrder.indexOf("Rare")) return;
+  const plate = byId("watch-discovery-template").content.firstElementChild.cloneNode(true);
+  plate.dataset.rarity = mineral.rarity;
+  plate.querySelector("img").src = sprite(item);
+  plate.querySelector(".discovery-tier").textContent = t(mineral.rarity);
+  plate.querySelector(".discovery-name").textContent = t(mineral.name);
+  const miner = state.character?.name ?? t("New miner");
+  const pt = language === "pt-PT";
+  plate.querySelector(".discovery-miner").textContent = pt ? `Descoberto por ${miner}` : `Found by ${miner}`;
+  const quote = rules.salePrice(item, data).toLocaleString(language);
+  const stats = [[t("Purity"), percent(item.purity)], [t("Weight"), grams(item.weight)],
+    [pt ? "Venda em bruto" : "Raw sale", t`${quote} coins`]];
+  plate.querySelectorAll(".discovery-stats > div").forEach((field, index) => {
+    field.querySelector("dt").textContent = stats[index][0];
+    field.querySelector("dd").textContent = stats[index][1];
+  });
+  plate.style.setProperty("--discovery-purity", (item.purity / 100) + "%");
+  const output = byId("watch-discovery");
+  output.replaceChildren(plate);
+  clearTimeout(discoveryTimeout);
+  discoveryTimeout = setTimeout(() => output.replaceChildren(), 12000);
+}
+
 function run(action) {
   if (action.type === "paint") action.muralId = rules.muralBoard(state, data, action.scope)?.mural.id;
   const applyAction = () => {
@@ -206,6 +235,7 @@ function run(action) {
           selected = state.latest;
           inspectedPigment = null;
           byId("find-more").open = false;
+          if (action.type === "mine") showWatchDiscovery(current());
         }
         const acquired = consumed ? data.minerals[consumed.mineral].pigment : action.type === "mix" ? action.recipe : null;
         if (action.type === "mix" && inspectedPigment && !amount(state.pigments, inspectedPigment)) inspectedPigment = acquired;
@@ -284,7 +314,7 @@ function listPage(key, matches, size) {
       const control = button(label);
       control.addEventListener("click", () => {
         listPages[key] += direction;
-        ({ odds: renderOdds, recipe: renderRecipes, palette: renderPalette })[key]();
+        ({ odds: renderOdds, palette: renderPalette })[key]();
       });
       controls.append(control);
       if (direction < 0) {
@@ -347,6 +377,23 @@ function tickMining() {
   control.textContent = t(remaining > 0 ? "Mining…" : "Collect find");
 }
 
+function renderMineralHints(container, mineral) {
+  const pigment = mineral.pigment;
+  const needed = pigment && ["personal", "community"].some(scope => {
+    const board = rules.muralBoard(state, data, scope);
+    if (!board) return false;
+    return Object.entries(board.mural.needs).some(([colour, targets]) => {
+      const outstanding = targets.length - amount(board.painted, colour) - amount(state.pigments, colour);
+      if (outstanding <= 0) return false;
+      if (colour === pigment) return true;
+      const units = data.recipes[colour]?.ingredients[pigment] ?? 0;
+      return units * outstanding > amount(state.pigments, pigment);
+    });
+  });
+  container.hidden = !needed;
+  container.textContent = needed ? t`Colour needed · ${data.pigments[pigment].name}` : "";
+}
+
 function renderFind() {
   if (!current()) selected = state.items.find((item) => item.id === state.latest)?.id ?? state.items[0]?.id;
   const item = current();
@@ -388,6 +435,7 @@ function renderFind() {
   write("find-weight", grams(item.weight));
   write("find-best", percent(record.purity));
   write("find-heaviest", grams(record.weight));
+  renderMineralHints(byId("find-hints"), mineral);
   const fee = rules.polishFee(item, data);
   byId("polish-button").disabled = item.polished || state.coins < fee;
   byId("polish-funding").hidden = item.polished || state.coins >= fee;
@@ -658,7 +706,8 @@ function renderRecipes() {
     const names = [recipe.name, ...Object.keys(recipe.ingredients).map(id => data.pigments[id].name)];
     return names.some(name => searchKey(t(name)).includes(query));
   });
-  byId("recipe-list").replaceChildren(...listPage("recipe", matches, 8).map(([id, recipe]) => recipeRow(id, recipe)));
+  byId("recipe-list").replaceChildren(...matches.map(([id, recipe]) => recipeRow(id, recipe)));
+  byId("recipe-empty").hidden = matches.length > 0;
 }
 
 function renderPalette() {
@@ -667,7 +716,11 @@ function renderPalette() {
   const source = byId("palette-source").value;
   const matches = Object.entries(data.pigments).filter(([id, pigment]) =>
     (!source || source === (data.recipes[id] ? "recipe" : "base")) && searchKey(t(pigment.name)).includes(query));
-  const rows = listPage("palette", matches, 16).map(([id, pigment]) => {
+  const blends = source === "recipe";
+  byId("palette-pages").hidden = blends;
+  byId("palette-list").classList.toggle("scroll-blends", blends);
+  byId("palette-empty").hidden = !blends || matches.length > 0;
+  const rows = (blends ? matches : listPage("palette", matches, 16)).map(([id, pigment]) => {
     const row = element("li");
     const detail = element("div");
     detail.append(element("strong", "", pigment.name));
@@ -753,12 +806,27 @@ function renderGearComparison() {
 
 function renderMissions() {
   const home = gameGrid.dataset.view === "home";
-  write("mission-title", home ? "Current mission" : "Missions");
-  const missions = Object.entries(data.missions).map(([id, mission]) => ({
+  const level = rules.rank(state).level;
+  const available = Object.entries(data.missions).filter(([id]) => rules.missionAvailable(state, data, id));
+  const missions = available.map(([id, mission]) => ({
     id, mission, progress: rules.missionProgress(state, data, id), claimed: state.claimed.includes(id),
   }));
   const pending = missions.filter(entry => !entry.claimed);
-  const featured = pending.find(entry => entry.progress >= entry.mission.goal) ?? pending[0];
+  const ready = pending.find(entry => entry.progress >= entry.mission.goal);
+  const regular = level >= 2 ? pending.find(entry => !entry.mission.lesson) : null;
+  const canCrush = state.items.some(item => !item.polished && !item.protected && data.minerals[item.mineral].pigment);
+  const canPolish = state.items.some(item => !item.polished && state.coins >= rules.polishFee(item, data));
+  const nextLesson = pending.find(({ id }) => {
+    if (id === "first-pigment") return canCrush;
+    if (id === "polish") return canPolish;
+    if (id === "sell") return state.items.some(item => !item.protected);
+    if (id === "mix") return Object.values(data.recipes).some(recipe => rules.hasStock(state, recipe.ingredients));
+    return true;
+  });
+  const featured = ready ?? regular ?? nextLesson ?? pending[0];
+  const spotlight = home && level === 1 && Boolean(featured?.mission.lesson);
+  byId("missions").classList.toggle("tutorial-spotlight", spotlight);
+  write("mission-title", home ? (spotlight ? "Guided mission" : "Current mission") : "Missions");
   const visible = home ? (featured ? [featured] : []) : missions;
   const rows = visible.map(({ id, mission, progress, claimed }) => {
     const row = element("div", "work-row mission-row");
@@ -777,16 +845,35 @@ function renderMissions() {
     const claim = button(claimed ? "Claimed" : "Claim", claimed || progress < mission.goal);
     claim.dataset.mission = id;
     row.append(detail, claim);
+    if (spotlight && progress < mission.goal) {
+      const destinations = {
+        first: ["#mine", "Go to the mine"], "first-pigment": canCrush ? ["#find", "Inspect a specimen"] : ["#mine", "Go to the mine"],
+        sell: ["#find", "Inspect a specimen"], polish: ["#find", "Inspect a specimen"],
+        "first-pixel": ["#mural", "Open murals"], mix: ["#workshop", "Open the workshop"],
+      };
+      const [href, label] = destinations[id];
+      const link = element("a", "tutorial-destination", label);
+      link.href = href;
+      row.append(link);
+    }
     return row;
   });
   byId("mission-list").replaceChildren(...rows);
   byId("view-all-missions").hidden = !home;
   byId("rank-progress").hidden = home;
   byId("empty-home-missions").hidden = !home || rows.length > 0;
+  const next = Object.values(data.missions).filter(m => m.level > level).sort((a, b) => a.level - b.level)[0];
+  const preview = state.stats.mined === 0 ? "After your first find: First pigment"
+    : level === 1 && !state.lessonUnlocks.includes("pigment") ? "After your first pigment: First brushstroke"
+    : next ? t`Next at level ${next.level}: ${t(next.name)}` : "";
+  byId("mission-preview").hidden = home || !preview;
+  if (preview) write("mission-preview", preview);
 }
 
 function renderContracts() {
-  const contracts = Object.entries(data.contracts);
+  const level = rules.rank(state).level;
+  const contracts = Object.entries(data.contracts).filter(([id, c]) => state.contracts.includes(id) || level >= c.level);
+  byId("contracts").hidden = gameGrid.dataset.view !== "missions" || !contracts.length;
   byId("contract-list").replaceChildren(...contracts.map(([id, contract]) => contractRow(id, contract)));
   write("contract-progress", t`${state.contracts.length}/${contracts.length} complete`);
 }
@@ -828,47 +915,55 @@ function contractRow(id, contract) {
 }
 
 function renderJournal() {
-  const discoveries = catalogue.filter(([id]) => state.records[id]).length;
+  const records = Object.values(state.records);
+  const discoveries = records.length + records.filter(record => record.polished).length;
+  const total = catalogue.length * 2;
   const query = searchKey(byId("journal-query").value).replace(/^#/, "");
   const discoveredOnly = byId("journal-discovered").checked;
-  const matches = catalogue.map(([id, mineral], index) => ({ id, mineral, index })).filter(({ id, mineral, index }) => {
-    if (!state.records[id] && discoveredOnly) return false;
-    return String(index + 1).padStart(3, "0").includes(query) || (state.records[id] && searchKey(t(mineral.name)).includes(query));
-  });
-  if (!matches.some(({ id }) => id === journalSelection && state.records[id])) {
-    journalSelection = matches.find(({ id }) => state.records[id])?.id ?? null;
-  }
-  const entries = matches.map(({ id, mineral, index }) => {
-    const found = Boolean(state.records[id]);
-    const row = element("li", "journal-entry");
-    row.dataset.slot = index + 1;
-    row.dataset.discovered = found;
-    const slot = found ? button("") : element("div");
-    slot.className = "journal-slot";
-    const number = "#" + String(index + 1).padStart(3, "0");
-    slot.append(element("span", "journal-number", number));
-    if (found) {
-      const icon = element("img");
-      icon.loading = "lazy";
-      icon.src = sprite({ mineral: id });
-      icon.alt = "";
-      slot.dataset.mineral = id;
-      slot.setAttribute("aria-pressed", String(id === journalSelection));
-      slot.append(icon, element("strong", "journal-name", mineral.name));
-    } else {
-      row.setAttribute("aria-label", number + " · " + t("Unknown mineral"));
-      slot.append(element("span", "journal-mystery", "?"));
+  const entries = [];
+  const buttons = [];
+  for (const [index, [id, mineral]] of catalogue.entries()) {
+    const record = state.records[id];
+    const number = String(index + 1).padStart(3, "0");
+    if (!number.includes(query) && !(record && searchKey(t(mineral.name)).includes(query))) continue;
+    for (const finish of ["Raw", "Polished"]) {
+      const found = Boolean(finish === "Raw" ? record : record?.polished);
+      if (discoveredOnly && !found) continue;
+      const row = element("li", "journal-entry");
+      row.dataset.slot = index + 1;
+      row.dataset.discovered = found;
+      const slot = found ? button("") : element("div");
+      slot.className = "journal-slot";
+      slot.append(element("span", "journal-number", "#" + number + " · " + t(finish)));
+      if (found) {
+        const icon = element("img");
+        icon.tabIndex = -1;
+        icon.loading = "lazy";
+        icon.src = sprite({ mineral: id, polished: finish === "Polished" });
+        icon.alt = "";
+        slot.dataset.mineral = id;
+        slot.dataset.finish = finish;
+        slot.append(icon, element("strong", "journal-name", mineral.name));
+        buttons.push(slot);
+      } else {
+        row.setAttribute("aria-label", "#" + number + " · " + t(finish) + " · " + t("Undiscovered"));
+        slot.append(element("span", "journal-mystery", "?"));
+      }
+      row.append(slot);
+      entries.push(row);
     }
-    row.append(slot);
-    return row;
-  });
+  }
+  const active = buttons.find(slot => slot.dataset.mineral === journalSelection && slot.dataset.finish === journalFinish) ?? buttons[0];
+  journalSelection = active?.dataset.mineral ?? null;
+  journalFinish = active?.dataset.finish ?? "Raw";
+  for (const slot of buttons) slot.setAttribute("aria-pressed", String(slot === active));
   byId("journal-list").replaceChildren(...entries);
-  byId("journal-no-results").hidden = matches.length > 0;
+  byId("journal-no-results").hidden = entries.length > 0;
   renderJournalDetail();
-  const progress = t`${discoveries}/${catalogue.length} discovered`;
+  const progress = t`${discoveries}/${total} forms discovered`;
   write("journal-progress", progress);
   const meter = byId("journal-meter");
-  meter.max = catalogue.length;
+  meter.max = total;
   meter.value = discoveries;
   meter.setAttribute("aria-valuetext", progress);
 }
@@ -886,8 +981,13 @@ function renderJournalDetail() {
   write("journal-rarity", mineral.rarity);
   byId("journal-rarity").dataset.rarity = mineral.rarity;
   byId("journal-raw").src = sprite({ mineral: journalSelection });
-  byId("journal-polished").src = sprite({ mineral: journalSelection, polished: true });
-  write("journal-polish-status", record.polished ? "Polished in your collection" : "Polished preview");
+  const polished = byId("journal-polished");
+  if (record.polished) polished.src = sprite({ mineral: journalSelection, polished: true });
+  else polished.removeAttribute("src");
+  polished.hidden = !record.polished;
+  byId("journal-locked").hidden = Boolean(record.polished);
+  renderMineralHints(byId("journal-hints"), mineral);
+  write("journal-polish-status", record.polished ? "Polished in your collection" : "Polished form undiscovered");
   write("journal-purity", percent(record.purity));
   write("journal-weight", grams(record.weight));
   byId("journal-purity-meter").value = record.purity;
@@ -897,6 +997,7 @@ byId("journal-list").addEventListener("click", event => {
   const slot = event.target.closest("button[data-mineral]");
   if (!slot) return;
   journalSelection = slot.dataset.mineral;
+  journalFinish = slot.dataset.finish;
   for (const entry of byId("journal-list").querySelectorAll("button")) {
     entry.setAttribute("aria-pressed", String(entry === slot));
   }
@@ -1010,17 +1111,90 @@ function renderExperience(rank, meterId, textId) {
   meter.setAttribute("aria-valuetext", experience);
 }
 
-const starterLook = { name: "", skin: "Ochre", hair: "Long braid", face: "Freckles", jacket: "Field jacket", hat: "Miner’s cap", scarf: "undyed" };
-const slotLabels = { skin: "Skin tone", hair: "Hair", face: "Face", jacket: "Clothing", hat: "Headwear" };
+const starterLook = {
+  name: "", skin: "Ochre", hair: "Long braid", head: "base", face: "Freckles", jacket: "Field jacket",
+  hat: "Miner’s cap", trousers: "work-pants", boots: "work-boots", scarf: "none",
+};
+const slotLabels = {
+  head: "Face shape", face: "Facial details", skin: "Skin tone", hair: "Hair",
+  hat: "Headwear", jacket: "Clothing", trousers: "Trousers", boots: "Boots",
+};
+const pieceNames = {
+  base: "Original", sunny: "Freckled smile", keen: "Sharp features", veteran: "Weathered",
+  dimple: "Dimpled", stout: "Strong brow", quiet: "Soft gaze",
+  "watch-cap": "Cable-knit cap", "pith-helmet": "Expedition helmet", beret: "Painter’s beret",
+  alpine: "Alpine felt hat", baker: "Baker boy cap", trail: "Trail hat", stovepipe: "Workshop top hat",
+  trapper: "Trapper hat", peaked: "Peaked cap",
+  "Field jacket": "Field shirt", waistcoat: "Tool waistcoat", capelet: "Clasped capelet",
+  apron: "Lapidary apron", "lace-shirt": "Lace-up shirt", henley: "Short-sleeved henley",
+  sailor: "Sailor shirt", "cable-knit": "Cable-knit jumper", quilted: "Quilted jacket", hoodie: "Hooded sweatshirt",
+  "work-pants": "Miner’s trousers", cargo: "Cargo trousers", corduroy: "Pleated cords",
+  "knee-patch": "Reinforced trousers", riding: "Riding breeches", pinstripe: "Pinstripe trousers", joggers: "Drawstring joggers",
+  "work-boots": "Miner’s boots", ranger: "Ranger boots", "steel-toe": "Steel-toe boots",
+  "canvas-boots": "Canvas boots", buckle: "Buckle boots", brogue: "Brogue boots", waders: "Rubber boots",
+};
+const imageSlots = ["head", "hat", "jacket", "trousers", "boots"];
+const pieceCategory = byId("piece-category");
+const pieceGallery = byId("piece-gallery");
 const wardrobe = byId("wardrobe-form");
-for (const [slot, choices] of Object.entries(rules.styles)) {
+for (const [slot, title] of Object.entries(slotLabels)) {
   const label = element("label");
   const control = element("select");
   control.id = "look-" + slot;
-  control.replaceChildren(...choices.map((choice) => option(choice, choice === "Field jacket" ? "Field shirt" : choice)));
-  label.append(element("span", "", slotLabels[slot]), control);
+  control.replaceChildren(...rules.styles[slot].map(choice => option(choice, pieceNames[choice] ?? choice)));
+  label.append(element("span", "", title), control);
   byId("look-options").append(label);
 }
+pieceCategory.replaceChildren(...imageSlots.map(slot => option(slot, slotLabels[slot])));
+pieceCategory.value = "jacket";
+
+function galleryIcon(choice) {
+  if (choice === "Bareheaded") return null;
+  const parts = "prototype/character/parts/";
+  if (choice === "Miner’s cap") return parts + "head/cap.webp";
+  const slug = { "Field jacket": "field-shirt", "Survey coat": "survey-coat" }[choice] ?? choice;
+  return parts + "wardrobe/icons/" + slug + ".webp";
+}
+
+function showPieceGallery() {
+  if (!byId("piece-browser").open) return;
+  const slot = pieceCategory.value;
+  const control = byId("look-" + slot);
+  if (pieceGallery.dataset.slot !== slot) {
+    const tiles = rules.styles[slot].map(choice => {
+      const tile = button(pieceNames[choice] ?? choice);
+      tile.dataset.choice = choice;
+      const icon = galleryIcon(choice);
+      if (icon) {
+        const swatch = element("span", "piece-icon");
+        swatch.style.backgroundImage = `url("${icon}")`;
+        swatch.setAttribute("aria-hidden", "true");
+        tile.prepend(swatch);
+      } else {
+        const empty = element("span", "no-headwear", "∅");
+        empty.setAttribute("aria-hidden", "true");
+        tile.prepend(empty);
+      }
+      return tile;
+    });
+    pieceGallery.replaceChildren(...tiles);
+    pieceGallery.dataset.slot = slot;
+  }
+  for (const tile of pieceGallery.children) {
+    tile.setAttribute("aria-pressed", String(tile.dataset.choice === control.value));
+  }
+}
+
+byId("piece-browser").addEventListener("toggle", showPieceGallery);
+pieceCategory.addEventListener("input", showPieceGallery);
+pieceGallery.addEventListener("click", event => {
+  const tile = event.target.closest("[data-choice]");
+  if (!tile) return;
+  const control = byId("look-" + pieceCategory.value);
+  control.value = tile.dataset.choice;
+  control.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
 function prepareDyes() {
   const unlocked = new Set(state.scarfDyes);
   const groups = ["Unlocked dyes", "Pigments in stock", "Preview colours"].map(label => {
@@ -1034,12 +1208,22 @@ function prepareDyes() {
     groups[group].append(option(id, pigment.name));
   }
   const available = groups.filter(group => group.children.length);
-  byId("scarf-dye").replaceChildren(option("undyed", "Natural linen"), ...available.map(group => group.cloneNode(true)));
-  byId("cloth-dye").replaceChildren(option("undyed", "Undyed fabric"), ...available);
+  byId("scarf-dye").replaceChildren(option("none", "No scarf"), option("undyed", "Natural linen"), ...available.map(group => group.cloneNode(true)));
+  for (const id of ["cloth-dye", "hat-dye", "trouser-dye"]) {
+    byId(id).replaceChildren(option("undyed", "Undyed fabric"), ...available.map(group => group.cloneNode(true)));
+  }
 }
 
-function selectGarmentDye() {
-  byId("cloth-dye").value = state.character?.clothDyes?.[byId("look-jacket").value] ?? "undyed";
+const garmentDyeFields = {
+  jacket: { control: "cloth-dye", saved: "clothDyes" }, hat: { control: "hat-dye", saved: "hatDyes" },
+  trousers: { control: "trouser-dye", saved: "trouserDyes" },
+};
+function selectGarmentDye(slot) {
+  const { control, saved } = garmentDyeFields[slot];
+  const choice = byId("look-" + slot).value;
+  const dye = byId(control);
+  dye.disabled = ["Bareheaded", "Miner’s cap", "work-pants"].includes(choice);
+  dye.value = dye.disabled ? "undyed" : state.character?.[saved]?.[choice] ?? "undyed";
 }
 
 function openWardrobe() {
@@ -1050,7 +1234,8 @@ function openWardrobe() {
   for (const slot of Object.keys(rules.styles)) byId("look-" + slot).value = look[slot];
   byId("scarf-dye").value = look.scarf;
   byId("wardrobe-feedback").hidden = true;
-  selectGarmentDye();
+  for (const slot of Object.keys(garmentDyeFields)) selectGarmentDye(slot);
+  showPieceGallery();
   if (previewDye) {
     byId("cloth-dye").value = previewDye;
     previewDye = null;
@@ -1060,7 +1245,10 @@ function openWardrobe() {
 }
 
 function readOutfit() {
-  const look = { name: byId("character-name").value.trim(), scarf: byId("scarf-dye").value, cloth: byId("cloth-dye").value };
+  const look = {
+    name: byId("character-name").value.trim(), scarf: byId("scarf-dye").value, cloth: byId("cloth-dye").value,
+    hatDye: byId("hat-dye").value, trouserDye: byId("trouser-dye").value,
+  };
   for (const slot of Object.keys(rules.styles)) look[slot] = byId("look-" + slot).value;
   return look;
 }
@@ -1085,9 +1273,13 @@ function completedBackground(background) {
 
 function drawLook(canvas, look, backgroundId = state.background, portrait = false) {
   const cloth = look.cloth ?? look.clothDyes?.[look.jacket];
+  const hatDye = look.hatDye ?? look.hatDyes?.[look.hat];
+  const trouserDye = look.trouserDye ?? look.trouserDyes?.[look.trousers];
+  const scarfColour = look.scarf === "none" ? null : data.pigments[look.scarf]?.color ?? "#d8b48b";
   const background = completedBackground(backgroundId);
   const carry = data.tools[state.equipped].carry ?? state.equipped;
-  globalThis.drawStrideCharacter(canvas, look, data.pigments[look.scarf]?.color ?? "#d8b48b", carry, portrait, data.pigments[cloth]?.color, background)
+  globalThis.drawStrideCharacter(canvas, look, scarfColour, carry, portrait, data.pigments[cloth]?.color, background,
+    data.pigments[hatDye]?.color, data.pigments[trouserDye]?.color)
     .catch(() => announce("The character art could not be loaded."));
 }
 
@@ -1117,7 +1309,14 @@ function renderCharacter() {
   }
 }
 
-byId("look-jacket").addEventListener("input", selectGarmentDye);
+byId("look-options").addEventListener("input", event => {
+  const slot = event.target.id.slice("look-".length);
+  if (Object.hasOwn(garmentDyeFields, slot)) selectGarmentDye(slot);
+  if (imageSlots.includes(slot)) {
+    pieceCategory.value = slot;
+    showPieceGallery();
+  }
+});
 byId("character-background").addEventListener("change", event => {
   draftBackground = event.target.value;
   byId("wardrobe-feedback").hidden = true;
@@ -1249,15 +1448,15 @@ for (const id of ["journal-query", "journal-discovered"]) {
     byId("journal-list").scrollTop = 0;
   });
 }
-for (const [key, renderList, controls] of [
-  ["recipe", renderRecipes, ["recipe-query", "recipe-ready"]],
-  ["palette", renderPalette, ["palette-query", "palette-source"]],
-]) {
-  for (const id of controls) byId(id).addEventListener("input", () => {
-    listPages[key] = 0;
-    renderList();
-  });
-}
+for (const id of ["recipe-query", "recipe-ready"]) byId(id).addEventListener("input", () => {
+  byId("recipe-list").scrollTop = 0;
+  renderRecipes();
+});
+for (const id of ["palette-query", "palette-source"]) byId(id).addEventListener("input", () => {
+  byId("palette-list").scrollTop = 0;
+  listPages.palette = 0;
+  renderPalette();
+});
 byId("mine-odds").closest("details").addEventListener("toggle", renderOdds);
 byId("palette-book").addEventListener("toggle", renderPalette);
 onChoice("pigment-actions", "recipe", (recipe) => run({ type: "mix", recipe }));

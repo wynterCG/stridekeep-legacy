@@ -56,6 +56,9 @@ globalThis.StrideCommunityUI = (() => {
       if (await send("community-create", { name: name.value })) { name.value = ""; groups.open = false; }
     };
 
+    root.append(bar, groups);
+    ui = { root, guild, work, contributions };
+    if (!model.illustratedMuralCreation) return;
     const studio = node("details");
     studio.append(node("summary", tr("Create an illustrated mural", "Criar um mural ilustrado")));
     const editor = node("div");
@@ -96,8 +99,8 @@ globalThis.StrideCommunityUI = (() => {
     preview.append(comparison, status, costs, launch);
     editor.append(fields, preview);
     studio.append(editor);
-    root.append(bar, groups, studio);
-    ui = { root, guild, work, contributions, studio, source, file, fileLabel, title, size, swatches, backing, original, canvas, costs, status, launch };
+    root.append(studio);
+    Object.assign(ui, { studio, source, file, fileLabel, title, size, swatches, backing, original, canvas, costs, status, launch });
     const changeSource = () => { loadImage(); };
     source.onchange = changeSource;
     file.onchange = changeSource;
@@ -205,8 +208,7 @@ globalThis.StrideCommunityUI = (() => {
     current = state; catalog = data; dispatch = run;
     const directory = model.directory(state);
     const entry = directory.groups[directory.active];
-    if (active !== directory.active || seed !== state.personalSeed) {
-      active = directory.active;
+    if (ui.studio && (active !== directory.active || seed !== state.personalSeed)) {
       seed = state.personalSeed;
       selected = new Set(starter());
       lastPalette = "";
@@ -217,10 +219,11 @@ globalThis.StrideCommunityUI = (() => {
       ui.file.value = "";
       ui.fileLabel.hidden = true;
     }
+    active = directory.active;
     options(ui.guild, Object.entries(directory.groups).map(([id, entry]) => [id, model.groupTitle(entry)]), active);
     options(ui.work, [["fox", nameOf(data.mural.name)], ...Object.entries(entry.works).map(([id, entry]) => [id, entry.mural.name])], entry.selected);
     ui.contributions.textContent = tr("Pixels you painted here", "Píxeis que pintaste neste mural") + " · " + Object.keys(model.board(state, data).filledPixels).length;
-    updatePalette();
+    if (ui.studio) updatePalette();
   }
   return { render };
 })();
