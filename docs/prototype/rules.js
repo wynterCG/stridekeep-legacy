@@ -109,6 +109,8 @@ globalThis.StrideRules = (() => {
       for (const item of saved.items) {
         if (item.protected !== true) delete item.protected;
         if (!item.polished || item.finish !== highGloss) delete item.finish;
+        const entry = saved.records[item.mineral] ??= { purity: item.purity, weight: item.weight };
+        if (item.polished) entry.polished = true;
       }
       if (!Array.isArray(saved.scarfDyes)) saved.scarfDyes = [];
       saved.scarfDyes = [...new Set(saved.scarfDyes.filter((id) => validPigment(id, data)))];
@@ -149,8 +151,28 @@ globalThis.StrideRules = (() => {
     return ["complete", "claimed"].includes(group.phase) && group.worked && group.stage === mission.stages.length - 1;
   }
 
+  function rawSalePrice(item, data) {
+    const mineral = data.minerals[item.mineral];
+    const rarityAnchor = data.specimenPrices[mineral.rarity].raw;
+    const speciesFactor = 0.8 + mineral.base / 10;
+    const purityFactor = 0.42 + 1.18 * (item.purity / 10000) ** 2;
+    return Math.max(2, Math.round(rarityAnchor * speciesFactor * purityFactor));
+  }
+
+  function polishFee(item, data) {
+    const rawValue = rawSalePrice(item, data);
+    const rarityPercent = data.specimenPrices[data.minerals[item.mineral].rarity].polishPercent;
+    const purityPercent = 8 * item.purity / 10000;
+    const grams = item.weight / 10;
+    const weightPercent = 24 * grams / (grams + 15);
+    const quote = Math.round(rawValue * (rarityPercent + purityPercent + weightPercent) / 100);
+    if (rarityPercent > 100) return Math.max(rawValue + 1, quote);
+    return Math.max(1, Math.min(Math.floor(rawValue / 2), quote));
+  }
+
   function salePrice(item, data) {
-    return Math.max(2, data.minerals[item.mineral].base * 6 + Math.round((item.purity - 7000) / 180));
+    const raw = rawSalePrice(item, data);
+    return item.polished ? raw + Math.floor(polishFee(item, data) / 2) : raw;
   }
 
   function yieldFrom(item) {
@@ -469,6 +491,7 @@ globalThis.StrideRules = (() => {
   function missionProgress(state, data, id) {
     const mission = data.missions[id];
     if (mission.metric === "discovered") return Math.min(mission.goal, Object.keys(state.records).length);
+    if (mission.metric === "polish-variety") return Math.min(mission.goal, Object.values(state.records).filter(r => r.polished === true).length);
     if (mission.metric === "recipe-variety") return Math.min(mission.goal, state.recipeBook.length);
     const community = globalThis.StrideCommunity;
     const progress = mission.metric !== "painted" ? state.stats[mission.metric] : community
@@ -496,6 +519,7 @@ globalThis.StrideRules = (() => {
     state.items.unshift(item);
     state.latest = item.id;
     state.records[item.mineral] = {
+      ...previous,
       purity: Math.max(previous.purity, item.purity), weight: Math.max(previous.weight, item.weight),
     };
     return { item, record };
@@ -715,9 +739,13 @@ globalThis.StrideRules = (() => {
     const mineral = data.minerals[item.mineral];
     if (action.type === "polish") {
       if (item.polished) fail("This specimen is already polished.");
+      const fee = polishFee(item, data);
+      if (state.coins < fee) fail("You need more coins.");
+      state.coins -= fee;
       item.polished = true;
       state.stats.polished++;
-      return t`${mineral.name} polished. Its purity is preserved.`;
+      state.records[item.mineral].polished = true;
+      return fee === 1 ? t`${mineral.name} polished for 1 coin.` : t`${mineral.name} polished for ${fee} coins.`;
     }
     if (action.type === "finish") {
       if (!item.polished) fail("Polish this specimen first.");
@@ -761,7 +789,7 @@ globalThis.StrideRules = (() => {
   }
 
   return {
-    create, restore, apply, salePrice, yieldFrom, muralBoard, muralProgress, nextMuralPixel, missionProgress, backgroundMural, brushStroke,
+    create, restore, apply, salePrice, polishFee, yieldFrom, muralBoard, muralProgress, nextMuralPixel, missionProgress, backgroundMural, brushStroke,
     rank, hasStock, contractSpecimens, styles, newOutfitDyes, crushOutput, miningOdds, crewOffers,
   };
 })();

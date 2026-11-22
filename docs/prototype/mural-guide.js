@@ -17,6 +17,19 @@
   }
   heading(header, "Mineral", "col");
   heading(header, t("Find chances"), "col");
+  const prices = document.getElementById("guide-pick-prices");
+  const priceHeader = prices.createTHead().insertRow();
+  for (const label of ["Pickaxe", "Price (coins)", "Rare or higher"]) heading(priceHeader, t(label), "col");
+  const priceRows = prices.createTBody();
+  const priceFormat = new Intl.NumberFormat(document.documentElement.lang, { maximumFractionDigits: 2 });
+  for (const [id, pick] of pickaxes) {
+    const chance = Object.entries(rules.miningOdds(data, id)).reduce((sum, [key, odds]) =>
+      sum + (["Common", "Uncommon"].includes(data.minerals[key].rarity) ? 0 : odds), 0);
+    const row = priceRows.insertRow();
+    heading(row, t(pick.name), "row");
+    row.insertCell().textContent = priceFormat.format(pick.cost);
+    row.insertCell().textContent = priceFormat.format(chance) + "%";
+  }
   const body = oddsTable.createTBody();
   const picker = document.createElement("select");
   for (const [id, pick] of pickaxes) picker.add(new Option(t(pick.name), id));

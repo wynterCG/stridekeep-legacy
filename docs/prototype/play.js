@@ -31,8 +31,7 @@ const inventoryTabs = [...document.querySelectorAll("[data-inventory-tab]")];
 const inventoryAnchors = new Map(inventoryTabs.map(tab => [tab.getAttribute("aria-controls"), tab.dataset.inventoryTab]));
 const catalogue = Object.entries(data.minerals);
 const sourceMinerals = new Map(catalogue.filter(([, mineral]) => mineral.pigment).map(([id, mineral]) => [mineral.pigment, id]));
-const listPages = { odds: 0, journal: 0, recipe: 0, palette: 0 };
-const journalPageSize = 12;
+const listPages = { odds: 0, recipe: 0, palette: 0 };
 const searchKey = value => String(value).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 const percentages = new Intl.NumberFormat(language, { maximumFractionDigits: 10 });
 const chanceLabel = chance => `${percentages.format(chance)}%`;
@@ -118,11 +117,11 @@ function showGameView() {
       const latestId = state.items.find(item => item.id === state.latest)?.mineral;
       const index = catalogue.findIndex(([id]) => latestId ? id === latestId : state.records[id]);
       if (index >= 0) {
-        listPages.journal = Math.floor(index / journalPageSize);
         journalSelection = catalogue[index][0];
       }
     }
     renderJournal();
+    if (previous !== view) byId("journal-list").querySelector("[aria-pressed=true]")?.scrollIntoView({ block: "nearest" });
   }
   if (view === "workshop") {
     renderRecipes();
@@ -285,7 +284,7 @@ function listPage(key, matches, size) {
       const control = button(label);
       control.addEventListener("click", () => {
         listPages[key] += direction;
-        ({ odds: renderOdds, recipe: renderRecipes, journal: renderJournal, palette: renderPalette })[key]();
+        ({ odds: renderOdds, recipe: renderRecipes, palette: renderPalette })[key]();
       });
       controls.append(control);
       if (direction < 0) {
@@ -389,7 +388,13 @@ function renderFind() {
   write("find-weight", grams(item.weight));
   write("find-best", percent(record.purity));
   write("find-heaviest", grams(record.weight));
-  byId("polish-button").disabled = item.polished;
+  const fee = rules.polishFee(item, data);
+  byId("polish-button").disabled = item.polished || state.coins < fee;
+  byId("polish-funding").hidden = item.polished || state.coins >= fee;
+  byId("polish-offer").hidden = item.polished;
+  if (!item.polished) write("polish-offer", t`Shop offer after polishing: ${rules.salePrice({ ...item, polished: true }, data)} coins.`);
+  const polishLabel = fee === 1 ? "Polish · 1 coin" : t`Polish · ${fee} coins`;
+  write("polish-button", item.polished ? "Polished" : polishLabel);
   byId("collector-note").hidden = !mineral.collectibleOnly;
   byId("crush-button").hidden = Boolean(mineral.collectibleOnly);
   byId("crush-button").disabled = item.polished || Boolean(mineral.collectibleOnly) || Boolean(item.protected);
@@ -397,7 +402,7 @@ function renderFind() {
   byId("protect-button").setAttribute("aria-pressed", String(Boolean(item.protected)));
   write("protect-button", item.protected ? "Remove protection" : "Protect specimen");
   write("crush-button", mineral.material ? "Crush for powder" : "Crush");
-  write("sell-button", t`Sell · ${rules.salePrice(item, data)}`);
+  write("sell-button", t`Sell · ${rules.salePrice(item, data)} coins`);
   const powder = amount(state.materials, "diamond-powder");
   byId("finish-controls").hidden = !item.polished || item.finish === "high-gloss";
   byId("finish-button").disabled = powder === 0;
@@ -700,7 +705,7 @@ function renderGear() {
     const owned = state.owned.includes(id);
     const equipped = state.equipped === id;
     const blocked = tool.requires && !state.owned.includes(tool.requires);
-    const label = owned ? (equipped ? "Equipped" : "Equip") : t`Buy · ${tool.cost}`;
+    const label = owned ? (equipped ? "Equipped" : "Equip") : t`Buy · ${tool.cost} coins`;
     const control = button(label, equipped || (!owned && (blocked || state.coins < tool.cost)));
     control.dataset.tool = id;
     detail.append(element("strong", "", tool.name), element("small", "", tool.detail));
@@ -830,11 +835,10 @@ function renderJournal() {
     if (!state.records[id] && discoveredOnly) return false;
     return String(index + 1).padStart(3, "0").includes(query) || (state.records[id] && searchKey(t(mineral.name)).includes(query));
   });
-  const page = listPage("journal", matches, journalPageSize);
-  if (!page.some(({ id }) => id === journalSelection && state.records[id])) {
-    journalSelection = page.find(({ id }) => state.records[id])?.id ?? null;
+  if (!matches.some(({ id }) => id === journalSelection && state.records[id])) {
+    journalSelection = matches.find(({ id }) => state.records[id])?.id ?? null;
   }
-  const entries = page.map(({ id, mineral, index }) => {
+  const entries = matches.map(({ id, mineral, index }) => {
     const found = Boolean(state.records[id]);
     const row = element("li", "journal-entry");
     row.dataset.slot = index + 1;
@@ -845,6 +849,7 @@ function renderJournal() {
     slot.append(element("span", "journal-number", number));
     if (found) {
       const icon = element("img");
+      icon.loading = "lazy";
       icon.src = sprite({ mineral: id });
       icon.alt = "";
       slot.dataset.mineral = id;
@@ -858,6 +863,7 @@ function renderJournal() {
     return row;
   });
   byId("journal-list").replaceChildren(...entries);
+  byId("journal-no-results").hidden = matches.length > 0;
   renderJournalDetail();
   const progress = t`${discoveries}/${catalogue.length} discovered`;
   write("journal-progress", progress);
@@ -872,7 +878,7 @@ function renderJournalDetail() {
   byId("journal-species").hidden = !record;
   byId("journal-empty").hidden = Boolean(record);
   if (!record) {
-    write("journal-empty", Object.keys(state.records).length ? "No discoveries on this page." : "Mine a mineral to reveal its collection entry.");
+    write("journal-empty", Object.keys(state.records).length ? "No matching discoveries." : "Mine a mineral to reveal its collection entry.");
     return;
   }
   const mineral = data.minerals[journalSelection];
@@ -881,6 +887,7 @@ function renderJournalDetail() {
   byId("journal-rarity").dataset.rarity = mineral.rarity;
   byId("journal-raw").src = sprite({ mineral: journalSelection });
   byId("journal-polished").src = sprite({ mineral: journalSelection, polished: true });
+  write("journal-polish-status", record.polished ? "Polished in your collection" : "Polished preview");
   write("journal-purity", percent(record.purity));
   write("journal-weight", grams(record.weight));
   byId("journal-purity-meter").value = record.purity;
@@ -1236,8 +1243,13 @@ onChoice("pigments", "pigment", (id) => {
   byId("pigments").querySelector("[aria-pressed=true]").focus({ preventScroll: true });
 });
 onChoice("recipe-list", "recipe", (recipe) => run({ type: "mix", recipe }));
+for (const id of ["journal-query", "journal-discovered"]) {
+  byId(id).addEventListener("input", () => {
+    renderJournal();
+    byId("journal-list").scrollTop = 0;
+  });
+}
 for (const [key, renderList, controls] of [
-  ["journal", renderJournal, ["journal-query", "journal-discovered"]],
   ["recipe", renderRecipes, ["recipe-query", "recipe-ready"]],
   ["palette", renderPalette, ["palette-query", "palette-source"]],
 ]) {

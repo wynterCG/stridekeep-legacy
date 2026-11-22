@@ -3569,6 +3569,40 @@ globalThis.StrideData = {
       }
     }
   },
+  "specimenPrices": {
+    "Common": {
+      "raw": 8,
+      "polishPercent": 10
+    },
+    "Uncommon": {
+      "raw": 18,
+      "polishPercent": 15
+    },
+    "Rare": {
+      "raw": 36,
+      "polishPercent": 101
+    },
+    "Very Rare": {
+      "raw": 80,
+      "polishPercent": 105
+    },
+    "Exceptional": {
+      "raw": 175,
+      "polishPercent": 110
+    },
+    "Legendary": {
+      "raw": 375,
+      "polishPercent": 115
+    },
+    "Mythic": {
+      "raw": 800,
+      "polishPercent": 120
+    },
+    "Artifact": {
+      "raw": 1800,
+      "polishPercent": 125
+    }
+  },
   "tools": {
     "starter": {
       "name": "Miner’s Pickaxe",
@@ -3580,14 +3614,14 @@ globalThis.StrideData = {
     "copper": {
       "name": "Copper-Bound Pick",
       "tier": 2,
-      "cost": 30,
+      "cost": 45,
       "art": "world-concepts/pickaxes/copper-bound-pick.webp",
       "detail": "Improves your chances of Rare and higher finds."
     },
     "fine-tip": {
       "name": "Fine-Tip Pick",
       "tier": 3,
-      "cost": 24,
+      "cost": 85,
       "requires": "copper",
       "art": "world-concepts/pickaxes/fine-tip-pick.webp",
       "detail": "Improves the odds of Rare and higher finds beyond the Copper-Bound Pick."
@@ -3595,7 +3629,7 @@ globalThis.StrideData = {
     "iron": {
       "name": "Forged-Iron Pick",
       "tier": 4,
-      "cost": 54,
+      "cost": 145,
       "requires": "copper",
       "art": "world-concepts/pickaxes/forged-iron-pick.webp",
       "detail": "Improves your chances of Rare and higher finds."
@@ -3603,7 +3637,7 @@ globalThis.StrideData = {
     "quarry": {
       "name": "Quarry Pick",
       "tier": 5,
-      "cost": 78,
+      "cost": 235,
       "requires": "iron",
       "art": "world-concepts/pickaxes/quarry-pick.webp",
       "carry": "iron",
@@ -3612,7 +3646,7 @@ globalThis.StrideData = {
     "survey": {
       "name": "Survey Pick",
       "tier": 6,
-      "cost": 100,
+      "cost": 360,
       "requires": "quarry",
       "art": "world-concepts/pickaxes/survey-pick.webp",
       "carry": "fine-tip",
@@ -3621,7 +3655,7 @@ globalThis.StrideData = {
     "deep-vein": {
       "name": "Deep Vein Pick",
       "tier": 7,
-      "cost": 125,
+      "cost": 530,
       "requires": "survey",
       "art": "world-concepts/pickaxes/deep-vein-pick.webp",
       "carry": "fine-tip",
@@ -3630,7 +3664,7 @@ globalThis.StrideData = {
     "crystal": {
       "name": "Crystal Pick",
       "tier": 8,
-      "cost": 152,
+      "cost": 750,
       "requires": "deep-vein",
       "art": "world-concepts/pickaxes/crystal-pick.webp",
       "carry": "fine-tip",
@@ -3639,7 +3673,7 @@ globalThis.StrideData = {
     "counterweight": {
       "name": "Counterweight Pick",
       "tier": 9,
-      "cost": 182,
+      "cost": 1000,
       "requires": "crystal",
       "art": "world-concepts/pickaxes/counterweight-pick.webp",
       "carry": "copper",
@@ -3648,7 +3682,7 @@ globalThis.StrideData = {
     "faultbreaker": {
       "name": "Faultbreaker",
       "tier": 10,
-      "cost": 216,
+      "cost": 1300,
       "requires": "counterweight",
       "art": "world-concepts/pickaxes/faultbreaker.webp",
       "carry": "iron",
@@ -3657,7 +3691,7 @@ globalThis.StrideData = {
     "seamfinder": {
       "name": "Seamfinder Pick",
       "tier": 11,
-      "cost": 252,
+      "cost": 1650,
       "requires": "faultbreaker",
       "art": "world-concepts/pickaxes/seamfinder-pick.webp",
       "carry": "copper",
@@ -3666,7 +3700,7 @@ globalThis.StrideData = {
     "rift": {
       "name": "Rift Pick",
       "tier": 12,
-      "cost": 290,
+      "cost": 2050,
       "requires": "seamfinder",
       "art": "world-concepts/pickaxes/rift-pick.webp",
       "carry": "iron",
@@ -3675,7 +3709,7 @@ globalThis.StrideData = {
     "masterwork": {
       "name": "Masterwork Pick",
       "tier": 13,
-      "cost": 330,
+      "cost": 2500,
       "requires": "rift",
       "art": "world-concepts/pickaxes/masterwork-pick.webp",
       "carry": "copper",
@@ -5379,6 +5413,20 @@ globalThis.StrideData = {
       "metric": "polished",
       "goal": 1,
       "coins": 12
+    },
+    "polish-five": {
+      "name": "First display shelf",
+      "text": "Polish five different mineral species.",
+      "metric": "polish-variety",
+      "goal": 5,
+      "coins": 10
+    },
+    "polish-twenty": {
+      "name": "Collector’s cabinet",
+      "text": "Polish twenty different mineral species.",
+      "metric": "polish-variety",
+      "goal": 20,
+      "coins": 30
     },
     "sell": {
       "name": "First sale",
