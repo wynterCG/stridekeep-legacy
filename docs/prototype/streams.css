@@ -1,18 +1,46 @@
-.streams-layout {
-  display: grid;
-  grid-template-columns: minmax(258px, .62fr) minmax(435px, 1.62fr);
-  align-items: start;
-  gap: 14px;
-  padding: 2px 0 28px;
+﻿#watch-stream {
+  min-width: 0;
+  align-self: start;
+  overflow: hidden;
 }
-.stream-directory h2, .stream-video h2 { margin-top: 0; }
-.stream-form { display: grid; gap: 6px; }
-.stream-form label { color: var(--dim); font-size: 13px; }
-.stream-form-row { display: flex; gap: 6px; }
+.watch-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.watch-heading h2 { margin: 0; overflow-wrap: anywhere; }
+.watch-heading button { flex-shrink: 0; }
+.watch-chooser > summary, #channel-directory > summary {
+  color: var(--accent);
+  width: fit-content;
+  cursor: pointer;
+  padding: 6px 0;
+}
+.watch-chooser > summary:focus-visible, #channel-directory > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.watch-chooser:not([open]) { margin-bottom: 6px; }
+.channel-controls, .watch-bridge {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: clamp(16px, 4vw, 44px);
+  min-height: clamp(190px, 20vw, 300px);
+  background: linear-gradient(100deg, #16131bee 25%, #121419a6 100%), url("../ui-concept/copper-stair.webp") center / cover;
+  border-radius: 6px;
+}
+.watch-bridge p { margin: 0; max-width: 46ch; }
+.stream-form { display: grid; gap: 5px; }
+.stream-form label { color: var(--ink); font-size: 14px; }
+.stream-form-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .stream-form input {
+  flex: 1 1 14ch;
   min-width: 0;
   width: 100%;
-  min-height: 40px;
+  min-height: 42px;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 5px;
@@ -20,44 +48,15 @@
   color: var(--ink);
   font: inherit;
 }
-.stream-form input:focus { border-color: var(--accent); }
-.stream-direct { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
-.stream-direct button { justify-self: start; }
-.stream-notice { margin: 7px 0; color: var(--dim); font-size: 12px; }
-.stream-notice:empty { display: none; }
-.stream-results { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
-.stream-result {
-  width: 100%;
-  display: grid;
-  justify-items: start;
-  gap: 3px;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-.stream-result span, .stream-result small { color: var(--dim); font-size: 12px; }
+.stream-form input:focus { outline: 2px solid var(--accent); }
+.stream-form button { flex-shrink: 0; }
+.stream-notice { margin: 5px 0; color: var(--dim); font-size: 13px; }
+.stream-notice:empty, .stream-results:empty { display: none; }
+.stream-results { max-height: 240px; overflow-y: auto; list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.stream-result { width: 100%; display: grid; justify-items: start; text-align: left; gap: 3px; overflow-wrap: anywhere; }
+.stream-result span, .stream-result small { color: var(--dim); font-size: 13px; }
 .stream-result[aria-current=true] { border-color: var(--accent); }
-.stream-preview { display: inline-block; color: var(--accent); padding: 6px 0; }
-.stream-placeholder {
-  display: grid;
-  place-items: center;
-  text-align: center;
-  padding: 16px;
-  min-height: 228px;
-  margin: 0;
-  color: #fff0da;
-  background: linear-gradient(#15131ae0, #101017c8), url("../ui-concept/copper-stair.webp") center 53% / cover;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-}
-.stream-player iframe {
-  display: block;
-  width: 100%;
-  height: auto;
-  min-height: 300px;
-  aspect-ratio: 16 / 9;
-  border: 0;
-  border-radius: 6px;
-}
-@media (max-width: 830px) {
-  .streams-layout { grid-template-columns: minmax(0, 1fr); }
-}
+.stream-preview { color: var(--accent); width: fit-content; padding: 8px 0; }
+.stream-placeholder { padding: 16px; margin: 0; color: var(--dim); }
+.stream-player iframe { display: block; width: 100%; height: auto; min-height: 300px; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; }
+#watch-stream [hidden] { display: none; }

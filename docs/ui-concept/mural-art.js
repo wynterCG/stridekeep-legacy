@@ -54,18 +54,45 @@ function drawCopperwing(context, pigments, remaining) {
   }
 }
 
-function drawPlayableCopperwing(context, mural, pigments, painted) {
+function drawPlayableMural(context, mural, pigments, filledPixels, selectedPixel = null, showGuide = true) {
   const { width, height } = context.canvas;
-  const cell = width / mural.gridSize;
-  context.fillStyle = "#101923";
+  const size = mural.gridSize;
+  const empty = "#101923";
+  const xEdge = x => Math.round(x * width / size);
+  const yEdge = y => Math.round(y * height / size);
+  context.save();
+  context.globalAlpha = 1;
+  context.fillStyle = mural.backing ?? empty;
   context.fillRect(0, 0, width, height);
-  context.strokeStyle = "#526075";
-  for (const [id, pixels] of Object.entries(mural.needs)) {
-    context.fillStyle = pigments[id].color;
-    const filled = painted[id] ?? 0;
-    pixels.forEach(([x, y], index) => {
-      if (index < filled) context.fillRect(x * cell, y * cell, cell, cell);
-      else context.strokeRect(x * cell + 0.5, y * cell + 0.5, cell - 1, cell - 1);
-    });
+  for (const [target, pixels] of Object.entries(mural.needs)) {
+    for (const [x, y] of pixels) {
+      const placed = filledPixels[y * size + x];
+      if (!placed && !showGuide) continue;
+      const x0 = xEdge(x), y0 = yEdge(y);
+      const w = xEdge(x + 1) - x0, h = yEdge(y + 1) - y0;
+      if (!placed) {
+        // Original playing board: target ink at 35 percent on dark slate.
+        context.fillStyle = empty;
+        context.fillRect(x0, y0, w, h);
+        context.globalAlpha = 0.35;
+      }
+      context.fillStyle = pigments[placed ?? target].color;
+      context.fillRect(x0, y0, w, h);
+      context.globalAlpha = 1;
+    }
   }
+  if (Number.isInteger(selectedPixel) && selectedPixel >= 0 && selectedPixel < size * size) {
+    const x = selectedPixel % size, y = Math.floor(selectedPixel / size);
+    const x0 = xEdge(x), y0 = yEdge(y);
+    const w = xEdge(x + 1) - x0, h = yEdge(y + 1) - y0;
+    const line = Math.max(1, Math.floor(Math.min(w, h) / 8));
+    context.strokeStyle = "#fff2ba";
+    context.lineWidth = line;
+    context.strokeRect(x0 + line / 2, y0 + line / 2, w - line, h - line);
+    if (Math.min(w, h) > line * 3) {
+      context.strokeStyle = "#292530";
+      context.strokeRect(x0 + 1.5 * line, y0 + 1.5 * line, w - line * 3, h - line * 3);
+    }
+  }
+  context.restore();
 }

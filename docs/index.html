@@ -11,114 +11,198 @@
   <script defer src="prototype/data.js"></script>
   <script defer src="prototype/locale.js"></script>
   <script defer src="prototype/rules.js"></script>
+  <script defer src="prototype/character-art.js"></script>
+  <link rel="stylesheet" href="prototype/streams.css">
   <script defer src="prototype/play.js"></script>
+  <script defer src="prototype/streams.js"></script>
 </head>
 <body data-variant="expedition" class="playtest">
   <div class="frame">
-    <header class="site-header">
+    <header class="site-header game-masthead">
       <div class="brand"><i aria-hidden="true"></i><h1>Stridekeep</h1></div>
-      <div class="concept-label" data-text>Local playtest</div>
-      <div class="community"><i aria-hidden="true"></i><span data-text>Copper Guild</span></div>
-      <a id="rank" class="account-stat" href="#missions">Prospector</a>
-      <a id="coins" class="account-stat coins" href="#gear">0 coins</a>
+      <nav class="play-nav" aria-label="Playtest sections">
+        <a href="#home" data-game-view data-text>Home</a>
+        <a href="#workshop" data-game-view data-text>Workshop</a>
+        <a href="#missions" data-game-view data-text>Missions</a>
+        <a href="#mural" data-game-view data-text>Mural</a>
+        <a href="#guild-expedition" data-game-view data-text>Guild Expedition</a>
+      </nav>
+      <div id="profile" class="miner-account">
+        <a id="edit-character-link" href="#edit-character" aria-label="Edit character">
+          <span class="miner-avatar"><canvas id="profile-avatar" width="96" height="96" aria-hidden="true"></canvas></span>
+          <span class="miner-identity">
+            <span class="miner-nameplate"><strong id="profile-name" tabindex="-1"></strong><span id="profile-level"></span></span>
+            <span class="profile-progress"><progress id="profile-meter" max="1" value="0" aria-label="Level progress"></progress><span id="profile-xp"></span></span>
+            <span class="edit-label" data-text>Edit character</span>
+          </span>
+        </a>
+        <a id="coins" class="account-stat coins" href="#gear">0 coins</a>
+      </div>
     </header>
-
-    <nav class="play-nav" aria-label="Playtest sections">
-      <a href="#mine" data-game-view data-text>Mining</a>
-      <a href="#collection" data-game-view data-text>Inventory</a>
-      <a href="#workshop" data-game-view data-text>Workshop</a>
-      <a href="#missions" data-game-view data-text>Missions</a>
-      <a href="#mural" data-game-view data-text>Mural</a>
-      <a href="#guild-expedition" data-game-view data-text>Guild Expedition</a>
-      <a href="streams.html" data-stream-link data-text>Live streams</a>
-      <a class="guide-link" href="play-guide.html" data-guide>Wiki</a>
-      <a id="language-switch" href="?lang=pt-PT" hreflang="pt-PT" lang="pt-PT">Português</a>
-    </nav>
+    <div class="home-bar" id="home-bar" hidden>
+      <h2 data-text>Home</h2>
+      <nav class="home-modes" aria-label="Home modes">
+        <a href="#home" data-home-mode="play" aria-current="page" data-text>Play</a>
+        <a href="#watch" data-home-mode="watch" data-text>Watch and play</a>
+      </nav>
+    </div>
     <p id="feedback" role="status" aria-live="polite"></p>
 
     <main class="game-grid">
+      <section id="watch-stream" class="panel stream-video" aria-labelledby="video-title" hidden></section>
+
       <section class="panel mine" id="mine" aria-labelledby="mine-title">
+        <div class="mine-hero">
+          <div class="mine-identity">
+            <h2 id="mine-title" data-text>The mine</h2>
+          </div>
+        </div>
         <div class="mine-content">
-          <span class="kicker"><i aria-hidden="true"></i> <span id="mine-district">Copper district</span></span>
-          <h2 id="mine-title">Copper Stair</h2>
-          <div class="mine-routes">
-            <div>
-              <label for="mine-select" data-text>Mine</label>
-              <select id="mine-select"></select>
-            </div>
-            <div>
-              <label for="route-select" data-text>Seam</label>
-              <select id="route-select"></select>
-            </div>
+          <div class="mine-controls">
+            <div class="mine-action"><button type="button" class="primary" id="mine-button" data-text disabled>Mine</button></div>
+            <div class="mine-loadout"><small data-text>Equipped pickaxe</small><a id="equipped-pick" href="#gear"></a></div>
           </div>
-          <p id="route-info" class="route-info"></p>
-          <div class="mine-action">
-            <button type="button" class="primary" id="mine-button" disabled>Mine seam</button>
-            <span id="equipped-pick">Miner’s Pickaxe</span>
-          </div>
-          <a class="mine-inventory-link" id="mine-inventory-link" href="#collection" data-text>Inventory</a>
           <div id="mining-status" hidden>
             <label id="mining-label" for="mining-meter"></label>
             <progress id="mining-meter" max="1" value="0"></progress>
           </div>
+          <details class="mine-info">
+            <summary data-text>Find chances</summary>
+            <p id="mine-interval"></p>
+            <dl id="mine-odds" class="mine-odds"></dl>
+          </details>
         </div>
       </section>
 
-      <section class="panel find" id="find" aria-labelledby="find-name">
-        <div class="panel-head">
-          <span class="kicker" id="find-context">Latest find</span>
-          <span class="rarity" id="find-rarity" hidden></span>
+      <section class="panel missions" id="missions" aria-labelledby="mission-title">
+        <div class="panel-head"><h2 id="mission-title" data-text>Missions</h2><span id="rank-progress"></span><a id="view-all-missions" href="#missions" data-text>All missions</a></div>
+        <div class="mission-list" id="mission-list"></div>
+        <p id="empty-home-missions" data-text hidden>All mission rewards claimed.</p>
+      </section>
+
+      <section class="panel" id="edit-character" aria-labelledby="edit-character-title" hidden>
+        <div class="panel-head"><h2 id="edit-character-title" tabindex="-1" data-text>Edit character</h2></div>
+        <div class="wardrobe-layout">
+          <div class="wardrobe-display">
+            <div class="wardrobe-stage">
+              <canvas id="outfit-preview" width="640" height="880" role="img" aria-label="Outfit preview"></canvas>
+            </div>
+            <div class="background-picker">
+              <label for="character-background" data-text>Character background</label>
+              <select id="character-background">
+                <option value="plain" data-text>Plain background</option>
+                <option id="mural-background-option" disabled></option>
+              </select>
+              <a id="background-mural-link" href="#mural" data-text>View mural</a>
+            </div>
+            <div class="equipment-info"><span><small data-text>Equipped pickaxe</small><strong id="wardrobe-tool"></strong></span><a href="#gear" data-text>Open workshop</a></div>
+          </div>
+          <form id="wardrobe-form">
+            <label><span data-text>Display name</span><input id="character-name" maxlength="24" required autocomplete="off"></label>
+            <div id="look-options"></div>
+            <label><span data-text>Fabric colour</span><select id="cloth-dye"></select></label>
+            <label><span data-text>Scarf dye</span><select id="scarf-dye"></select></label>
+            <p id="dye-cost" aria-live="polite"></p>
+            <p id="wardrobe-feedback" role="status" hidden></p>
+            <div class="wardrobe-actions">
+              <button class="primary" id="save-outfit" type="button" data-text>Save outfit</button>
+              <a id="cancel-outfit" href="#home" data-text>Cancel</a>
+            </div>
+          </form>
         </div>
-        <h2 id="find-name">Your first find</h2>
-        <p id="empty-find" data-text>Mine a seam to inspect your first raw mineral, its purity and weight.</p>
+      </section>
+      <section class="panel find" id="find" aria-labelledby="find-context">
+        <div class="panel-head find-heading">
+          <h2 id="find-context" tabindex="-1">Latest find</h2>
+          <button type="button" id="show-latest-find" data-text hidden>Show latest find</button>
+        </div>
+        <p id="empty-find" data-text>Mine to see your first raw mineral, its purity and weight.</p>
         <div id="find-details" hidden>
-          <div class="specimen-stage">
-            <i aria-hidden="true"></i>
-            <img id="find-sprite" width="48" height="48" alt="">
-            <span id="find-state"></span>
+          <div class="find-summary">
+            <div class="specimen-stage">
+              <i aria-hidden="true"></i>
+              <img id="find-sprite" width="48" height="48" alt="">
+              <span id="find-state"></span>
+            </div>
+            <div class="find-identity">
+              <h3 id="find-name">Your first find</h3>
+              <span class="rarity" id="find-rarity" hidden></span>
+              <span id="find-weight"></span>
+            </div>
+            <div class="find-purity-group">
+              <div class="purity-label"><label for="find-purity" data-text>Purity</label><strong id="purity-label"></strong></div>
+              <meter id="find-purity" min="0" max="100" value="0">0%</meter>
+            </div>
           </div>
-          <div class="purity-label">
-            <label for="find-purity" data-text>Purity</label><strong id="purity-label"></strong>
-          </div>
-          <meter id="find-purity" min="0" max="100" value="0">0%</meter>
-          <dl class="find-stats">
-            <div><dt data-text>Weight</dt><dd id="find-weight"></dd></div>
-            <div><dt data-text>Best purity</dt><dd id="find-best"></dd></div>
-            <div><dt data-text>Heaviest find</dt><dd id="find-heaviest"></dd></div>
-          </dl>
-          <div class="find-actions">
-            <button type="button" id="polish-button" data-text>Polish</button>
-            <button type="button" id="crush-button" data-text>Crush</button>
-            <button type="button" id="sell-button">Sell</button>
-          </div>
+          <details id="find-more">
+            <summary data-text>Specimen details</summary>
+            <dl class="find-stats">
+              <div><dt data-text>Best purity</dt><dd id="find-best"></dd></div>
+              <div><dt data-text>Heaviest find</dt><dd id="find-heaviest"></dd></div>
+            </dl>
+            <p id="collector-note" data-text hidden>This collector’s specimen stays intact. You can polish, keep or sell it.</p>
+          </details>
+            <div class="find-actions">
+              <button type="button" id="polish-button" data-text>Polish</button>
+              <button type="button" id="crush-button" data-text>Crush</button>
+              <button type="button" id="sell-button">Sell</button>
+            </div>
+            <div class="specimen-finish" id="finish-controls" hidden>
+              <button type="button" id="finish-button" data-text>Apply high-gloss finish</button>
+              <small id="finish-stock"></small>
+            </div>
         </div>
       </section>
 
       <section class="panel collection" id="collection" aria-labelledby="collection-title">
-        <div class="panel-head">
+        <div class="panel-head inventory-heading">
           <h2 id="collection-title" data-text>Inventory</h2>
-          <span id="collection-count">0 pieces</span>
+          <div class="inventory-tabs" id="inventory-tabs" role="tablist" aria-label="Inventory categories">
+            <button type="button" role="tab" id="inventory-tab-minerals" aria-controls="inventory-minerals" aria-selected="true" data-inventory-tab="minerals" data-text>Minerals</button>
+            <button type="button" role="tab" id="inventory-tab-pigments" aria-controls="inventory-pigments" aria-selected="false" tabindex="-1" data-inventory-tab="pigments" data-text>Pigments</button>
+            <button type="button" role="tab" id="inventory-tab-materials" aria-controls="inventory-materials" aria-selected="false" tabindex="-1" data-inventory-tab="materials" data-text>Materials</button>
+          </div>
+          <a id="view-field-journal" href="#journal" data-text>Mineral catalogue</a>
         </div>
-        <p id="empty-collection" data-text>Finds are kept here until you sell or crush them.</p>
-        <div id="specimens" class="specimens"></div>
-        <section class="inventory-pigments" aria-labelledby="pigment-stock-title">
-          <h3 id="pigment-stock-title" data-text>Pigments</h3>
+        <section id="inventory-minerals" role="tabpanel" aria-labelledby="inventory-tab-minerals" tabindex="0">
+          <span id="collection-count">0 pieces</span>
+          <p id="empty-collection" data-text>Finds are kept here until you sell or crush them.</p>
+          <div id="specimens" class="specimens"></div>
+        </section>
+        <section class="inventory-pigments" id="inventory-pigments" role="tabpanel" aria-labelledby="inventory-tab-pigments" tabindex="0" hidden>
           <p id="empty-pigment-stock" data-text>Crush a raw mineral to add a pigment.</p>
           <ul id="pigment-stock" class="pigment-stock"></ul>
+        </section>
+        <section class="inventory-pigments" id="inventory-materials" role="tabpanel" aria-labelledby="inventory-tab-materials" tabindex="0" hidden>
+          <p id="empty-material-stock" data-text>Crush a raw diamond to get powder for a high-gloss finish.</p>
+          <ul id="material-stock" class="pigment-stock"></ul>
         </section>
       </section>
 
       <section class="panel mural" id="mural" aria-labelledby="mural-title">
         <div class="panel-head">
-          <span class="kicker" data-text>Community mural</span><span id="mural-progress"></span>
+          <nav class="mural-tabs" aria-label="Murals"><a href="#mural" data-scope="community" data-text>Community mural</a><a href="#personal-mural" data-scope="personal" data-text>Personal mural</a></nav><span id="mural-progress"></span>
         </div>
         <div class="mural-body">
-          <canvas id="mural-canvas" width="64" height="64" role="img" aria-label="Copperwing mural"></canvas>
+          <div class="mural-board">
+            <div class="mural-scroll"><div class="mural-surface">
+              <canvas id="mural-canvas" width="512" height="512" tabindex="0" role="group" aria-label="Community mural" aria-describedby="pixel-help"></canvas>
+              <i id="pixel-pulse" aria-hidden="true" hidden></i>
+            </div></div>
+            <div class="mural-controls">
+              <label><input id="mural-guide-toggle" type="checkbox" checked> <span data-text>Colour guide</span></label>
+              <label><input id="mural-zoom" type="checkbox"> <span data-text>Zoom in</span></label>
+            </div>
+          </div>
           <div class="mural-detail">
-            <h2 id="mural-title" data-text>Copperwing</h2>
+            <h2 id="mural-title"></h2>
             <p id="mural-status"></p>
+            <p id="pixel-help" data-text>Select a pixel on the mural or choose a colour below to find a matching pixel.</p>
             <ul class="pigments" id="pigments" aria-label="Pigment requirements"></ul>
+            <p id="pixel-selection" role="status"></p>
             <button class="primary" type="button" id="paint-button" disabled>Apply pigment</button>
+            <button class="primary" type="button" id="equip-mural" hidden data-text>Use as background</button>
+            <button type="button" id="next-personal-mural" hidden data-text>Start another pattern</button>
             <p><a href="play-guide.html#mural" data-guide data-text>How to paint</a></p>
           </div>
         </div>
@@ -132,6 +216,14 @@
       <section class="panel gear" id="gear" aria-labelledby="gear-title">
         <div class="panel-head"><h2 id="gear-title" data-text>Pickaxes</h2><span id="gear-coins">0 coins</span></div>
         <div class="work-list" id="tool-list"></div>
+        <div class="gear-comparison">
+          <label for="compare-pick" data-text>Compare find chances</label>
+          <select id="compare-pick"></select>
+          <table><caption data-text>Find chances by rarity</caption>
+            <thead><tr><th scope="col" data-text>Rarity</th><th scope="col" id="comparison-equipped"></th><th scope="col" id="comparison-preview"></th></tr></thead>
+            <tbody id="gear-odds"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="panel guild-expedition" id="guild-expedition" aria-labelledby="expedition-title">
@@ -160,21 +252,26 @@
         <div class="work-list" id="contract-list"></div>
       </section>
 
-      <section class="panel journal" id="journal" aria-labelledby="journal-title">
-        <div class="panel-head"><h2 id="journal-title" data-text>Field journal</h2><span id="journal-progress"></span></div>
-        <p id="empty-journal" data-text>Your best purity and heaviest find for each mineral stay here after you spend the specimen.</p>
-        <ul id="journal-list" class="journal-list"></ul>
+      <section class="panel journal" id="journal" aria-labelledby="journal-title" hidden>
+        <div class="panel-head journal-heading">
+          <h2 id="journal-title" tabindex="-1" data-text>Mineral catalogue</h2>
+          <a href="#collection" data-text>Back to inventory</a>
+        </div>
+        <div class="journal-overview">
+          <p data-text>Find each mineral to reveal it. Your best purity and heaviest find stay here after you spend the specimen.</p>
+          <div class="journal-progress">
+            <span id="journal-progress"></span>
+            <progress id="journal-meter" max="1" value="0" aria-label="Mineral discoveries"></progress>
+          </div>
+        </div>
+        <ol id="journal-list" class="journal-list" role="list"></ol>
       </section>
 
-      <section class="panel missions" id="missions" aria-labelledby="mission-title">
-        <div class="panel-head"><h2 id="mission-title" data-text>Missions</h2><span id="rank-progress"></span></div>
-        <div class="mission-list" id="mission-list"></div>
-      </section>
     </main>
 
     <footer class="site-footer">
       <span id="save-status">Progress is stored in this browser.</span>
-      <div><a href="play-guide.html" data-guide data-text>Playtest wiki</a><a href="https://stridekeep.app/legacy.html" data-text>Original mobile app</a><button type="button" id="reset-button" data-text>Reset playtest</button></div>
+      <div><a href="play-guide.html" data-guide data-text>Playtest wiki</a><a href="https://stridekeep.app/legacy.html" data-text>Original mobile app</a><a id="language-switch" href="?lang=pt-PT" hreflang="pt-PT" lang="pt-PT">Português</a><button type="button" id="reset-button" data-text>Reset playtest</button></div>
     </footer>
   </div>
 
@@ -185,6 +282,11 @@
       <button type="button" id="action-cancel" data-text autofocus>Cancel</button>
       <button type="button" class="primary" id="action-confirm">Confirm</button>
     </div>
+  </dialog>
+  <dialog id="archived-mural" aria-labelledby="archived-mural-name">
+    <h2 id="archived-mural-name"></h2>
+    <canvas width="384" height="384" aria-labelledby="archived-mural-name"></canvas>
+    <form method="dialog"><button type="submit" data-text>Close</button></form>
   </dialog>
 </body>
 </html>

@@ -1,70 +1,18 @@
 <!doctype html>
-<html lang="en" data-mak-report="document" data-mak-theme="custom">
+<html lang="pt-PT" data-mak-report="document" data-mak-theme="custom">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stridekeep — Live streams</title>
+  <title>Stridekeep</title>
   <link rel="stylesheet" href="_shared/report.css">
   <link rel="stylesheet" href="ui-concept/screen.css">
-  <link rel="stylesheet" href="prototype/play.css">
-  <link rel="stylesheet" href="prototype/streams.css">
   <script defer src="prototype/locale.js"></script>
   <script defer src="prototype/streams.js"></script>
 </head>
-<body data-variant="expedition" class="playtest streams">
-  <div class="frame">
-    <header class="site-header">
-      <div class="brand"><i aria-hidden="true"></i><h1>Stridekeep</h1></div>
-      <div class="concept-label" data-text>Local playtest</div>
-    </header>
-    <nav class="play-nav" aria-label="Playtest sections">
-      <a href="index.html?lang=pt-PT#mine" data-play-link data-text>Mining</a>
-      <a href="index.html?lang=pt-PT#collection" data-play-link data-text>Inventory</a>
-      <a href="index.html?lang=pt-PT#workshop" data-play-link data-text>Workshop</a>
-      <a href="index.html?lang=pt-PT#missions" data-play-link data-text>Missions</a>
-      <a href="index.html?lang=pt-PT#mural" data-play-link data-text>Mural</a>
-      <a href="index.html?lang=pt-PT#guild-expedition" data-play-link data-text>Guild Expedition</a>
-      <a href="streams.html" aria-current="page" data-text>Live streams</a>
-      <a class="guide-link" id="streams-guide" href="play-guide.pt-PT.html">Wiki</a>
-      <a id="streams-language" href="?lang=pt-PT" hreflang="pt-PT" lang="pt-PT">Português</a>
-    </nav>
-
-    <main class="streams-layout">
-      <section class="panel stream-directory" aria-labelledby="streams-title">
-        <h2 id="streams-title" data-text>Twitch live streams</h2>
-        <div id="stream-bridge" hidden>
-          <p data-text>Open the local Stridekeep site to use the Twitch video player.</p>
-          <a id="stream-preview" class="stream-preview" href="http://localhost:8788/streams.html" target="_blank" rel="noopener" data-text>Open local preview</a>
-        </div>
-        <div id="stream-actions" hidden>
-          <form id="stream-search" class="stream-form">
-            <label for="stream-query" data-text>Channel or category</label>
-            <div class="stream-form-row">
-              <input type="search" id="stream-query" name="query" maxlength="100" required disabled>
-              <button type="submit" class="primary" id="search-channels" data-text disabled>Search</button>
-            </div>
-          </form>
-          <p id="search-feedback" class="stream-notice" role="status"></p>
-          <ul id="stream-results" class="stream-results" aria-label="Live channels"></ul>
-
-          <form id="stream-direct" class="stream-form stream-direct">
-            <label for="direct-channel" data-text>Twitch channel name or link</label>
-            <input type="text" id="direct-channel" name="channel" inputmode="url" maxlength="300" autocomplete="off" required>
-            <button type="submit" id="watch-channel" data-text>Open channel</button>
-          </form>
-          <p id="stream-feedback" class="stream-notice" role="status"></p>
-        </div>
-      </section>
-
-      <section class="panel stream-video" aria-labelledby="video-title">
-        <div class="panel-head">
-          <h2 id="video-title" data-text>Watch live</h2>
-          <button type="button" id="stop-stream" data-text hidden>Close player</button>
-        </div>
-        <p id="stream-placeholder" class="stream-placeholder" data-text>Choose a channel to watch here.</p>
-        <div id="stream-player" class="stream-player"></div>
-      </section>
-    </main>
-  </div>
+<body data-variant="expedition">
+  <main class="frame">
+    <h1>Stridekeep</h1>
+    <a id="watch-home-link" href="index.html?lang=pt-PT#watch">Assistir e jogar</a>
+  </main>
 </body>
 </html>

@@ -12,55 +12,118 @@ const percent = (purity) => `${decimal(purity / 100, 2)}%`;
 const grams = (weight) => `${decimal(weight / 10, 1)} g`;
 const amount = (map, id) => map[id] ?? 0;
 const muralContext = byId("mural-canvas").getContext("2d");
+let muralSize, muralTargets;
+let muralScope = location.hash === "#personal-mural" ? "personal" : "community";
 const dialog = byId("action-dialog");
-const mineSelect = byId("mine-select");
-const routeSelect = byId("route-select");
 const gameGrid = document.querySelector(".game-grid");
 const viewLinks = document.querySelectorAll("[data-game-view]");
 const gameViews = {
-  mine: ["mine", "find", "missions"],
-  collection: ["collection", "find", "journal"],
+  home: ["mine", "missions", "find", "collection"],
+  "edit-character": ["edit-character"],
+  journal: ["journal"],
   workshop: ["workshop", "gear"],
   missions: ["missions", "contracts"],
   mural: ["mural"],
   "guild-expedition": ["guild-expedition"],
 };
+const homeAnchors = new Set(["watch", "character", "profile", "mine", "collection", "find"]);
+const inventoryTabs = [...document.querySelectorAll("[data-inventory-tab]")];
+const inventoryAnchors = new Map(inventoryTabs.map(tab => [tab.getAttribute("aria-controls"), tab.dataset.inventoryTab]));
+const catalogue = Object.entries(data.minerals);
+const percentages = new Intl.NumberFormat(language, { maximumFractionDigits: 10 });
+const chanceLabel = chance => `${percentages.format(chance)}%`;
+const rarityOrder = ["Common", "Uncommon", "Rare", "Very Rare", "Exceptional", "Legendary", "Mythic", "Artifact"];
 let storageOn = true;
 let lockingOn = true;
-let state = readSave(rules.create(data));
+let state = readSave(rules.create(data), true);
 let selected = state.latest;
 let selectedPigment = Object.keys(data.mural.needs)[0];
+let selectedPixel = null;
 let pendingAction;
+let draftBackground;
 
 function announce(message) {
   write("feedback", message);
 }
 
+function syncLanguageLink() {
+  const url = new URL(location.href);
+  url.searchParams.set("lang", language === "pt-PT" ? "en" : "pt-PT");
+  byId("language-switch").href = url.href;
+}
+
+function setInventoryTab(id, updateLocation = false) {
+  for (const tab of inventoryTabs) {
+    const active = tab.dataset.inventoryTab === id;
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+    byId(tab.getAttribute("aria-controls")).hidden = !active;
+  }
+  if (updateLocation && gameGrid.dataset.homeMode !== "watch") {
+    history.replaceState(history.state, "", `#inventory-${id}`);
+    syncLanguageLink();
+  }
+}
+
 function showGameView() {
   const anchor = location.hash.slice(1);
-  const view = Object.hasOwn(gameViews, anchor) ? anchor
-    : Object.keys(gameViews).find((id) => gameViews[id].includes(anchor)) ?? "mine";
+  const previous = gameGrid.dataset.view;
+  const inventoryTab = inventoryAnchors.get(anchor);
+  const view = homeAnchors.has(anchor) || inventoryTab ? "home" : anchor === "personal-mural" ? "mural" : Object.hasOwn(gameViews, anchor) ? anchor
+    : Object.keys(gameViews).find((id) => gameViews[id].includes(anchor)) ?? "home";
   const panels = gameViews[view];
-  if (view === "collection") byId("collection").after(byId("find"));
-  if (view === "mine") byId("mine").after(byId("find"));
-  for (const panel of gameGrid.children) panel.hidden = !panels.includes(panel.id);
-  gameGrid.dataset.view = view;
-  for (const link of viewLinks) {
-    if (link.hash === `#${view}`) link.setAttribute("aria-current", "page");
+  if (view === "mural") {
+    const scope = anchor === "personal-mural" ? "personal" : "community";
+    if (muralScope !== scope) {
+      muralScope = scope;
+      selectedPixel = null;
+      byId("pixel-pulse").hidden = true;
+    }
+    renderMural();
+  }
+  const watch = anchor === "watch";
+  gameGrid.dataset.homeMode = watch ? "watch" : "play";
+  byId("home-bar").hidden = view !== "home";
+  for (const link of document.querySelectorAll("[data-home-mode]")) {
+    if (link.dataset.homeMode === gameGrid.dataset.homeMode) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
-  byId("language-switch").href = `?lang=${language === "pt-PT" ? "en" : "pt-PT"}${location.hash}`;
+  for (const panel of gameGrid.children) panel.hidden = panel.id === "watch-stream" ? !watch : !panels.includes(panel.id);
+  gameGrid.dataset.view = view;
+  if (view === "edit-character" && previous !== view) openWardrobe();
+  if (view === "home") {
+    if (inventoryTab || anchor === "collection") setInventoryTab(inventoryTab ?? "minerals");
+    if (anchor === "find") byId("find-more").open = true;
+  }
+  if (view === "home" || view === "missions") renderMissions();
+  if (view === "journal") renderJournal();
+  const active = view === "edit-character" ? "home" : view;
+  for (const link of viewLinks) {
+    if (link.hash === `#${active}`) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  syncLanguageLink();
   requestAnimationFrame(() => {
     if (location.hash.slice(1) !== anchor) return;
-    if (anchor !== view && panels.includes(anchor)) byId(anchor).scrollIntoView();
+    const target = inventoryTab ? "collection" : anchor === "character" ? "profile" : anchor;
+    if (target !== view && panels.includes(target)) byId(target).scrollIntoView();
     else window.scrollTo(0, 0);
+    if (view === "edit-character" && previous !== view) byId("edit-character-title").focus({ preventScroll: true });
+    if (view === "home" && previous === "edit-character") byId("profile-name").focus({ preventScroll: true });
+    if (anchor === "find") byId("find-context").focus({ preventScroll: true });
+    if (anchor === "journal") byId("journal-title").focus({ preventScroll: true });
   });
 }
 
-function readSave(fallback) {
+function readSave(fallback, initialise = false) {
   if (storageOn) {
     try {
-      return rules.restore(localStorage.getItem(storageKey), data, fallback);
+      const raw = localStorage.getItem(storageKey);
+      const restored = rules.restore(raw, data, fallback);
+      if (initialise && (raw === null || restored !== fallback) && raw !== JSON.stringify(restored)) {
+        try { localStorage.setItem(storageKey, JSON.stringify(restored)); } catch { storageOn = false; }
+      }
+      return restored;
     } catch {
       storageOn = false;
     }
@@ -81,30 +144,48 @@ function save() {
 
 function run(action) {
   const applyAction = () => {
+    let success = false;
     try {
       state = readSave(state);
       if (action.type === "reset") {
         state = { ...rules.create(data), nextId: state.nextId };
         selected = null;
         selectedPigment = Object.keys(data.mural.needs)[0];
+        selectedPixel = null;
+        if (gameGrid.dataset.view === "edit-character") openWardrobe();
         announce("A new playtest has started.");
       } else {
         const consumed = action.type === "crush" ? state.items.find((item) => item.id === action.id) : undefined;
+        const landing = action.type === "paint" ? action.pixel ?? rules.nextMuralPixel(state, data, action.pigment, action.scope) : null;
         const result = rules.apply(state, data, action);
         state = result.state;
-        if (["mine", "collect", "expedition-claim"].includes(action.type)) selected = state.latest;
-        if (consumed) {
-          const pigment = data.minerals[consumed.mineral].pigment;
-          if (Object.hasOwn(data.mural.needs, pigment)) selectedPigment = pigment;
+        if (landing !== null) {
+          selectedPixel = null;
+          selectedPigment = action.pigment;
+          muralScope = action.scope ?? "community";
+          if (action.pixel === undefined) location.hash = muralScope === "personal" ? "personal-mural" : "mural";
+          muralSize = rules.muralBoard(state, data, muralScope).mural.gridSize;
+          pulseMuralPixel(landing, action.pigment);
         }
-        if (action.type === "mix" && Object.hasOwn(data.mural.needs, action.recipe)) selectedPigment = action.recipe;
+        if (["mine", "collect", "expedition-claim"].includes(action.type)) {
+          selected = state.latest;
+          byId("find-more").open = false;
+        }
+        const acquired = consumed ? data.minerals[consumed.mineral].pigment : action.type === "mix" ? action.recipe : null;
+        if (acquired && Object.hasOwn(rules.muralBoard(state, data, muralScope).mural.needs, acquired)) {
+          selectedPigment = acquired;
+          selectedPixel = null;
+        }
+        if (action.type === "new-personal-mural") selectedPixel = null;
         if (result.message) announce(result.message);
       }
       save();
+      success = true;
     } catch (error) {
       announce(error.message);
     }
     render();
+    return success;
   };
   if (storageOn && lockingOn && navigator.locks) {
     let started = false;
@@ -112,7 +193,10 @@ function run(action) {
       started = true;
       return applyAction();
     }).catch((error) => {
-      if (started) return announce(error.message);
+      if (started) {
+        announce(error.message);
+        return false;
+      }
       lockingOn = false;
       return applyAction();
     });
@@ -144,28 +228,32 @@ function sprite(item) {
   return `mineral-art/${item.polished ? "polished/" : ""}${item.mineral}.png`;
 }
 
+function specimenFinish(item) {
+  if (item.finish === "high-gloss") return "High gloss";
+  return item.polished ? "Polished" : "Raw";
+}
+
 function current() {
   return state.items.find((item) => item.id === selected);
 }
 
-function pickNeeded(power) {
-  return Object.values(data.tools).find((tool) => tool.power === power)?.name;
-}
-
-function renderRoute() {
-  const route = data.routes[state.route];
-  const mine = data.mines[route.mine];
-  mineSelect.value = route.mine;
-  routeSelect.replaceChildren(...Object.entries(data.routes).filter(([, entry]) => entry.mine === route.mine)
-    .map(([id, entry]) => option(id, entry.power > data.tools[state.equipped].power ? t`${t(entry.name)} · Locked` : entry.name)));
-  routeSelect.value = state.route;
-  byId("mine").style.setProperty("--mine-art", `url("${new URL(mine.art, document.baseURI).href}")`);
-  write("mine-title", mine.name);
-  write("mine-district", mine.district);
+function renderMine() {
+  byId("mine").style.setProperty("--mine-art", `url("${new URL(data.mine.art, document.baseURI).href}")`);
   write("equipped-pick", data.tools[state.equipped].name);
-  const possible = [...new Set(route.finds)].map((id) => t(data.minerals[id].name)).join(" · ");
-  const requirement = route.power > data.tools[state.equipped].power ? t`Requires ${t(pickNeeded(route.power))}` : "";
-  write("route-info", [requirement, possible, t`${route.seconds}s between strikes`].filter(Boolean).join(" · "));
+  write("mine-interval", t`${data.mine.seconds}s between strikes`);
+  const chances = rules.miningOdds(data, state.equipped);
+  const rows = [];
+  catalogue.forEach(([id, mineral], index) => {
+    if (!Object.hasOwn(chances, id)) return;
+    const slot = `#${String(index + 1).padStart(2, "0")}`;
+    const name = state.records[id] ? t(mineral.name) : t("Unknown mineral");
+    const row = element("div");
+    const term = element("dt");
+    term.append(element("span", "odds-slot", slot), document.createTextNode(name));
+    row.append(term, element("dd", "", chanceLabel(chances[id])));
+    rows.push(row);
+  });
+  byId("mine-odds").replaceChildren(...rows);
   tickMining();
 }
 
@@ -175,18 +263,16 @@ function tickMining() {
   byId("mining-status").hidden = !state.mining && !cooldown;
   byId("mining-meter").hidden = !state.mining;
   if (!state.mining) {
-    const locked = data.routes[state.route].power > data.tools[state.equipped].power;
-    control.disabled = locked || cooldown > 0;
-    control.textContent = t(locked ? "Seam locked" : "Mine seam");
+    control.disabled = cooldown > 0;
+    control.textContent = t("Mine");
     const label = cooldown ? t`Ready to mine again in ${Math.ceil(cooldown / 1000)}s` : "";
     if (byId("mining-label").textContent !== label) write("mining-label", label);
     return;
   }
-  const route = data.routes[state.mining.route];
   const remaining = Math.max(0, state.mining.endsAt - Date.now());
-  const label = remaining ? t`${t(route.name)} · ${Math.ceil(remaining / 1000)}s remaining` : t`${t(route.name)} · Find ready`;
+  const label = remaining ? t`${Math.ceil(remaining / 1000)}s remaining` : t("Find ready");
   if (byId("mining-label").textContent !== label) write("mining-label", label);
-  byId("mining-meter").value = Math.max(0, 1 - remaining / (route.seconds * 1000));
+  byId("mining-meter").value = Math.max(0, 1 - remaining / (data.mine.seconds * 1000));
   control.disabled = remaining > 0;
   control.textContent = t(remaining > 0 ? "Mining…" : "Collect find");
 }
@@ -197,18 +283,21 @@ function renderFind() {
   byId("find-details").hidden = !item;
   byId("empty-find").hidden = Boolean(item);
   byId("find-rarity").hidden = !item;
+  byId("show-latest-find").hidden = !item || item.id === state.latest || !state.items.some(candidate => candidate.id === state.latest);
   if (!item) {
     write("find-context", "Latest find");
     write("find-name", "Your next find");
+    write("empty-find", state.stats.mined > 0 ? "Mine again to inspect another mineral." : "Mine to see your first raw mineral, its purity and weight.");
     return;
   }
   const mineral = data.minerals[item.mineral];
   const record = state.records[item.mineral] ?? item;
-  const finish = item.polished ? "Polished" : "Raw";
+  const finish = specimenFinish(item);
   const image = byId("find-sprite");
   image.setAttribute("src", sprite(item));
   image.alt = `${t(mineral.name)} · ${t(finish)}`;
   image.parentElement.style.setProperty("--purity", item.purity / 10000);
+  image.parentElement.dataset.finish = item.finish ?? "";
   write("find-context", item.origin ?? (item.id === state.latest ? "Latest find" : "From your collection"));
   write("find-name", mineral.name);
   write("find-state", finish);
@@ -221,40 +310,70 @@ function renderFind() {
   write("find-best", percent(record.purity));
   write("find-heaviest", grams(record.weight));
   byId("polish-button").disabled = item.polished;
-  byId("crush-button").disabled = item.polished;
+  byId("collector-note").hidden = !mineral.collectibleOnly;
+  byId("crush-button").hidden = Boolean(mineral.collectibleOnly);
+  byId("crush-button").disabled = item.polished || Boolean(mineral.collectibleOnly);
+  write("crush-button", mineral.material ? "Crush for powder" : "Crush");
   write("sell-button", t`Sell · ${rules.salePrice(item, data)}`);
+  const powder = amount(state.materials, "diamond-powder");
+  byId("finish-controls").hidden = !item.polished || item.finish === "high-gloss";
+  byId("finish-button").disabled = powder === 0;
+  write("finish-stock", t`Diamond Powder · ${powder} available`);
 }
 
 function renderCollection() {
   const items = state.items.map((item) => {
     const mineral = data.minerals[item.mineral];
-    const stateLabel = item.polished ? "Polished" : "Raw";
+    const stateLabel = specimenFinish(item);
     const control = button("");
     control.dataset.specimen = item.id;
+    control.tabIndex = item.id === selected ? 0 : -1;
     control.dataset.state = stateLabel;
     control.setAttribute("aria-pressed", String(item.id === selected));
     control.setAttribute("aria-label", t`${mineral.name}, ${t(stateLabel)}, ${percent(item.purity)} purity, ${grams(item.weight)}`);
     const icon = element("span", "specimen-icon");
     icon.style.backgroundImage = `url("${sprite(item)}")`;
     icon.style.filter = `contrast(${.64 + item.purity / 10000 * .57})`;
-    control.append(icon, element("span", "title", mineral.name), element("span", "specimen-meta", percent(item.purity)));
+    control.title = control.getAttribute("aria-label");
+    icon.setAttribute("aria-hidden", "true");
+    control.append(icon);
     return control;
   });
-  byId("specimens").replaceChildren(...items);
+  const slots = items.slice();
+  while (slots.length < 28) {
+    const empty = element("span", "empty-slot");
+    empty.setAttribute("aria-hidden", "true");
+    slots.push(empty);
+  }
+  byId("specimens").replaceChildren(...slots);
   byId("empty-collection").hidden = items.length > 0;
   write("collection-count", `${items.length} ${t(items.length === 1 ? "piece" : "pieces")}`);
-  const latest = state.items.find((item) => item.id === state.latest && !item.origin);
-  write("mine-inventory-link", latest ? t`${data.minerals[latest.mineral].name} added · Inventory (${items.length})` : t`Inventory · ${items.length}`);
-
   const pigments = Object.entries(data.pigments).filter(([id]) => amount(state.pigments, id) > 0).map(([id, pigment]) => {
     const chip = element("li", "stock-pigment");
     chip.dataset.stockPigment = id;
     chip.append(swatch(element("span", "swatch"), pigment), element("span", "stock-name", pigment.name),
       element("strong", "stock-quantity", `×${amount(state.pigments, id)}`));
+    for (const scope of ["personal", "community"]) {
+      if (rules.nextMuralPixel(state, data, id, scope) === null) continue;
+      const place = button(scope === "personal" ? "Paint personal mural" : "Paint community mural");
+      place.dataset.place = id;
+      place.dataset.scope = scope;
+      chip.append(place);
+    }
     return chip;
   });
   byId("pigment-stock").replaceChildren(...pigments);
   byId("empty-pigment-stock").hidden = pigments.length > 0;
+
+  const materials = Object.entries(data.materials).filter(([id]) => amount(state.materials, id) > 0).map(([id, material]) => {
+    const chip = element("li", "stock-pigment stock-material");
+    chip.dataset.stockMaterial = id;
+    chip.append(element("span", "stock-material-icon"), element("span", "stock-name", material.name),
+      element("strong", "stock-quantity", `×${amount(state.materials, id)}`));
+    return chip;
+  });
+  byId("material-stock").replaceChildren(...materials);
+  byId("empty-material-stock").hidden = materials.length > 0;
 }
 
 function swatch(node, pigment) {
@@ -263,13 +382,87 @@ function swatch(node, pigment) {
   return node;
 }
 
+function pulseMuralPixel(pixel, pigment) {
+  const pulse = byId("pixel-pulse");
+  pulse.hidden = false;
+  pulse.style.left = (pixel % muralSize) * 100 / muralSize + "%";
+  pulse.style.top = Math.floor(pixel / muralSize) * 100 / muralSize + "%";
+  pulse.style.width = 100 / muralSize + "%";
+  pulse.style.setProperty("--pigment", data.pigments[pigment].color);
+  for (const animation of pulse.getAnimations()) animation.cancel();
+  const animation = pulse.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 150 : 850,
+  });
+  animation.onfinish = () => { pulse.hidden = true; };
+}
+
+function selectPixel(pixel) {
+  if (!muralTargets[pixel]) return;
+  selectedPixel = pixel;
+  selectedPigment = muralTargets[pixel];
+  renderMural();
+}
+
+function pointerPixel(event) {
+  const bounds = muralContext.canvas.getBoundingClientRect();
+  const x = Math.floor((event.clientX - bounds.left) * muralSize / bounds.width);
+  const y = Math.floor((event.clientY - bounds.top) * muralSize / bounds.height);
+  return x >= 0 && x < muralSize && y >= 0 && y < muralSize ? y * muralSize + x : null;
+}
+
+muralContext.canvas.addEventListener("pointermove", event => {
+  muralContext.canvas.style.cursor = muralTargets[pointerPixel(event)] ? "crosshair" : "";
+});
+muralContext.canvas.addEventListener("pointerleave", () => { muralContext.canvas.style.cursor = ""; });
+muralContext.canvas.addEventListener("click", event => selectPixel(pointerPixel(event)));
+muralContext.canvas.addEventListener("keydown", event => {
+  const steps = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (Object.hasOwn(steps, event.key)) {
+    event.preventDefault();
+    const [dx, dy] = steps[event.key];
+    if (selectedPixel === null) {
+      selectPixel(muralTargets.findIndex(Boolean));
+      return;
+    }
+    let x = selectedPixel % muralSize + dx;
+    let y = Math.floor(selectedPixel / muralSize) + dy;
+    while (x >= 0 && x < muralSize && y >= 0 && y < muralSize) {
+      const pixel = y * muralSize + x;
+      if (muralTargets[pixel]) {
+        selectPixel(pixel);
+        break;
+      }
+      x += dx;
+      y += dy;
+    }
+  } else if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    byId("paint-button").click();
+  }
+});
+byId("mural-guide-toggle").addEventListener("change", renderMural);
+byId("mural-zoom").addEventListener("change", event => {
+  byId("mural").classList.toggle("zoomed", event.target.checked);
+});
+
 function renderMural() {
-  const progress = rules.muralProgress(state, data);
-  const left = {};
-  const rows = Object.entries(data.mural.needs).map(([id, pixels]) => {
+  const board = rules.muralBoard(state, data, muralScope);
+  const { mural, painted, filledPixels } = board;
+  muralSize = mural.gridSize;
+  muralTargets = [];
+  for (const [id, cells] of Object.entries(mural.needs)) {
+    for (const [x, y] of cells) muralTargets[y * muralSize + x] = id;
+  }
+  if (!muralTargets[selectedPixel]) selectedPixel = null;
+  if (!Object.hasOwn(mural.needs, selectedPigment)) selectedPigment = Object.keys(mural.needs)[0];
+  const progress = rules.muralProgress(state, data, muralScope);
+  for (const link of document.querySelectorAll(".mural-tabs [data-scope]")) {
+    if (link.dataset.scope === muralScope) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  const rows = Object.entries(mural.needs).map(([id, pixels]) => {
     const pigment = data.pigments[id];
-    const remaining = pixels.length - amount(state.painted, id);
-    left[id] = remaining;
+    const remaining = pixels.length - amount(painted, id);
     const row = element("li");
     const control = button("");
     control.dataset.pigment = id;
@@ -280,12 +473,47 @@ function renderMural() {
     return row;
   });
   byId("pigments").replaceChildren(...rows);
-  write("mural-progress", `${progress.percent}%`);
+  const percentage = decimal(progress.filled * 100 / progress.needed, progress.left && progress.filled ? 1 : 0);
+  write("mural-title", mural.name);
+  write("mural-progress", `${percentage}%`);
   write("mural-status", progress.left ? t`${progress.left} ${progress.left === 1 ? "pixel" : "pixels"} to paint` : "Mural complete");
-  byId("paint-button").disabled = !amount(state.pigments, selectedPigment) || !left[selectedPigment];
-  write("paint-button", left[selectedPigment] ? "Apply pigment" : "Color complete");
-  byId("mural-canvas").setAttribute("aria-label", t`Copperwing mural, ${progress.percent}% complete`);
-  drawPlayableCopperwing(muralContext, data.mural, data.pigments, state.painted);
+  const target = muralTargets[selectedPixel];
+  const filled = Object.hasOwn(filledPixels, selectedPixel);
+  byId("paint-button").disabled = !target || filled || !amount(state.pigments, target);
+  write("paint-button", "Apply pigment");
+  write("pixel-selection", selectedPixel === null ? "" : filled ? "This pixel is already painted." :
+    t`Column ${selectedPixel % muralSize + 1}, row ${Math.floor(selectedPixel / muralSize) + 1} · ${data.pigments[target].name} · In stock: ${amount(state.pigments, target)}`);
+  const complete = progress.left === 0;
+  byId("paint-button").hidden = complete;
+  byId("equip-mural").hidden = !complete;
+  const backgroundId = mural.id;
+  write("equip-mural", state.background === backgroundId ? "View on character" : "Use as background");
+  byId("next-personal-mural").hidden = !complete || muralScope !== "personal";
+  byId("pixel-help").hidden = complete;
+  byId("mural-canvas").setAttribute("aria-label", t`${mural.name}, ${percentage}% complete`);
+  drawPlayableMural(muralContext, mural, data.pigments, filledPixels, complete ? null : selectedPixel, byId("mural-guide-toggle").checked);
+}
+
+function renderBackgroundPicker() {
+  byId("mural-background-option").value = data.mural.id;
+  byId("mural-background-option").disabled = rules.muralProgress(state, data).left > 0;
+  write("mural-background-option", byId("mural-background-option").disabled ? t`${data.mural.name} — complete the mural` : data.mural.name);
+  const backgrounds = byId("character-background");
+  while (backgrounds.options.length > 2) backgrounds.remove(2);
+  const currentPersonal = state.personal.mural;
+  const activeOption = option(currentPersonal.id, currentPersonal.name);
+  activeOption.disabled = rules.muralProgress(state, data, "personal").left > 0;
+  if (activeOption.disabled) activeOption.textContent = t`${currentPersonal.name} — complete the mural`;
+  backgrounds.append(activeOption);
+  for (const previous of Object.values(state.personalHistory)) {
+    backgrounds.append(option(previous.mural.id, previous.mural.name));
+  }
+  backgrounds.value = draftBackground;
+  updateBackgroundLink();
+}
+
+function updateBackgroundLink() {
+  byId("background-mural-link").hash = draftBackground === state.personal.mural.id ? "personal-mural" : "mural";
 }
 
 function renderRecipes() {
@@ -324,22 +552,72 @@ function renderGear() {
     return row;
   });
   byId("tool-list").replaceChildren(...rows);
+  const compare = byId("compare-pick");
+  const alternatives = Object.entries(data.tools).filter(([id]) => id !== state.equipped);
+  const previous = compare.value;
+  compare.replaceChildren(...alternatives.map(([id, tool]) => option(id, tool.name)));
+  const next = alternatives.find(([, tool]) => tool.tier > data.tools[state.equipped].tier);
+  compare.value = alternatives.some(([id]) => id === previous) ? previous : (next ?? alternatives.at(-1))[0];
+  renderGearComparison();
+}
+
+function chancesByRarity(toolId) {
+  const totals = {};
+  for (const [id, chance] of Object.entries(rules.miningOdds(data, toolId))) {
+    const rarity = data.minerals[id].rarity;
+    totals[rarity] = (totals[rarity] ?? 0) + chance;
+  }
+  return totals;
+}
+
+function renderGearComparison() {
+  const preview = byId("compare-pick").value;
+  const equipped = chancesByRarity(state.equipped);
+  const compared = chancesByRarity(preview);
+  write("comparison-equipped", t`Equipped · ${data.tools[state.equipped].name}`);
+  write("comparison-preview", data.tools[preview].name);
+  const rows = rarityOrder.filter(tier => tier in equipped || tier in compared).map(tier => {
+    const row = element("tr");
+    const label = element("th", "", tier);
+    label.scope = "row";
+    row.append(label, element("td", "", chanceLabel(equipped[tier])), element("td", "", chanceLabel(compared[tier])));
+    return row;
+  });
+  byId("gear-odds").replaceChildren(...rows);
 }
 
 function renderMissions() {
-  const rows = Object.entries(data.missions).map(([id, mission]) => {
-    const progress = Math.min(state.stats[mission.metric], mission.goal);
-    const claimed = state.claimed.includes(id);
+  const home = gameGrid.dataset.view === "home";
+  write("mission-title", home ? "Current mission" : "Missions");
+  const missions = Object.entries(data.missions).map(([id, mission]) => ({
+    id, mission, progress: rules.missionProgress(state, data, id), claimed: state.claimed.includes(id),
+  }));
+  const pending = missions.filter(entry => !entry.claimed);
+  const featured = pending.find(entry => entry.progress >= entry.mission.goal) ?? pending[0];
+  const visible = home ? (featured ? [featured] : []) : missions;
+  const rows = visible.map(({ id, mission, progress, claimed }) => {
     const row = element("div", "work-row mission-row");
     const detail = element("span");
-    detail.append(element("strong", "", mission.name), element("small", "", mission.text),
-      element("small", "", t`${progress}/${mission.goal} · ${mission.coins} coins`));
+    detail.append(element("strong", "", mission.name), element("small", "", mission.text));
+    const readout = element("small", "", t`${progress}/${mission.goal} · ${mission.coins} coins`);
+    if (home) {
+      const meter = element("progress", "mission-meter");
+      meter.max = mission.goal;
+      meter.value = progress;
+      meter.setAttribute("aria-label", t(mission.name));
+      const line = element("div", "mission-progress");
+      line.append(meter, readout);
+      detail.append(line);
+    } else detail.append(readout);
     const claim = button(claimed ? "Claimed" : "Claim", claimed || progress < mission.goal);
     claim.dataset.mission = id;
     row.append(detail, claim);
     return row;
   });
   byId("mission-list").replaceChildren(...rows);
+  byId("view-all-missions").hidden = !home;
+  byId("rank-progress").hidden = home;
+  byId("empty-home-missions").hidden = !home || rows.length > 0;
 }
 
 function renderContracts() {
@@ -383,23 +661,44 @@ function renderContracts() {
 }
 
 function renderJournal() {
-  const discoveries = Object.entries(state.records).sort(([a], [b]) =>
-    t(data.minerals[a].name).localeCompare(t(data.minerals[b].name), language));
-  const entries = discoveries.map(([id, record]) => {
-    const mineral = data.minerals[id];
+  let discoveries = 0;
+  const entries = catalogue.map(([id, mineral], index) => {
+    const record = state.records[id];
     const row = element("li", "journal-entry");
+    row.dataset.slot = index + 1;
+    row.dataset.discovered = Boolean(record);
+    row.append(element("span", "journal-number", `#${String(index + 1).padStart(2, "0")}`));
+    if (!record) {
+      const mystery = element("span", "journal-mystery", "?");
+      mystery.setAttribute("aria-hidden", "true");
+      row.append(mystery, element("strong", "journal-name", "Unknown mineral"));
+      return row;
+    }
+
+    discoveries++;
     const icon = element("img");
     icon.src = sprite({ mineral: id });
-    icon.alt = "";
-    icon.width = icon.height = 24;
+    icon.alt = t(mineral.name);
+    icon.width = icon.height = 64;
     icon.loading = "lazy";
-    const detail = element("div");
-    detail.append(element("strong", "", mineral.name), element("small", "", t`${percent(record.purity)} best · ${grams(record.weight)} heaviest`));
-    row.append(icon, detail);
+    const rarity = element("span", "rarity", mineral.rarity);
+    rarity.dataset.rarity = mineral.rarity;
+    const detail = element("dl", "journal-records");
+    for (const [label, value] of [["Best purity", percent(record.purity)], ["Heaviest find", grams(record.weight)]]) {
+      const stat = element("div");
+      stat.append(element("dt", "", label), element("dd", "", value));
+      detail.append(stat);
+    }
+    row.append(icon, element("strong", "journal-name", mineral.name), rarity, detail);
     return row;
   });
   byId("journal-list").replaceChildren(...entries);
-  write("journal-progress", t`${entries.length}/${Object.keys(data.minerals).length} discovered`);
+  const progress = t`${discoveries}/${catalogue.length} discovered`;
+  write("journal-progress", progress);
+  const meter = byId("journal-meter");
+  meter.max = catalogue.length;
+  meter.value = discoveries;
+  meter.setAttribute("aria-valuetext", progress);
 }
 
 const crewMembers = [{ name: "You", role: "Miner" }, ...mission.crew];
@@ -473,23 +772,169 @@ function tickExpedition() {
 }
 
 function render() {
+  renderMural();
+  renderCharacter();
   const rank = rules.rank(state);
-  write("rank", t`${t(rank.name)} · Lv ${rank.level}`);
-  write("rank-progress", rank.next === undefined ? t`${rank.xp} XP` : t`${rank.xp}/${rank.next} XP`);
+  write("rank-progress", t`${rank.name} · ${rank.xp} total XP`);
   write("coins", t`${state.coins} coins`);
   write("gear-coins", t`${state.coins} coins`);
-  renderRoute();
+  renderMine();
   renderFind();
   renderCollection();
-  renderMural();
   renderRecipes();
   renderGear();
   renderMissions();
   renderContracts();
-  renderJournal();
+  if (gameGrid.dataset.view === "journal") renderJournal();
   renderExpedition();
   write("save-status", storageOn ? "Progress is stored in this browser." : "Progress lasts while this tab is open.");
 }
+
+function renderExperience(rank, meterId, textId) {
+  const meter = byId(meterId);
+  meter.max = rank.next === undefined ? 1 : rank.next - rank.start;
+  meter.value = rank.next === undefined ? 1 : rank.xp - rank.start;
+  const experience = rank.next === undefined ? t`Max level · ${rank.xp} XP` : t`${meter.value}/${meter.max} XP`;
+  write(textId, experience);
+  meter.setAttribute("aria-valuetext", experience);
+}
+
+const starterLook = { name: "", skin: "Ochre", hair: "Long braid", face: "Freckles", jacket: "Field jacket", hat: "Miner’s cap", scarf: "undyed" };
+const slotLabels = { skin: "Skin tone", hair: "Hair", face: "Face", jacket: "Clothing", hat: "Headwear" };
+const wardrobe = byId("wardrobe-form");
+for (const [slot, choices] of Object.entries(rules.styles)) {
+  const label = element("label");
+  const control = element("select");
+  control.id = "look-" + slot;
+  control.replaceChildren(...choices.map((choice) => option(choice, choice === "Field jacket" ? "Field shirt" : choice)));
+  label.append(element("span", "", slotLabels[slot]), control);
+  byId("look-options").append(label);
+}
+for (const [id, neutral] of [["cloth-dye", "Undyed fabric"], ["scarf-dye", "Natural linen"]]) {
+  byId(id).replaceChildren(option("undyed", neutral),
+    ...Object.entries(data.pigments).map(([key, pigment]) => option(key, pigment.name)));
+}
+
+function selectGarmentDye() {
+  byId("cloth-dye").value = state.character?.clothDyes?.[byId("look-jacket").value] ?? "undyed";
+}
+
+function openWardrobe() {
+  const look = state.character ?? starterLook;
+  draftBackground = state.background;
+  byId("character-name").value = look.name;
+  for (const slot of Object.keys(rules.styles)) byId("look-" + slot).value = look[slot];
+  byId("scarf-dye").value = look.scarf;
+  byId("wardrobe-feedback").hidden = true;
+  selectGarmentDye();
+  renderBackgroundPicker();
+  previewOutfit();
+}
+
+function readOutfit() {
+  const look = { name: byId("character-name").value.trim(), scarf: byId("scarf-dye").value, cloth: byId("cloth-dye").value };
+  for (const slot of Object.keys(rules.styles)) look[slot] = byId("look-" + slot).value;
+  return look;
+}
+
+const backgroundImages = new Map();
+function completedBackground(background) {
+  const mural = rules.backgroundMural(state, data, background);
+  if (!mural) return null;
+  const key = JSON.stringify([mural.id, Object.keys(mural.needs)]);
+  if (!backgroundImages.has(key)) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = mural.gridSize * 4;
+    const filled = {};
+    for (const [id, cells] of Object.entries(mural.needs)) {
+      for (const [x, y] of cells) filled[y * mural.gridSize + x] = id;
+    }
+    drawPlayableMural(canvas.getContext("2d"), mural, data.pigments, filled, null, false);
+    backgroundImages.set(key, canvas);
+  }
+  return backgroundImages.get(key);
+}
+
+function drawLook(canvas, look, backgroundId = state.background, portrait = false) {
+  const cloth = look.cloth ?? look.clothDyes?.[look.jacket];
+  const background = completedBackground(backgroundId);
+  globalThis.drawStrideCharacter(canvas, look, data.pigments[look.scarf]?.color ?? "#d8b48b", state.equipped, portrait, data.pigments[cloth]?.color, background)
+    .catch(() => announce("The character art could not be loaded."));
+}
+
+function previewOutfit() {
+  const look = readOutfit();
+  drawLook(byId("outfit-preview"), look, draftBackground);
+  write("wardrobe-tool", data.tools[state.equipped].name);
+  const unlocks = rules.newOutfitDyes(state, look);
+  write("dye-cost", unlocks.length ? unlocks.map(id =>
+    t`Unlock for 1 × ${data.pigments[id].name}. In stock: ${amount(state.pigments, id)}.`).join(" ") : "These colours are free to wear.");
+  byId("save-outfit").disabled = !look.name || unlocks.some(id => !amount(state.pigments, id));
+}
+
+function renderProfile() {
+  const rank = rules.rank(state);
+  drawLook(byId("profile-avatar"), state.character ?? starterLook, state.background, true);
+  byId("profile-name").textContent = state.character?.name ?? t("New miner");
+  write("profile-level", t`Level ${rank.level}`);
+  renderExperience(rank, "profile-meter", "profile-xp");
+}
+
+function renderCharacter() {
+  renderProfile();
+  if (gameGrid.dataset.view === "edit-character") {
+    renderBackgroundPicker();
+    previewOutfit();
+  }
+}
+
+byId("look-jacket").addEventListener("input", selectGarmentDye);
+byId("character-background").addEventListener("change", event => {
+  draftBackground = event.target.value;
+  byId("wardrobe-feedback").hidden = true;
+  updateBackgroundLink();
+  previewOutfit();
+});
+byId("equip-mural").addEventListener("click", async () => {
+  const id = rules.muralBoard(state, data, muralScope).mural.id;
+  await run({ type: "background", background: id });
+  if (state.background === id) location.hash = "home";
+});
+byId("next-personal-mural").addEventListener("click", () => run({ type: "new-personal-mural" }));
+byId("background-mural-link").addEventListener("click", event => {
+  const archive = state.personalHistory[draftBackground];
+  if (!archive) return;
+  event.preventDefault();
+  write("archived-mural-name", archive.mural.name);
+  const sheet = byId("archived-mural");
+  drawPlayableMural(sheet.querySelector("canvas").getContext("2d"), archive.mural, data.pigments, archive.filledPixels);
+  sheet.showModal();
+});
+wardrobe.addEventListener("input", () => {
+  byId("wardrobe-feedback").hidden = true;
+  previewOutfit();
+});
+async function saveOutfit() {
+  if (!wardrobe.reportValidity() || byId("save-outfit").disabled) return;
+  const saved = await run({ type: "wardrobe", look: readOutfit(), background: draftBackground });
+  if (gameGrid.dataset.view !== "edit-character") return;
+  if (saved) {
+    location.hash = "home";
+  } else {
+    write("wardrobe-feedback", byId("feedback").textContent);
+    byId("wardrobe-feedback").hidden = false;
+  }
+}
+byId("save-outfit").addEventListener("click", saveOutfit);
+wardrobe.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveOutfit();
+});
+byId("character-name").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  event.preventDefault();
+  saveOutfit();
+});
 
 function ask(action, title, copy, confirm) {
   pendingAction = action;
@@ -506,42 +951,83 @@ function onChoice(id, attribute, handler) {
   });
 }
 
-mineSelect.replaceChildren(...Object.entries(data.mines).map(([id, mine]) => option(id, mine.name)));
-mineSelect.addEventListener("change", () => {
-  const route = Object.keys(data.routes).find((id) => data.routes[id].mine === mineSelect.value);
-  run({ type: "select", route });
-});
-routeSelect.addEventListener("change", () => run({ type: "select", route: routeSelect.value }));
+byId("compare-pick").addEventListener("change", renderGearComparison);
 byId("mine-button").addEventListener("click", () => run({ type: state.mining ? "collect" : "mine" }));
 byId("expedition-button").addEventListener("click", (event) => run({ type: event.currentTarget.dataset.action }));
 byId("expedition-leave").addEventListener("click", () => run({ type: "expedition-leave" }));
 
-onChoice("specimens", "specimen", (id, target) => {
-  selected = Number(id);
+function inspectSpecimen(id) {
+  selected = id;
   renderFind();
-  for (const control of byId("specimens").children) control.setAttribute("aria-pressed", String(control === target));
-  if (window.matchMedia("(max-width: 710px)").matches) byId("find").scrollIntoView({ block: "start" });
+  for (const control of byId("specimens").querySelectorAll("[data-specimen]")) {
+    const active = Number(control.dataset.specimen) === id;
+    control.setAttribute("aria-pressed", String(active));
+    control.tabIndex = active ? 0 : -1;
+  }
+  byId("find").scrollIntoView({ block: "nearest" });
+  byId("find-context").focus({ preventScroll: true });
+}
+
+onChoice("specimens", "specimen", id => inspectSpecimen(Number(id)));
+byId("specimens").addEventListener("keydown", event => {
+  const cells = [...event.currentTarget.querySelectorAll("[data-specimen]")];
+  const current = cells.indexOf(event.target);
+  if (current < 0) return;
+  const columns = getComputedStyle(event.currentTarget).gridTemplateColumns.split(" ").length;
+  const positions = {
+    ArrowLeft: current - 1, ArrowRight: current + 1, ArrowUp: current - columns,
+    ArrowDown: current + columns, Home: 0, End: cells.length - 1,
+  };
+  if (!Object.hasOwn(positions, event.key)) return;
+  event.preventDefault();
+  cells[Math.min(cells.length - 1, Math.max(0, positions[event.key]))].focus();
+});
+byId("show-latest-find").addEventListener("click", () => inspectSpecimen(state.latest));
+for (const tab of inventoryTabs) tab.addEventListener("click", () => setInventoryTab(tab.dataset.inventoryTab, true));
+byId("inventory-tabs").addEventListener("keydown", event => {
+  const current = inventoryTabs.indexOf(event.target);
+  if (current < 0) return;
+  let index;
+  if (event.key === "Home") index = 0;
+  else if (event.key === "End") index = inventoryTabs.length - 1;
+  else if (event.key === "ArrowLeft") index = (current - 1 + inventoryTabs.length) % inventoryTabs.length;
+  else if (event.key === "ArrowRight") index = (current + 1) % inventoryTabs.length;
+  else return;
+  event.preventDefault();
+  const tab = inventoryTabs[index];
+  setInventoryTab(tab.dataset.inventoryTab, true);
+  tab.focus();
 });
 onChoice("pigments", "pigment", (id) => {
   selectedPigment = id;
+  selectedPixel = rules.nextMuralPixel(state, data, id, muralScope);
   renderMural();
   byId("pigments").querySelector("[aria-pressed=true]").focus({ preventScroll: true });
 });
 onChoice("recipe-list", "recipe", (recipe) => run({ type: "mix", recipe }));
 onChoice("tool-list", "tool", (tool) => run({ type: state.owned.includes(tool) ? "equip" : "buy", tool }));
 onChoice("mission-list", "mission", (mission) => run({ type: "claim", mission }));
-byId("paint-button").addEventListener("click", () => run({ type: "paint", pigment: selectedPigment }));
+onChoice("pigment-stock", "place", (pigment, target) => run({ type: "paint", pigment, scope: target.dataset.scope }));
+byId("paint-button").addEventListener("click", () => run({ type: "paint", pigment: muralTargets[selectedPixel], pixel: selectedPixel, scope: muralScope }));
 byId("polish-button").addEventListener("click", () => {
   const item = current();
   if (item) run({ type: "polish", id: item.id });
+});
+byId("finish-button").addEventListener("click", () => {
+  const item = current();
+  if (!item) return;
+  ask({ type: "finish", id: item.id }, "Apply high-gloss finish?",
+    t`Finish ${data.minerals[item.mineral].name} using 1 unit of Diamond Powder.`, "Apply finish");
 });
 byId("crush-button").addEventListener("click", () => {
   const item = current();
   if (!item) return;
   const mineral = data.minerals[item.mineral];
-  const pigment = data.pigments[mineral.pigment].name;
+  const output = rules.crushOutput(item, data);
+  if (!output) return;
+  const { name, amount, material } = output;
   ask({ type: "crush", id: item.id }, "Crush this specimen?",
-    t`${mineral.name} will be consumed to make ${rules.yieldFrom(item)} × ${pigment}.`, "Crush for pigment");
+    t`${mineral.name} will be consumed to make ${amount} × ${name}.`, material ? "Crush for powder" : "Crush for pigment");
 });
 byId("sell-button").addEventListener("click", () => {
   const item = current();
@@ -550,7 +1036,7 @@ byId("sell-button").addEventListener("click", () => {
     t`${data.minerals[item.mineral].name} will leave your collection for ${rules.salePrice(item, data)} coins.`, "Sell specimen");
 });
 byId("reset-button").addEventListener("click", () => ask(
-  { type: "reset" }, "Reset the local playtest?", "This clears the collection, journal, equipment, contracts, expedition and mural progress.", "Reset progress"
+  { type: "reset" }, "Reset the local playtest?", "This clears your character, wardrobe, collection, journal, equipment, contracts, expedition and mural progress.", "Reset progress"
 ));
 byId("action-cancel").addEventListener("click", () => {
   pendingAction = null;
@@ -583,10 +1069,15 @@ if (language === "pt-PT") {
   for (const guide of document.querySelectorAll("[data-guide]")) {
     guide.setAttribute("href", `play-guide.pt-PT.html${guide.hash}`);
   }
-} else {
-  document.querySelector("[data-stream-link]").href = "streams.html?lang=en";
 }
 window.addEventListener("hashchange", showGameView);
+window.addEventListener("pageshow", () => {
+  const hash = location.hash;
+  if (hash !== "#home" && hash !== "#watch" && hash !== "#edit-character" && hash !== "#journal") return;
+  requestAnimationFrame(() => {
+    if (location.hash === hash) window.scrollTo(0, 0);
+  });
+}, { once: true });
 showGameView();
 const expeditionArt = byId("expedition-art");
 expeditionArt.src = mission.art;
