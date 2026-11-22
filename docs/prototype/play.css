@@ -353,7 +353,6 @@ html[data-mak-report=document] .home-bar h2 { margin:0; padding:0; border:0; fon
 }
 #watch-stream { grid-area:broadcast; }
 #watch-chat { grid-area:chat; }
-#watch-chat-title { margin:0 0 8px; }
 html[data-mak-report=document] .game-grid[data-view=home] > .panel {
   background-color:transparent; border:0; padding:0; border-radius:0;
 }

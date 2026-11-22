@@ -114,6 +114,7 @@ globalThis.StrideLocale = (() => {
     "Widen the window or rotate the screen to watch.": "Alarga a janela ou roda o ecrã para ver o direto.",
     "Twitch live video": "Vídeo em direto da Twitch",
     "Stream chat": "Chat da transmissão",
+    "Expand chat": "Ampliar chat", "Reduce chat": "Reduzir chat", "Open chat on Twitch": "Abrir chat na Twitch",
     "Choose a channel to open its chat.": "Escolhe um canal para abrir o chat.",
     "Open the standalone site to use stream chat.": "Abre o site do Stridekeep num navegador para usar o chat da transmissão.",
     "Open the local Stridekeep site to use the Twitch video player.": "Abre o site local do Stridekeep para usar o leitor da Twitch.",

@@ -59,6 +59,9 @@
   const chooser = byId("stream-chooser");
   const player = byId("stream-player");
   const chat = byId("stream-chat");
+  const chatActions = byId("stream-chat-actions");
+  const expandChat = byId("expand-stream-chat");
+  const standaloneChat = byId("standalone-chat");
   const chatPlaceholder = byId("stream-chat-placeholder");
   const placeholder = byId("stream-placeholder");
   const results = byId("stream-results");
@@ -94,6 +97,15 @@
 
   let current = null;
   let checkedSearch = false;
+
+  function setChatExpanded(expanded) {
+    chat.toggleAttribute("data-expanded", expanded);
+    expandChat.setAttribute("aria-expanded", String(expanded));
+    expandChat.textContent = t(expanded ? "Reduce chat" : "Expand chat");
+  }
+
+  expandChat.addEventListener("click", () => setChatExpanded(!chat.hasAttribute("data-expanded")));
+  setChatExpanded(true);
 
   function directLogin(value) {
     const input = value.trim().replace(/^@/, "");
@@ -137,11 +149,14 @@
     renderPlayer();
     const channel = !panel.hidden && current;
     chatPlaceholder.hidden = Boolean(channel);
+    chatActions.hidden = !channel;
     if (!channel) {
       if (chat.firstChild) chat.replaceChildren();
+      standaloneChat.removeAttribute("href");
       return;
     }
     if (chat.firstElementChild?.dataset.channel === channel.login) return;
+    standaloneChat.href = `https://www.twitch.tv/popout/${channel.login}/chat`;
     const url = new URL(`https://www.twitch.tv/embed/${channel.login}/chat`);
     url.searchParams.set("parent", location.hostname);
     url.searchParams.set("darkpopout", "");

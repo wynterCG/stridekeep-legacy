@@ -60,12 +60,20 @@
 .stream-placeholder { padding: 16px; margin: 0; color: var(--dim); }
 .stream-player iframe { display: block; width: 100%; height: auto; min-height: 300px; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; }
 #watch-stream [hidden] { display: none; }
+#watch-chat .watch-heading { flex-wrap: wrap; }
+#watch-chat-title { margin: 0; }
+#stream-chat-actions:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+#stream-chat-actions a { color: var(--accent); font-size: 13px; }
 #stream-chat iframe {
   display: block;
   width: 100%;
-  height: clamp(300px, 36vh, 480px);
+  height: clamp(440px, 50svh, 540px);
   border: 0;
   border-radius: 6px;
   background: var(--well);
+}
+#stream-chat[data-expanded] iframe { height: max(820px, 85svh); }
+@media (max-width: 600px) {
+  #stream-chat[data-expanded] iframe { min-height: 960px; }
 }
 #stream-chat-placeholder { color: var(--dim); margin: 8px 0; }

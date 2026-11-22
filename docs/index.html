@@ -51,7 +51,13 @@
     <main class="game-grid">
       <section id="watch-stream" class="panel stream-video" aria-labelledby="video-title" data-watch-only hidden></section>
       <section id="watch-chat" class="panel" aria-labelledby="watch-chat-title" data-watch-only hidden>
-        <h2 id="watch-chat-title" data-text>Stream chat</h2>
+        <div class="watch-heading">
+          <h2 id="watch-chat-title" data-text>Stream chat</h2>
+          <div id="stream-chat-actions" hidden>
+            <button type="button" id="expand-stream-chat" aria-controls="stream-chat" aria-expanded="false" data-text>Expand chat</button>
+            <a id="standalone-chat" target="_blank" rel="noopener" data-text>Open chat on Twitch</a>
+          </div>
+        </div>
         <p id="stream-chat-placeholder" data-text>Choose a channel to open its chat.</p>
         <div id="stream-chat"></div>
       </section>
