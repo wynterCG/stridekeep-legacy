@@ -53,6 +53,32 @@ html[data-mak-report=document] .guide-main .guide-index {
 }
 html[data-mak-report=document] .guide-index h1 { max-width: 20ch; font-size: clamp(2.3rem, 5.2vw, 4rem); margin: 0 0 .7rem; }
 .guide-intro p { max-width: 62ch; }
+.guide-intro > ol {
+  list-style: none; counter-reset: loop-step; margin: 0; padding: 0;
+}
+.guide-intro > ol > li {
+  counter-increment: loop-step; position: relative; padding: 0 0 1rem 2.6rem;
+  line-height: 1.45;
+}
+.guide-intro > ol > li::before {
+  content: counter(loop-step); position: absolute; inset: 0 auto auto 0;
+  display: grid; place-items: center; width: 1.8rem; height: 1.8rem;
+  border: 1px solid var(--accent); border-radius: 50%; background: var(--well);
+  color: var(--accent); font-weight: bold;
+}
+.guide-intro > ol > li:not(:last-child)::after {
+  content: ""; position: absolute; left: .87rem; top: 1.8rem; bottom: 0;
+  border-left: 1px solid var(--line);
+}
+.guide-intro > ol > li:last-child { padding-bottom: 0; }
+.guide-intro ol ul {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 10rem),1fr));
+  gap: .5rem; margin: .45rem 0 0; padding: 0; list-style: none;
+}
+.guide-intro ol ul > li {
+  margin: 0; padding: .6rem .8rem; border: 1px solid var(--line);
+  border-radius: 7px; background: var(--well); font-size: .92rem;
+}
 .guide-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; margin-top: 1.75rem; }
 .guide-group { padding: clamp(13px, 2vw, 20px); border: 1px solid var(--line); border-radius: 7px; background: var(--well); }
 html[data-mak-report=document] .guide-group h2 {
