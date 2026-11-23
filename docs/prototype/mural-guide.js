@@ -4,6 +4,99 @@
   const data = globalThis.StrideData;
   const rules = globalThis.StrideRules;
   const { t } = globalThis.StrideLocale;
+  const pt = document.documentElement.lang === "pt-PT";
+  const key = text => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+  const sources = new Map(Object.values(data.minerals).filter(mineral => mineral.pigment)
+    .map(mineral => [mineral.pigment, t(mineral.name)]));
+
+  function swatch(id) {
+    const chip = document.createElement("span");
+    chip.className = "guide-swatch";
+    chip.setAttribute("aria-hidden", "true");
+    chip.style.backgroundColor = data.pigments[id].color;
+    return chip;
+  }
+
+  const pigmentList = document.getElementById("guide-pigment-table");
+  if (pigmentList) {
+    const filter = document.getElementById("guide-pigment-filter");
+    const disclosure = pigmentList.closest("details");
+    const table = document.createElement("table");
+    const columns = table.createTHead().insertRow();
+    heading(columns, pt ? "Cor" : "Colour", "col");
+    heading(columns, pt ? "Mineral em bruto" : "Raw mineral", "col");
+    const rows = table.createTBody();
+    const colours = Array.from(sources, ([id, mineral]) => ({ id, mineral, name: t(data.pigments[id].name) }))
+      .sort((a, b) => a.name.localeCompare(b.name, document.documentElement.lang));
+    function showPigments() {
+      if (!disclosure.open) return;
+      const query = key(filter.value);
+      rows.replaceChildren();
+      for (const { id, mineral, name } of colours) {
+        if (!key(name + " " + mineral).includes(query)) continue;
+        const row = rows.insertRow();
+        heading(row, name, "row");
+        row.cells[0].prepend(swatch(id));
+        row.insertCell().textContent = mineral;
+      }
+      if (!rows.rows.length) rows.insertRow().insertCell().textContent = t("No results");
+    }
+    disclosure.addEventListener("toggle", showPigments);
+    filter.addEventListener("input", showPigments);
+    pigmentList.append(table);
+    showPigments();
+  }
+  const missions = document.getElementById("guide-missions");
+  if (missions) {
+    const table = document.createElement("table");
+    const columns = table.createTHead().insertRow();
+    for (const label of (pt ? ["Nível", "Objetivo", "Moedas"] : ["Level", "Objective", "Coins"])) {
+      heading(columns, label, "col");
+    }
+    const rows = table.createTBody();
+    for (const mission of Object.values(data.missions).sort((a, b) => (a.level ?? 1) - (b.level ?? 1))) {
+      const row = rows.insertRow();
+      row.insertCell().textContent = mission.level ?? 1;
+      heading(row, t(mission.name), "row");
+      const goal = document.createElement("div");
+      goal.textContent = t(mission.text);
+      row.cells[1].append(goal);
+      row.insertCell().textContent = mission.coins;
+    }
+    missions.append(table);
+  }
+  const book = document.getElementById("guide-recipe-book");
+  if (book) {
+    const table = document.createElement("table");
+    const columns = table.createTHead().insertRow();
+    heading(columns, pt ? "Cor" : "Colour", "col");
+    heading(columns, pt ? "Ingredientes e origem" : "Ingredients and sources", "col");
+    const rows = table.createTBody();
+    const entries = Object.entries(data.recipes).sort(([, left], [, right]) =>
+      t(left.name).localeCompare(t(right.name), document.documentElement.lang));
+    for (const [id, recipe] of entries) {
+      const row = rows.insertRow();
+      row.id = "recipe-" + id;
+      heading(row, t(recipe.name), "row");
+      row.cells[0].prepend(swatch(id));
+      const ingredients = row.insertCell();
+      for (const [pigment, quantity] of Object.entries(recipe.ingredients)) {
+        const line = document.createElement("div");
+        const name = t(data.pigments[pigment].name);
+        line.append(quantity + " × ");
+        if (data.recipes[pigment]) {
+          const link = document.createElement("a");
+          link.href = "#recipe-" + pigment;
+          link.textContent = name;
+          line.append(link);
+        } else {
+          line.append(name + " · " + sources.get(pigment));
+        }
+        ingredients.append(line);
+      }
+    }
+    book.append(table);
+  }
   const oddsPanel = document.getElementById("guide-pick-odds");
   const oddsTable = document.createElement("table");
   const pickaxes = Object.entries(data.tools);
@@ -42,7 +135,6 @@
     line.append(label);
     oddsPanel.append(line);
   }
-  const key = text => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
   function showOdds() {
     if (!oddsPanel.closest("details").open) return;
     const filter = key(query.value);

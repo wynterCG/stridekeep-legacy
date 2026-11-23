@@ -2,156 +2,198 @@
 <html lang="en" data-fixed-language="en" data-mak-report="document" data-mak-theme="custom">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stridekeep playtest wiki</title>
-  <meta name="description" content="Stridekeep playtest wiki">
+  <title>Stridekeep Wiki</title>
+  <meta name="description" content="Stridekeep Wiki">
   <link rel="stylesheet" href="_shared/report.css">
   <link rel="stylesheet" href="ui-concept/screen.css">
   <link rel="stylesheet" href="prototype/play.css">
+  <link rel="stylesheet" href="prototype/guide-reader.css">
   <script defer src="ui-concept/mural-art.js"></script>
   <script defer src="prototype/data.js"></script>
   <script defer src="prototype/locale.js"></script>
   <script defer src="prototype/rules.js"></script>
   <script defer src="prototype/mural-guide.js"></script>
+  <script defer src="prototype/guide-reader.js"></script>
 </head>
 <body data-variant="expedition" class="playtest play-guide">
   <div class="frame">
-    <header class="site-header">
-      <a class="guide-home" href="index.html?lang=en">← Play</a>
-      <a lang="pt-PT" hreflang="pt-PT" href="play-guide.pt-PT.html">Português</a>
+    <header class="site-header guide-top">
+      <a class="brand" href="#topics" aria-label="Stridekeep · Wiki index"><i aria-hidden="true"></i><strong>Stridekeep</strong></a>
+      <nav><a class="guide-home" href="index.html?lang=en#home">← Back to game</a> <a data-guide-language lang="pt-PT" hreflang="pt-PT" href="play-guide.pt-PT.html">Português</a></nav>
     </header>
-    <main class="panel guide-panel" id="guide-content">
-      <img class="guide-art" src="ui-concept/copper-stair.webp" alt="" width="900" height="230">
-      <h1 id="stridekeep-playtest-wiki">Stridekeep playtest wiki</h1>
-<p>Start in the mine, find a mineral and decide what to keep. Play as a miner of the Copper Guild with browser-local progress and a simulated crew.</p>
-      <nav class="guide-toc" aria-label="Stridekeep playtest wiki"><div class="toc">
-<ul>
-<li><a href="#game-loop">Game loop</a></li>
-<li><a href="#watch">Watch a stream while playing</a></li>
-<li><a href="#start">Your first find</a></li>
-<li><a href="#drops">Drop chances by pickaxe</a></li>
-<li><a href="#your-first-missions">Your first missions</a></li>
-<li><a href="#progression">Upgrade your pickaxe</a></li>
-<li><a href="#expedition">Guild Expedition</a></li>
-<li><a href="#pigments">Make pigments</a></li>
-<li><a href="#finishes">Apply a high-gloss finish</a></li>
-<li><a href="#mural">Paint a mural</a></li>
-<li><a href="#save">Save and scope</a></li>
-</ul>
-</div>
-</nav>
-      <h2 id="game-loop">Game loop</h2>
-<p>On <a href="index.html?lang=en#home">Home</a>, choose <strong>Play</strong> and select <strong>Mine</strong>. Your find goes straight into the inventory. Select a mineral icon to see that specimen's artwork, weight, purity and available actions. Two copies of the same mineral can have different weights and purities. Switch between <strong>Minerals</strong>, <strong>Pigments</strong> and <strong>Materials</strong> or open the <a href="index.html?lang=en#journal">Mineral catalogue</a> to track your discoveries.</p>
-<p>In <a href="index.html?lang=en#edit-character">Edit character</a>, choose from seven faces, eleven tops, seven pairs of trousers and seven pairs of boots. The nine fitting-room hats join the original miner’s cap. You can also go bareheaded. Select a hairstyle and facial details independently. Preview a pigment on the top, fabric hat or dyeable trousers. Each piece remembers its saved colour. Saving spends one unit per newly unlocked colour, even when several pieces use it. Cancel returns to your previous outfit. Your portrait on Home wears the saved look. The level bar beside your portrait shows XP earned within the current level and how much that level needs. At the highest playtest level it shows total XP.</p>
-<p>Try the field shirt or the survey coat on the miner standing at rest. Your equipped pickaxe is carried diagonally across the miner’s back. Its head shows above one shoulder and the end of the handle shows beside the opposite hip. Open <strong>Workshop → Pickaxes</strong>. Equip an owned pickaxe there. Home shows its name beside the mining action. Open <strong>Edit character</strong> to see how it sits across the full outfit.</p>
-<p>In the version designed for Twitch, each community works together to <strong>complete its murals</strong>. When a color is missing, players look for the right minerals or mix pigments to make it. Every painted pixel brings the group closer to 100%. The finished image marks a milestone in the community's progression, and the streamer can create murals to celebrate those milestones or other events.</p>
-<p>The playtest includes <strong>272 catalogue entries</strong>. The starter pick can find any of the <strong>271</strong> mine specimens. Silver comes from the guild expedition. There are <strong>319 colours</strong> available for paint and clothing, including <strong>269</strong> direct pigments and <strong>50</strong> recipes. Some blends use other blends. Diamond gives finishing powder. Painite and Fluor-liddicoatite are intact trophies. In <strong>Mural</strong>, spend the same pigment stock on your own abstract pattern or your guild’s illustration.</p>
+    <div class="guide-shell">
+      <aside class="guide-side">
+        <div class="guide-search" hidden>
+          <label for="guide-search">Search the wiki</label>
+          <input type="search" id="guide-search" autocomplete="off" aria-controls="guide-results">
+          <div id="guide-results" role="status"></div>
+        </div>
+        <details class="guide-nav" open><summary>Browse by topic</summary>
+          <nav aria-label="Wiki index"><a href="#topics">Wiki index</a><section class="guide-nav-group"><h3>Getting started</h3><a href="#game-loop">From the mine to a mural</a><a href="#start">Mining, weight and purity</a><a href="#missions">Missions, levels and contracts</a><a href="#character">Character, clothing and dyes</a></section><section class="guide-nav-group"><h3>Mining and collecting</h3><a href="#collection">The mineral collection</a><a href="#drops">Drop chances by pickaxe</a><a href="#progression">Buying and equipping pickaxes</a><a href="#economy">Selling and polishing</a></section><section class="guide-nav-group"><h3>The workshop</h3><a href="#pigments">Crushing minerals for pigment</a><a href="#recipes">Colour recipes</a><a href="#finishes">Diamond powder and finishes</a></section><section class="guide-nav-group"><h3>Murals and community</h3><a href="#personal-mural">Personal patterns</a><a href="#mural">Community murals and Sleeping Fox</a><a href="#expedition">The guild expedition</a><a href="#watch">Twitch and discovery alerts</a></section><section class="guide-nav-group"><h3>Your progress</h3><a href="#save">Your save and local play</a></section></nav>
+        </details>
+      </aside>
+      <main class="guide-main" id="guide-content">
+        <section id="topics" class="guide-index panel">
+          <div class="guide-intro"><h1>Stridekeep playtest wiki</h1>
+<p>Find out what to do with a mineral, how to make a missing colour and how to finish a mural with your guild.</p></div>
+          <div class="guide-groups"><section class="guide-group"><h2>Getting started</h2><ul><li><a href="#game-loop">From the mine to a mural</a></li><li><a href="#start">Mining, weight and purity</a></li><li><a href="#missions">Missions, levels and contracts</a></li><li><a href="#character">Character, clothing and dyes</a></li></ul></section><section class="guide-group"><h2>Mining and collecting</h2><ul><li><a href="#collection">The mineral collection</a></li><li><a href="#drops">Drop chances by pickaxe</a></li><li><a href="#progression">Buying and equipping pickaxes</a></li><li><a href="#economy">Selling and polishing</a></li></ul></section><section class="guide-group"><h2>The workshop</h2><ul><li><a href="#pigments">Crushing minerals for pigment</a></li><li><a href="#recipes">Colour recipes</a></li><li><a href="#finishes">Diamond powder and finishes</a></li></ul></section><section class="guide-group"><h2>Murals and community</h2><ul><li><a href="#personal-mural">Personal patterns</a></li><li><a href="#mural">Community murals and Sleeping Fox</a></li><li><a href="#expedition">The guild expedition</a></li><li><a href="#watch">Twitch and discovery alerts</a></li></ul></section><section class="guide-group"><h2>Your progress</h2><ul><li><a href="#save">Your save and local play</a></li></ul></section></div>
+        </section>
+        <article id="game-loop" class="guide-topic panel" aria-labelledby="title-game-loop"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-game-loop">From the mine to a mural</h2><p>Start on <a href="index.html?lang=en#home">Home</a>. The first time you mine, you have a choice to make with the specimen that lands in your inventory.</p>
 <ol>
-<li><strong>Mine.</strong> Get a raw specimen immediately and check its purity and weight.</li>
-<li><strong>Choose what to do with the find.</strong> Keep or polish it for the collection, sell it for coins, use it for a contract, or crush the raw piece for its pigment or material.</li>
-<li><strong>Paint or mix.</strong> Crush raw Hematite for Iron Red to paint the fox. To make <strong>Mintwash</strong> for clothing or the Banner Order, mix two units of Chalk White and one of Malachite Green. Each pigment unit spent has one destination.</li>
-<li><strong>Upgrade your pickaxe.</strong> Check your current mission on Home. Open <strong>Missions</strong> to see objectives and claim rewards. Spend coins from sales, contracts and missions on gear. Equip the new pickaxe for a better chance of rare finds.</li>
+<li><strong>Inspect the find.</strong> Select its icon to see the raw artwork, weight and purity. Keep a favourite, <a href="#economy">polish or sell it</a>, or crush a spare for <a href="#pigments">pigment</a>.</li>
+<li><strong>Choose a painting.</strong> Open your <a href="#personal-mural">personal pattern</a> or the <a href="#mural">guild’s Sleeping Fox</a>. The palette shows exactly which colours are missing.</li>
+<li><strong>Make and place a colour.</strong> Crush a raw Hematite to make Iron Red for the fox. If a pattern calls for Mintwash, <a href="#recipes">mix</a> two Chalk White with one Malachite Green. One unit paints one matching square.</li>
+<li><strong>Work towards your next find.</strong> Claim completed <a href="#missions">missions</a> and spend coins on a <a href="#progression">pickaxe</a>. You stay in the same mine, with different chances on your next strike.</li>
 </ol>
-<p>After your first find, you can join <strong>Silver Fault Survey</strong> with the simulated crew. Contribute at each stage to earn silver and coins. Solo mining stays available during the expedition.</p>
-<p>Open <strong>Collection</strong> to browse 544 forms across 272 species. The first find reveals the raw form; polishing the species for the first time reveals its polished form. Both appear as question marks until discovered. Select a mineral to see its records and a red “Colour needed” hint when its pigment is needed for painting or mixing. In <strong>Workshop</strong>, scroll the full recipe list or filter it by ingredient or available stock.</p>
-<h2 id="watch">Watch a stream while playing</h2>
-<p>Open <a href="index.html?lang=en#watch">Home → Watch and play</a>. Enter a Twitch channel name or paste its channel link. Select <strong>Open channel</strong> and start the video with the player controls. When live search is configured, you can also search by channel or category and select a result.</p>
-<p>In <strong>Watch and play</strong>, mining a Rare or higher specimen shows a local discovery alert with the raw sprite, rarity, purity, weight and current shop offer.</p>
-<p>On a wide screen, the video is on the left and the channel chat sits above <strong>Mine</strong> on the right. Below them, the inventory and <strong>Latest find</strong> each take up half a row. Select a mineral on the left to inspect, polish or crush it on the right. Selecting a pigment opens the uses for that colour in the same space. Mining and inspecting keep the video and chat open. Use <strong>Change channel</strong> to switch both to another channel, or <strong>Close player</strong> to close them. Choose <strong>Play</strong> to return to the mine view.</p>
-<p>If the Workspace preview or a local file cannot embed the player, use the link to the standalone local site while its preview server is running. On a narrow phone, rotate it or widen the window to give the video enough room. You can keep mining in the meantime.</p>
-<p>The chat opens expanded so you can accept, reject or customise cookies if Twitch shows its notice. Scroll down the page if the buttons are below the screen. Then choose <strong>Reduce chat</strong> to bring the mining button closer. You can expand the chat again or choose <strong>Open chat on Twitch</strong> to open the same channel's chat in a separate tab.</p>
-<h2 id="start">Your first find</h2>
-<p>Select <strong>Mine</strong> to add a raw specimen to your inventory immediately. You can strike again five seconds later. Your equipped pickaxe sets the chance of finding each mineral. Each specimen rolls its own weight and purity.</p>
+<p>Your own small patterns give you designs to wear behind your character. The community has a larger shared aim: finish an illustration, one contribution at a time. You can try that loop with a local guild in this prototype.</p></article><article id="start" class="guide-topic panel" aria-labelledby="title-start"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-start">Mining, weight and purity</h2><p>Choose <strong>Mine</strong> on <a href="index.html?lang=en#home">Home</a>. The raw specimen enters your inventory immediately. Five seconds later you can strike again.</p>
 <ul>
-<li><strong>Purity</strong> goes from 0% to 100%, with two decimal places. It affects the specimen's contrast and sale price. A very pure uncommon find can sell for more than a low-purity rare one.</li>
-<li><strong>Weight</strong> is separate. Raw pigment-bearing pieces weighing at least 22 g yield two units when crushed. Lighter pieces yield one. A raw diamond yields one unit of Diamond Powder.</li>
-<li>A collector premium raises shop offers above 99.00% purity. A raw Azurite sells for 31 coins at 99.00%, 225 at 99.99% and 318 at 100.00%.</li>
-<li><strong>Polish</strong> quotes a fee based on the raw sale offer, rarity, purity and weight. Compare it with <strong>Sell</strong>. Polishing a Common or Uncommon specimen costs at most half its raw offer. From Rare upward, polishing costs more than selling the raw piece would pay. At 70% purity a raw hematite sells for 8 coins and a raw Mythic diamond for 1,038. Claim the first discovery reward or sell a spare to pay. A polished piece keeps its weight and purity, earns 1 XP and permanently marks its species in the collection. The shop offer for a polished piece includes half the polishing fee, rounded down. You see that offer before spending coins. The five- and twenty-species missions count each species once. Crush a raw specimen for pigment instead if the mural needs its colour.</li>
+<li><strong>Rarity</strong> belongs to the mineral species. Your equipped pickaxe sets its <a href="#drops">chance per strike</a>. All 271 mine finds are possible with the starter pickaxe.</li>
+<li><strong>Purity</strong> belongs to the specimen. Every hundredth from 0.00% to 100.00% is equally likely on a solo strike. Exactly 100.00% is one outcome in 10,001. Purity affects the artwork’s contrast and the <a href="#economy">shop offer</a>.</li>
+<li><strong>Weight</strong> is rolled separately within the species’ range. A raw specimen that yields pigment gives one unit below 22 g and two units at 22 g or more. Two specimens of the same species can therefore serve different purposes.</li>
 </ul>
-<p>The eight rarity tiers, from most to least frequent, are <strong>Common</strong>, <strong>Uncommon</strong>, <strong>Rare</strong>, <strong>Very Rare</strong>, <strong>Exceptional</strong>, <strong>Legendary</strong>, <strong>Mythic</strong> and <strong>Artifact</strong>. The <strong>Mineral catalogue</strong> starts with 272 species, each with two hidden forms. Finding a species for the first time reveals its picture and name. Finding it again can improve your best purity or weight. Each species counts once, including silver earned on the guild expedition. Selling or crushing the last specimen leaves the entry and both records in your catalogue.</p>
-<h2 id="drops">Drop chances by pickaxe</h2>
-<p>All 271 mine finds can turn up with the starter pickaxe. The first strike uses the same odds as every subsequent strike. Open the table to see the names of minerals you may still have to discover.</p>
-<details><summary>Reveal all 271 mine finds and the odds for each pickaxe</summary><div id="guide-pick-odds" style="overflow-x:auto"></div></details>
+<p>Silver is the 272nd catalogue entry. Claim it from the <a href="#expedition">guild expedition</a>.</p></article><article id="missions" class="guide-topic panel" aria-labelledby="title-missions"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-missions">Missions, levels and contracts</h2><p>On <a href="index.html?lang=en#home">Home</a>, the first mission asks you to mine once. Claim its 10 coins. Keep the piece if you like it and use a spare to try crushing or selling. Once you have pigment, you can try painting a square. When you can afford to polish or have ingredients for a recipe, the corresponding lessons become available.</p>
+<p><span id="your-first-missions"></span></p>
+<p>Mining a specimen, polishing one, mixing a recipe and painting a cell each earn <strong>1 XP</strong>. Levels 2, 3 and 4 start at <strong>4, 9 and 16 XP</strong>. The portrait on Home shows your progress. From level 2, <a href="index.html?lang=en#missions">Missions</a> lists the objectives you can take and shows the next unlock. Earlier actions count towards cumulative goals.</p>
+<details><summary>Show all personal missions</summary><div id="guide-missions"></div></details>
 
-<p>Silver is the separate expedition entry. Complete Silver Fault Survey and claim the guild expedition reward to receive a specimen.</p>
-<h2 id="your-first-missions">Your first missions</h2>
-<p>At level 1, Home spotlights one guided mission at a time. Mine first, then sell a specimen or obtain pigment. The first pigment opens the single-cell painting lesson. Polishing and mixing appear when you can afford a raw specimen’s fee or have the ingredients for a recipe. Murals are visible from the start.</p>
-<p>From level 2 (4 XP), Home uses the ordinary mission panel. Missions shows available objectives and one upcoming unlock. Supply contracts open at level 2, the cabinet study at level 3 and the violet commission at level 4. Earlier actions count toward cumulative milestones.</p>
-<h2 id="progression">Upgrade your pickaxe</h2>
-<p>Spend coins from missions, sales and contracts in <strong>Workshop → Pickaxes</strong>. Compare the chance of each rarity, buy an upgrade and equip it for your next strike. You can switch back to any pickaxe you own.</p>
-<p>The Copper-Bound Pick costs 45 coins. After buying it, you can buy the Fine-Tip Pick for 85 or save for Forged Iron at 145. Both paths use the same mine. The table gives the purchase price of each pick and the chance per strike of finding a Rare or higher mineral while it is equipped.</p>
-<table id="guide-pick-prices"></table>
-
-<p>Collection missions reward 25, 100 and 272 different finds. Recipe missions reward 5, 25 and 50 distinct blends. You can protect a favourite specimen from sale, crushing and contracts that consume it. Remove protection from its inventory details to spend it again.</p>
-<p>Guild contracts each pay once. Deliver a heavy raw Calcite, show a polished Malachite of at least 76% purity and keep it, or deliver mixed pigments for the Banner Order and Violet Commission. You can use Mintwash for the Banner Order or unlock it as a clothing dye.</p>
-<h2 id="expedition">Guild Expedition</h2>
-<p>After your first personal find, join <strong>Silver Fault Survey</strong>. Wait for Mara and Ivo, then depart. Contribute once at each of the three stages and wait for the crew to finish its part. Claim the Silver specimen and coins at the end. You can keep mining on your own while the crew works. After claiming the reward you can start a new expedition for more silver. Each run requires all three stages.</p>
-<h2 id="pigments">Make pigments</h2>
-<p>Find raw Hematite for <strong>Iron Red</strong>, Goethite for <strong>Yellow Ochre</strong>, Dolomite for <strong>Limestone Cream</strong> and Magnetite for <strong>Iron Black</strong>. Crush a specimen to put its pigment into <strong>Home → Inventory → Pigments</strong>. Each colour you own occupies one slot, including colours made by mixing. Select its swatch to see the pigment name, quantity and available actions. Selecting it keeps your stock intact.</p>
-<p>For example, select Chalk White to see how much Chalk White and Malachite Green you have for Mintwash. You can mix the colour when you have both amounts. With Mintwash selected, you can deliver it for the outstanding Banner Order if you have enough, or try it on your clothing and save the outfit to unlock the dye. A mural action appears for each board that still needs the selected colour. The simulated crew also exchanges pairs of the four Sleeping Fox pigments. Select a stocked colour to see which unit you receive and confirm the exchange.</p>
+<h3 id="what-can-i-hand-in">What can I hand in?</h3>
 <table>
 <thead>
 <tr>
-<th>Recipe</th>
-<th>Ingredients</th>
-<th>Where to use it in this test</th>
+<th>Level</th>
+<th>Guild contract</th>
+<th>Requirement</th>
+<th>Coins</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Mintwash</td>
-<td>2 Chalk White + 1 Malachite Green</td>
-<td>Banner Order or clothing dye</td>
+<td>2</td>
+<td>Quarry Supply</td>
+<td>Deliver one raw Calcite weighing at least 20 g.</td>
+<td>20</td>
 </tr>
 <tr>
-<td>Plum</td>
-<td>2 Iron Black + 1 Rose Pink</td>
-<td>Clothing or paint. You can keep the Fluor-liddicoatite whole.</td>
+<td>2</td>
+<td>Guild Banner Order</td>
+<td>Deliver one <a href="#recipes">Mintwash</a>.</td>
+<td>16</td>
 </tr>
 <tr>
-<td>Slate Shadow</td>
-<td>2 Iron Black + 1 Azurite Blue</td>
-<td>Clothing dye, or a personal mural that calls for this shade</td>
+<td>3</td>
+<td>Cabinet Study</td>
+<td>Show a polished Malachite with at least 76.00% purity. You keep the piece.</td>
+<td>18</td>
 </tr>
 <tr>
-<td>Wisteria Mist</td>
-<td>2 Lilac + 1 Chalk White</td>
-<td>Violet Commission. Crush Spodumene to make Lilac.</td>
+<td>4</td>
+<td>Violet Commission</td>
+<td>Deliver one <a href="#recipes">Wisteria Mist</a>.</td>
+<td>30</td>
 </tr>
 </tbody>
 </table>
-<h2 id="finishes">Apply a high-gloss finish</h2>
-<p>Crush a raw Diamond to obtain one unit of <strong>Diamond Powder</strong>. It appears under <strong>Home → Inventory → Materials</strong>. Select a polished specimen in your inventory, choose <strong>Apply high-gloss finish</strong>, and confirm. The finish uses one unit of powder and adds a durable sheen to the specimen's display. Its weight, purity and sale price stay the same. Your paint and dye selectors use pigments.</p>
-<h2 id="mural">Paint a mural</h2>
-<h3 id="your-personal-mural">Your personal mural</h3>
-<p>After finishing a pattern you can choose <strong>Start another pattern</strong>. The completed painting keeps its original colours and remains available as a character background. The next assignment uses the pigment supply and recipes available at that point.</p>
-<p>Open the personal tab in <strong>Mural</strong> for your abstract painting. The prototype library contains 96 patterns. Small patterns use a 12 × 12 grid with three or four colours. Larger patterns use a 16 × 16 grid. When choosing a new palette, the game weighs how much space each colour fills against the effort of obtaining its ingredients with the pickaxes you own. You can receive a colour you still have to mine or mix. Your assigned design stays the same after painting, spending pigment elsewhere or upgrading a pickaxe.</p>
-<p>Select an empty square to see its colour, then choose <strong>Apply pigment</strong> to paint it. Selecting a colour in the palette finds its first empty square for you to confirm. From <strong>Home → Inventory → Pigments</strong> you can also paint the first matching square directly on the selected mural. A unit spent on your pattern comes from the same stock as the guild mural. Finishing your pattern unlocks its own character background with the colours you painted.</p>
-<h3 id="community-murals">Community murals</h3>
-<p>Under <strong>Mural → Community mural</strong>, choose <strong>Create a local community</strong> and give it a name. Each community keeps its own Sleeping Fox, gallery and painted cells. Switch between them to resume a painting.</p>
-<p>Select a saved mural to continue painting it. Completing a guild painting unlocks it as a character background.</p>
-<p><strong>Apply pigment</strong> paints one target cell. If two or three unpainted cells of the same colour extend to the right, <strong>Wide brush</strong> shows the number of units needed and asks for confirmation. Each cell costs one unit with either brush.</p>
+<p>Each contract pays once. Collection milestones reward 25, 100 and 272 different finds. Recipe milestones count 5, 25 and 50 different blends. Polishing milestones count distinct species.</p></article><article id="character" class="guide-topic panel" aria-labelledby="title-character"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-character">Character, clothing and dyes</h2><p>Open <a href="index.html?lang=en#edit-character">Home → Edit character</a>. Choose a face, hair and facial details, then try on a hat, top, trousers and boots. The portrait on Home wears the saved outfit and carries your equipped pickaxe across the back.</p>
+<p>There are seven faces, eleven tops, seven pairs of trousers and seven pairs of boots. Nine hats join the original miner’s cap, and you can go bareheaded. Try pigment on a top, a fabric hat, dyeable trousers or the optional scarf.</p>
+<p>Previewing is free. Saving spends <strong>one pigment per newly unlocked colour</strong>, even when several pieces use it. An unlocked dye can be reused. Tops, hats and trousers remember the colours saved for each piece. Cancel restores the previous outfit.</p>
+<p>Complete a <a href="#personal-mural">personal</a> or <a href="#mural">guild mural</a> to equip that painting as a background. You can switch back to the plain background in the editor.</p></article><article id="collection" class="guide-topic panel" aria-labelledby="title-collection"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-collection">The mineral collection</h2><p>The <a href="index.html?lang=en#journal">Collection</a> records 272 mineral entries. Each has a raw form and a polished form, giving you 544 forms to discover.</p>
+<p>The raw slot reveals its picture and name on your first find. The polished slot keeps its question mark until you polish that species. Further finds can set a new weight or purity record. Both records and your discoveries survive selling, crushing or delivering the specimen.</p>
+<p>The eight tiers run from <strong>Common</strong>, <strong>Uncommon</strong>, <strong>Rare</strong> and <strong>Very Rare</strong> through <strong>Exceptional</strong>, <strong>Legendary</strong>, <strong>Mythic</strong> and <strong>Artifact</strong>. To look up the odds of an undiscovered mineral by name, open <a href="#drops">Drop chances</a>.</p>
+<p>A red <strong>Colour needed · [colour]</strong> means one of your paintings needs more of that pigment, either directly or as an ingredient in a missing blend. To set aside a particular specimen, select it in your <a href="index.html?lang=en#inventory-minerals">inventory</a> and protect it. Protection blocks a sale, crushing and contracts that take the specimen. You can remove it later.</p></article><article id="drops" class="guide-topic panel" aria-labelledby="title-drops"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-drops">Drop chances by pickaxe</h2><p>Choose a pickaxe and look up a mineral to see its chance per strike. Opening the table reveals names from the whole mine, including minerals you may still be collecting.</p>
+<details><summary>Reveal all 271 mine finds and their chances</summary><div id="guide-pick-odds" style="overflow-x:auto"></div></details>
+
+<p>The first strike uses the same distribution as later strikes with that pickaxe. A pickaxe changes the likelihood of finding a species. Weight and purity are rolled separately once the species has been chosen. <a href="#progression">Compare pickaxe prices</a>.</p></article><article id="progression" class="guide-topic panel" aria-labelledby="title-progression"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-progression">Buying and equipping pickaxes</h2><p>In <a href="index.html?lang=en#gear">Workshop → Pickaxes</a>, compare the 13 pickaxes by price and chance of a Rare or higher find. Buying a pickaxe adds it to your equipment. Equip it to use its chances on your next strike.</p>
+<p>The Copper-Bound Pick costs 45 coins. Owning it lets you buy the Fine-Tip Pick for 85 coins or save 145 for Forged Iron. You can switch back to any pickaxe you own. See <a href="#drops">Drop chances</a> to compare a specific mineral across tools.</p>
+<table id="guide-pick-prices"></table></article><article id="economy" class="guide-topic panel" aria-labelledby="title-economy"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-economy">Selling and polishing</h2><p>Select a raw mineral in your <a href="index.html?lang=en#inventory-minerals">inventory</a>. Compare the shop’s offer, the fee to polish this specimen and its resale offer after polishing.</p>
+<p><strong>Sell.</strong> The raw offer depends on species, rarity and purity. Above 99.00% purity, the shop also pays a collector premium. A raw Azurite at 99.00% is worth 31 coins, at 99.99% it is worth 225, and at 100.00% it is worth 318. Weight affects the polishing fee and <a href="#pigments">pigment yield</a>.</p>
+<p><strong>Polish.</strong> The fee depends on the raw value, rarity, purity and weight. For Common and Uncommon minerals it costs at most half the raw offer. From Rare upwards it costs more than the raw offer. The specimen keeps its weight and purity, earns you 1 XP and unlocks its polished artwork in your <a href="#collection">collection</a>.</p>
+<p>The prototype shop buys a polished specimen for its raw value plus half the polishing fee, rounded down. If your aim is to save for a pickaxe, selling raw leaves you with more coins. If you want the artwork or need a polished piece for a contract, check the fee first. A piece must still be raw to <a href="#pigments">crush it</a>.</p></article><article id="pigments" class="guide-topic panel" aria-labelledby="title-pigments"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-pigments">Crushing minerals for pigment</h2><p>Select a raw specimen and choose <strong>Crush</strong> to turn it into painting material. The prototype has 269 direct pigment colours and another 50 from <a href="#recipes">recipes</a>, for 319 paint and dye colours.</p>
+<table>
+<thead>
+<tr>
+<th>Crush this mineral</th>
+<th>To get this colour for Sleeping Fox</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hematite</td>
+<td>Iron Red</td>
+</tr>
+<tr>
+<td>Dolomite</td>
+<td>Limestone Cream</td>
+</tr>
+<tr>
+<td>Magnetite</td>
+<td>Iron Black</td>
+</tr>
+<tr>
+<td>Goethite</td>
+<td>Yellow Ochre</td>
+</tr>
+</tbody>
+</table>
+<p>Open <a href="index.html?lang=en#inventory-pigments">Inventory → Pigments</a> and select a swatch to check your stock. Its actions show where you can paint with it, use it in a mix, dye a piece of clothing or fill an available contract. The simulated crew exchanges pairs of the fox’s pigments. Check the offered colour before confirming a trade.</p>
+<p><strong>Exceptions.</strong> Diamond yields one unit of <a href="#finishes">finishing powder</a> at any weight. Painite and Fluor-liddicoatite are collection pieces you keep whole.</p>
+<details><summary>Look up the 269 direct pigments and their source minerals</summary><label for="guide-pigment-filter">Colour or mineral name</label> <input id="guide-pigment-filter" type="search" aria-controls="guide-pigment-table"><div id="guide-pigment-table"></div></details></article><article id="recipes" class="guide-topic panel" aria-labelledby="title-recipes"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-recipes">Colour recipes</h2><p>The <a href="index.html?lang=en#workshop">Workshop</a> lists the 50 colours you can mix. Scroll through the recipes, filter by an ingredient or show only the blends you can make with your current stock. A colour you mix can itself be an ingredient in another recipe.</p>
+<p>For <strong>Mintwash</strong>, mix two units of Chalk White with one of Malachite Green. Spend one Mintwash on the Guild Banner Order or keep it for a painting or outfit. For <strong>Wisteria Mist</strong>, use two Lilac and one Chalk White. Crushing raw Spodumene supplies Lilac.</p>
+<div id="guide-recipe-book"></div></article><article id="finishes" class="guide-topic panel" aria-labelledby="title-finishes"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-finishes">Diamond powder and finishes</h2><p>Crush a raw Diamond to make one unit of <strong>Diamond Powder</strong>. Look under <a href="index.html?lang=en#inventory-materials">Inventory → Materials</a> for your supply.</p>
+<p>Select a polished specimen, choose <strong>Apply high-gloss finish</strong> and confirm. One unit of powder adds a permanent sheen to that piece. Its weight, purity and sale price stay the same.</p></article><article id="personal-mural" class="guide-topic panel" aria-labelledby="title-personal-mural"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-personal-mural">Personal patterns</h2><p>Open your <a href="index.html?lang=en#personal-mural">personal mural</a> for a small abstract painting. The prototype draws from 96 patterns. Small patterns use a 12 × 12 grid with three or four colours. Larger patterns use 16 × 16.</p>
+<p><span id="your-personal-mural"></span></p>
+<p>Your best owned pickaxe counts even if another is equipped. With the Copper-Bound or Fine-Tip Pick, new patterns can call for eight to ten colours. From Forged Iron onwards they can reach sixteen. Your palette takes account of the pigment you already have and how readily you can mine or mix each colour. Once assigned, your design keeps its colours and geometry as you paint or change equipment.</p>
+<p>Select a square to check its colour and confirm <strong>Apply pigment</strong>. You spend from the same pigment stock as the guild mural. Completing a pattern unlocks that exact painting as a background. Choose <strong>Start another pattern</strong> to roll a new design using your current palette. Your finished paintings keep their original colours.</p></article><article id="mural" class="guide-topic panel" aria-labelledby="title-mural"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-mural">Community murals and Sleeping Fox</h2><p>Each local community has its own Sleeping Fox, gallery and progress. Under <a href="index.html?lang=en#mural">Mural → Community mural</a>, name a new community or select an existing one to resume its painting.</p>
+<p><span id="community-murals"></span></p>
 <h3 id="the-guilds-sleeping-fox">The guild’s Sleeping Fox</h3>
-<p>Sleeping Fox uses a <strong>32 × 32 grid</strong> and starts at <strong>0 of 415 squares painted</strong>. The 609 squares of charcoal backing are already part of the canvas. A faint guide shows where to place Iron Red (294 squares), Limestone Cream (67), Iron Black (44) and Yellow Ochre (10). Each painted square uses one unit of its required pigment. Check the palette for stock and remaining squares.</p>
-<ol>
-<li>Choose the guild mural, then select the exact square you want to paint. Check the colour it needs and choose <strong>Apply pigment</strong>. You can also select a colour in the palette to find its first empty square before confirming.</li>
-<li>To use pigment directly from <strong>Home → Inventory → Pigments</strong>, select the colour, then choose <strong>Paint community mural</strong>. It immediately fills the first empty matching square.</li>
-<li>Finish the painting to unlock <strong>Sleeping Fox</strong> as a character background. Choose <strong>Use as background</strong> to see the fox behind your miner. Switch freely between the finished mural and the plain background in <strong>Home → Edit character</strong>.</li>
-</ol>
-<p>When you open an older Copperwing save, the pigments spent on that mural return to your inventory. Sleeping Fox starts at zero and unlocks its own background on completion.</p>
+<p>Sleeping Fox starts with <strong>0 of 415 target squares painted</strong> on a 32 × 32 grid. The 609 charcoal backing squares are part of the canvas. They take no pigment. The palette shows the stock and remaining cost for each of the four <a href="#pigments">colours</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Required pigment</th>
+<th style="text-align: right;">Squares to paint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Iron Red</td>
+<td style="text-align: right;">294</td>
+</tr>
+<tr>
+<td>Limestone Cream</td>
+<td style="text-align: right;">67</td>
+</tr>
+<tr>
+<td>Iron Black</td>
+<td style="text-align: right;">44</td>
+</tr>
+<tr>
+<td>Yellow Ochre</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Paint an exact square.</strong> Select it on the board, check the required colour and confirm <strong>Apply pigment</strong>. Choosing a swatch on the board selects the first matching empty square. From your inventory, <strong>Paint community mural</strong> immediately fills the first matching square. Each square takes one unit.</p>
+<p><strong>Paint a short row.</strong> If two or three empty squares of the same colour extend to the right, <strong>Wide brush</strong> shows their cost before you confirm. Complete the painting to use Sleeping Fox as your <a href="#character">character background</a>.</p>
 <figure class="guide-mural" id="mural-example" hidden>
   <canvas id="mural-example-canvas" width="512" height="512" role="img" aria-label="Sleeping Fox mural example"></canvas>
   <figcaption>
     <strong>Try one pixel</strong>
-    <p>Use the sample of Iron Red to paint one square of the fox.</p>
+    <p>Use this sample of Iron Red to paint one square of the fox.</p>
     <output id="mural-example-status" aria-live="polite"></output>
     <button type="button" class="primary" id="mural-example-paint" data-reset="Reset example">Apply Iron Red</button>
   </figcaption>
-</figure>
-
-<p><a href="index.html?lang=en#mural">Open Sleeping Fox in the game</a></p>
-<h2 id="save">Save and scope</h2>
-<p>The game saves on this browser and site. <strong>Reset playtest</strong> clears the save. Guilds, artwork, trades and crew contributions use local data. A Twitch broadcast can be watched alongside the game. Shared accounts and multiplayer guilds are planned for a later version.</p>
-    </main>
+</figure></article><article id="expedition" class="guide-topic panel" aria-labelledby="title-expedition"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-expedition">The guild expedition</h2><p>After your first personal find, open <a href="index.html?lang=en#guild-expedition">Guild Expedition</a> and join <strong>Silver Fault Survey</strong>. Mara and Ivo make up the simulated crew. When they are ready, depart.</p>
+<ol>
+<li>Mark the silver seam while the crew surveys the split.</li>
+<li>Brace the shaft while the crew secures the line.</li>
+<li>Raise the basket to recover the sample.</li>
+</ol>
+<p>Contribute once at each stage and wait for the crew before advancing. At the end, claim <strong>one raw Silver and 18 coins</strong>. You can mine on Home while the crew works and start another expedition after collecting the reward.</p></article><article id="watch" class="guide-topic panel" aria-labelledby="title-watch"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-watch">Twitch and discovery alerts</h2><p>Open <a href="index.html?lang=en#watch">Home → Watch and play</a>, enter a Twitch channel name or link, then choose <strong>Open channel</strong> and start the video. When live search is available you can also look up a channel or category.</p>
+<p>Mine, inspect inventory and work with pigments alongside the stream. A <strong>Rare</strong> or higher find shows a local alert with your name, its raw artwork, rarity, purity, weight and shop value. Game actions use the buttons on the site and do not send Twitch chat messages.</p>
+<p><strong>Change channel</strong> switches the video and chat together. If Twitch shows a cookie notice, expand the chat and scroll down to its controls. Use <strong>Reduce chat</strong> afterwards. If an embedded player is unavailable in a Workspace preview, follow the standalone site link. On a narrow screen, rotate your phone to give the player more room.</p></article><article id="save" class="guide-topic panel" aria-labelledby="title-save"><a class="guide-back" href="#topics">← Wiki index</a><h2 id="title-save">Your save and local play</h2><p>You can play the prototype on <a href="index.html?lang=en#home">Home</a> with or without a Twitch channel. Use the same browser and site to resume your character, equipment, missions, collection, guilds and paintings.</p>
+<p><strong>Reset playtest</strong> asks for confirmation before clearing the save. Community paintings, pigment exchanges and expeditions use local data and a simulated crew. Opening a Twitch channel changes the broadcast you watch.</p></article>
+      </main>
+    </div>
   </div>
 </body>
 </html>

@@ -2,156 +2,198 @@
 <html lang="pt-PT" data-fixed-language="pt-PT" data-mak-report="document" data-mak-theme="custom">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wiki do protótipo Stridekeep</title>
-  <meta name="description" content="Wiki do protótipo Stridekeep">
+  <title>Wiki de Stridekeep</title>
+  <meta name="description" content="Wiki de Stridekeep">
   <link rel="stylesheet" href="_shared/report.css">
   <link rel="stylesheet" href="ui-concept/screen.css">
   <link rel="stylesheet" href="prototype/play.css">
+  <link rel="stylesheet" href="prototype/guide-reader.css">
   <script defer src="ui-concept/mural-art.js"></script>
   <script defer src="prototype/data.js"></script>
   <script defer src="prototype/locale.js"></script>
   <script defer src="prototype/rules.js"></script>
   <script defer src="prototype/mural-guide.js"></script>
+  <script defer src="prototype/guide-reader.js"></script>
 </head>
 <body data-variant="expedition" class="playtest play-guide">
   <div class="frame">
-    <header class="site-header">
-      <a class="guide-home" href="index.html?lang=pt-PT">← Jogar</a>
-      <a lang="en" hreflang="en" href="play-guide.html">English</a>
+    <header class="site-header guide-top">
+      <a class="brand" href="#topics" aria-label="Stridekeep · Índice da wiki"><i aria-hidden="true"></i><strong>Stridekeep</strong></a>
+      <nav><a class="guide-home" href="index.html?lang=pt-PT#home">← Voltar ao jogo</a> <a data-guide-language lang="en" hreflang="en" href="play-guide.html">English</a></nav>
     </header>
-    <main class="panel guide-panel" id="guide-content">
-      <img class="guide-art" src="ui-concept/copper-stair.webp" alt="" width="900" height="230">
-      <h1 id="wiki-do-prototipo-stridekeep">Wiki do protótipo Stridekeep</h1>
-<p>Começa na mina, encontra um mineral e decide o que vale a pena guardar. Jogas como mineiro da Guilda do Cobre, com progresso guardado no navegador e uma equipa simulada.</p>
-      <nav class="guide-toc" aria-label="Wiki do protótipo Stridekeep"><div class="toc">
-<ul>
-<li><a href="#game-loop">Ciclo de jogo</a></li>
-<li><a href="#watch">Ver uma transmissão enquanto jogas</a></li>
-<li><a href="#start">O primeiro achado</a></li>
-<li><a href="#drops">Probabilidades por picareta</a></li>
-<li><a href="#as-primeiras-missoes">As primeiras missões</a></li>
-<li><a href="#progression">Melhorar a picareta</a></li>
-<li><a href="#expedition">Expedição da guilda</a></li>
-<li><a href="#pigments">Faz pigmentos</a></li>
-<li><a href="#finishes">Aplica um acabamento de alto brilho</a></li>
-<li><a href="#mural">Pinta um mural</a></li>
-<li><a href="#save">Progresso e âmbito</a></li>
-</ul>
-</div>
-</nav>
-      <h2 id="game-loop">Ciclo de jogo</h2>
-<p>No <a href="index.html?lang=pt-PT#home">Início</a>, escolhe <strong>Jogar</strong> e carrega em <strong>Minar</strong>. O achado entra logo no inventário. Seleciona o ícone de um mineral para veres o exemplar em ponto grande, consultares o peso e a pureza e escolheres o que fazer com ele. Dois exemplares do mesmo mineral podem ter pesos e purezas diferentes. Alterna entre <strong>Minerais</strong>, <strong>Pigmentos</strong> e <strong>Materiais</strong> ou abre o <a href="index.html?lang=pt-PT#journal">Catálogo de minerais</a> para acompanhares as tuas descobertas.</p>
-<p>Em <a href="index.html?lang=pt-PT#edit-character">Editar personagem</a>, escolhe entre sete rostos, onze peças de tronco, sete pares de calças e sete pares de botas. Os nove chapéus do provador juntam-se ao boné de mineiro original. Também podes andar de cabeça descoberta. O penteado e os detalhes do rosto escolhem-se em separado. Experimenta um pigmento na roupa de tronco, no chapéu de tecido ou nas calças que aceitam tinta. Cada peça recorda a cor guardada. Ao guardar, gastas uma unidade de cada cor nova, mesmo que a uses em várias peças. Cancelar repõe o visual anterior. O retrato no Início mostra o conjunto guardado. A barra junto ao retrato mostra a EXP que já ganhaste neste nível e quanta precisas para subir. No nível máximo do protótipo, vês a EXP total.</p>
-<p>Experimenta a camisa de campo ou o casaco de prospeção com a personagem em repouso. A picareta equipada vai às costas, na diagonal. A cabeça da ferramenta vê-se por cima de um ombro e a ponta do cabo junto à anca do lado oposto. Abre <strong>Oficina → Picaretas</strong>. Equipa uma das tuas picaretas. No Início, o nome aparece junto ao botão <strong>Minar</strong>. Abre <strong>Editar personagem</strong> para veres a picareta às costas com o conjunto completo.</p>
-<p>Na versão pensada para a Twitch, o objetivo de cada comunidade é <strong>completar murais em conjunto</strong>. Quando falta uma cor, os jogadores procuram os minerais certos ou misturam pigmentos para a obter. Cada píxel pintado aproxima o grupo dos 100%. A imagem concluída assinala um marco na progressão da comunidade. O responsável pelo canal pode criar murais para celebrar esses marcos ou outros eventos.</p>
-<p>O protótipo inclui <strong>272 entradas no catálogo</strong>. Com a primeira picareta podes encontrar qualquer um dos <strong>271</strong> exemplares da mina. A prata obtém-se na expedição da guilda. As <strong>319 cores</strong> para pintar ou tingir roupa incluem <strong>269</strong> pigmentos diretos e <strong>50</strong> receitas. Algumas misturas usam outras misturas como ingrediente. O diamante dá pó para acabamentos. A painite e a fluor-liddicoatite são troféus que se guardam inteiros. Em <strong>Mural</strong>, podes gastar os teus pigmentos no teu padrão abstrato ou na ilustração da guilda.</p>
+    <div class="guide-shell">
+      <aside class="guide-side">
+        <div class="guide-search" hidden>
+          <label for="guide-search">Pesquisar na wiki</label>
+          <input type="search" id="guide-search" autocomplete="off" aria-controls="guide-results">
+          <div id="guide-results" role="status"></div>
+        </div>
+        <details class="guide-nav" open><summary>Navegar por tema</summary>
+          <nav aria-label="Índice da wiki"><a href="#topics">Índice da wiki</a><section class="guide-nav-group"><h3>Primeiros passos</h3><a href="#game-loop">Da mina ao mural</a><a href="#start">Minar, peso e pureza</a><a href="#missions">Missões, níveis e contratos</a><a href="#character">Personagem, roupa e tingimento</a></section><section class="guide-nav-group"><h3>Mineração e coleção</h3><a href="#collection">Coleção de minerais</a><a href="#drops">Probabilidades dos minerais</a><a href="#progression">Comprar e equipar picaretas</a><a href="#economy">Vender e polir</a></section><section class="guide-nav-group"><h3>Oficina</h3><a href="#pigments">Triturar minerais para obter pigmento</a><a href="#recipes">Receitas de cores</a><a href="#finishes">Pó de diamante e acabamentos</a></section><section class="guide-nav-group"><h3>Murais e comunidade</h3><a href="#personal-mural">Padrões pessoais</a><a href="#mural">Murais da comunidade e Raposa Adormecida</a><a href="#expedition">Expedição da guilda</a><a href="#watch">Twitch e alertas de achados</a></section><section class="guide-nav-group"><h3>O teu progresso</h3><a href="#save">Progresso e jogo local</a></section></nav>
+        </details>
+      </aside>
+      <main class="guide-main" id="guide-content">
+        <section id="topics" class="guide-index panel">
+          <div class="guide-intro"><h1>Wiki do protótipo Stridekeep</h1>
+<p>Descobre o que podes fazer com cada mineral, como obter uma cor que te falta e como completar um mural com a tua guilda.</p></div>
+          <div class="guide-groups"><section class="guide-group"><h2>Primeiros passos</h2><ul><li><a href="#game-loop">Da mina ao mural</a></li><li><a href="#start">Minar, peso e pureza</a></li><li><a href="#missions">Missões, níveis e contratos</a></li><li><a href="#character">Personagem, roupa e tingimento</a></li></ul></section><section class="guide-group"><h2>Mineração e coleção</h2><ul><li><a href="#collection">Coleção de minerais</a></li><li><a href="#drops">Probabilidades dos minerais</a></li><li><a href="#progression">Comprar e equipar picaretas</a></li><li><a href="#economy">Vender e polir</a></li></ul></section><section class="guide-group"><h2>Oficina</h2><ul><li><a href="#pigments">Triturar minerais para obter pigmento</a></li><li><a href="#recipes">Receitas de cores</a></li><li><a href="#finishes">Pó de diamante e acabamentos</a></li></ul></section><section class="guide-group"><h2>Murais e comunidade</h2><ul><li><a href="#personal-mural">Padrões pessoais</a></li><li><a href="#mural">Murais da comunidade e Raposa Adormecida</a></li><li><a href="#expedition">Expedição da guilda</a></li><li><a href="#watch">Twitch e alertas de achados</a></li></ul></section><section class="guide-group"><h2>O teu progresso</h2><ul><li><a href="#save">Progresso e jogo local</a></li></ul></section></div>
+        </section>
+        <article id="game-loop" class="guide-topic panel" aria-labelledby="title-game-loop"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-game-loop">Da mina ao mural</h2><p>Começa no <a href="index.html?lang=pt-PT#home">Início</a> e carrega em <strong>Minar</strong>. O primeiro achado entra logo no inventário. Que destino lhe vais dar?</p>
 <ol>
-<li><strong>Mina.</strong> Recebes logo um mineral em bruto com pureza e peso próprios.</li>
-<li><strong>Escolhe o destino do achado.</strong> Podes guardá-lo ou poli-lo para a coleção, vendê-lo por moedas, usá-lo num contrato ou triturá-lo em bruto para obter pigmento ou material.</li>
-<li><strong>Pinta ou faz uma mistura.</strong> Tritura hematite em bruto para obter Vermelho de Ferro e pintar a raposa. Para fazer <strong>Véu de Menta</strong>, mistura duas unidades de Branco de Giz e uma de Verde de Malaquite. Podes usar a mistura para tingir a roupa ou entregá-la para o Estandarte da Guilda.</li>
-<li><strong>Melhora a picareta.</strong> Consulta a missão no Início. Abre <strong>Missões</strong> para ver os objetivos e reclamar recompensas. Usa as moedas das vendas, contratos e missões para comprar equipamento. Equipa a nova picareta para aumentares a probabilidade de encontrar minerais raros.</li>
+<li><strong>Examina o achado.</strong> Seleciona o mineral para veres o aspeto em bruto, o peso e a pureza. Se gostares da peça, guarda-a. Também podes <a href="#economy">poli-la ou vendê-la</a>, ou triturar um exemplar que tenhas a mais para obter <a href="#pigments">pigmento</a>.</li>
+<li><strong>Escolhe uma pintura.</strong> Abre o teu <a href="#personal-mural">padrão pessoal</a> ou a <a href="#mural">Raposa Adormecida da guilda</a>. A paleta mostra as cores que ainda faltam.</li>
+<li><strong>Obtém a cor e pinta.</strong> Tritura hematite para obter Vermelho de Ferro para a raposa. Se um padrão pedir Véu de Menta, <a href="#recipes">mistura</a> duas unidades de Branco de Giz e uma de Verde de Malaquite. Uma unidade pinta um quadrado dessa cor.</li>
+<li><strong>Prepara o próximo achado.</strong> Reclama as recompensas das <a href="#missions">missões</a> e usa as moedas para melhorar a <a href="#progression">picareta</a>. Continuas na mesma mina, com novas probabilidades na extração seguinte.</li>
 </ol>
-<p>Depois do primeiro achado, podes juntar-te à <strong>Exploração da Falha da Prata</strong> com a equipa simulada. Contribui em cada etapa e reclama a prata e as moedas no fim. A mineração a solo continua disponível durante a expedição.</p>
-<p>Abre <strong>Coleção</strong> para veres as 544 formas das 272 espécies. O primeiro achado revela a forma em bruto. A forma polida mantém o «?» até polires essa espécie pela primeira vez. Seleciona um mineral para veres os recordes e a indicação a vermelho «Cor necessária» quando o seu pigmento fizer falta para pintar ou misturar. Na <strong>Oficina</strong>, percorre as receitas por deslocamento vertical ou filtra por ingrediente e pelas misturas que já podes fazer.</p>
-<h2 id="watch">Ver uma transmissão enquanto jogas</h2>
-<p>Abre <a href="index.html?lang=pt-PT#watch">Início → Assistir e jogar</a>. Escreve o nome de um canal da Twitch ou cola a ligação para o canal. Carrega em <strong>Abrir canal</strong> e inicia a reprodução no leitor. Quando a pesquisa de diretos está configurada, também podes procurar por canal ou categoria e escolher um resultado.</p>
-<p>Em <strong>Assistir e jogar</strong>, quando minas um exemplar de raridade Raro ou superior, aparece um alerta local com a imagem em bruto, a raridade, a pureza, o peso e o valor de venda à loja.</p>
-<p>Num ecrã largo, o vídeo fica à esquerda e o chat do canal à direita, por cima do botão <strong>Minar</strong>. Na fila de baixo, o inventário e o <strong>Último achado</strong> ocupam metade da largura cada um. Seleciona um mineral no inventário para o veres em detalhe à direita. Aí podes poli-lo ou triturá-lo. Se selecionares um pigmento, o mesmo painel mostra o que podes fazer com essa cor. Podes continuar a minar e a consultar os achados enquanto acompanhas o vídeo e o chat. <strong>Mudar canal</strong> muda ambos para o canal que escolheres. <strong>Fechar leitor</strong> fecha os dois. Escolhe <strong>Jogar</strong> para voltares à vista da mina.</p>
-<p>Se o leitor estiver bloqueado na pré-visualização do Workspace ou num ficheiro local, usa a ligação para o site local com o servidor do protótipo em execução. Num telemóvel estreito, roda o dispositivo para dar espaço ao vídeo. Entretanto, podes continuar a minar.</p>
-<p>O chat abre ampliado para poderes escolher <strong>Aceitar</strong>, <strong>Rejeitar</strong> ou <strong>Personalizar</strong> se a Twitch apresentar o aviso de cookies. Se os botões ficarem abaixo do ecrã, desce a página. Depois, <strong>Reduzir chat</strong> aproxima o botão de minar. Podes voltar a ampliar o chat ou escolher <strong>Abrir chat na Twitch</strong> para o abrir num separador à parte.</p>
-<h2 id="start">O primeiro achado</h2>
-<p>Carrega em <strong>Minar</strong>. O espécime em bruto entra logo no inventário. Podes voltar a minar cinco segundos depois. A picareta equipada altera as probabilidades de cada mineral. Cada exemplar recebe o seu próprio peso e pureza.</p>
+<p>Os padrões pessoais dão-te pinturas que podes usar como fundo da personagem. O objetivo da comunidade é completar uma ilustração em conjunto, um contributo de cada vez. Podes experimentar este ciclo com uma guilda local no protótipo.</p></article><article id="start" class="guide-topic panel" aria-labelledby="title-start"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-start">Minar, peso e pureza</h2><p>Carrega em <strong>Minar</strong> no <a href="index.html?lang=pt-PT#home">Início</a>. O exemplar em bruto aparece logo no inventário. Podes voltar a minar cinco segundos depois.</p>
 <ul>
-<li><strong>Pureza</strong> vai de 0% a 100%, com duas casas decimais. Influencia o contraste do espécime e o preço de venda. Um mineral incomum muito puro pode valer mais do que um raro de baixa pureza.</li>
-<li><strong>Peso</strong> é uma característica separada. Uma peça em bruto com pigmento dá duas unidades ao triturar se pesar pelo menos 22 g. Abaixo desse peso dá uma. Um diamante em bruto dá uma unidade de Pó de Diamante.</li>
-<li>Acima de 99,00% de pureza, a loja paga um prémio de coleção. Uma azurite em bruto vale 31 moedas a 99,00%, 225 a 99,99% e 318 a 100,00%.</li>
-<li><strong>Polir</strong> mostra o custo calculado a partir do valor de venda em bruto, da raridade, da pureza e do peso do exemplar. Compara-o com <strong>Vender</strong>. Polir um exemplar comum ou incomum custa, no máximo, metade do valor em bruto. A partir de raro, polir custa mais do que receberias ao vender o exemplar em bruto. Com 70% de pureza, uma hematite em bruto vende-se por 8 moedas e um diamante mítico por 1 038. Reclama a recompensa da primeira descoberta ou vende um exemplar que tenhas a mais para pagar. A peça conserva o peso e a pureza. Ganhas 1 XP e a espécie fica assinalada na coleção mesmo depois de a venderes. Ao preço da peça em bruto, a loja acrescenta metade do custo de polir, arredondada para baixo. Vês a oferta antes de gastar moedas. As missões de cinco e vinte espécies contam cada espécie uma vez. Se o mural precisar da cor, podes triturar um exemplar em bruto para obter pigmento.</li>
+<li><strong>Raridade.</strong> Cada espécie tem uma raridade. A picareta equipada determina a <a href="#drops">probabilidade de a encontrar</a>. Qualquer um dos 271 minerais da mina pode sair com a picareta inicial.</li>
+<li><strong>Pureza.</strong> Cada exemplar tem a sua. Ao minar a solo, cada centésimo entre 0,00% e 100,00% tem a mesma probabilidade. A pureza de 100,00% corresponde a um resultado em 10 001. A pureza afeta o contraste da imagem e o <a href="#economy">preço na loja</a>.</li>
+<li><strong>Peso.</strong> É sorteado em separado, dentro do intervalo da espécie. Uma peça em bruto que dê pigmento rende uma unidade se pesar menos de 22 g e duas a partir de 22 g. Dois exemplares da mesma espécie podem, por isso, ter destinos diferentes.</li>
 </ul>
-<p>As oito raridades, da mais frequente à mais escassa, são <strong>Comum</strong>, <strong>Incomum</strong>, <strong>Raro</strong>, <strong>Muito raro</strong>, <strong>Excecional</strong>, <strong>Lendário</strong>, <strong>Mítico</strong> e <strong>Artefacto</strong>. O <strong>Catálogo de minerais</strong> começa com 272 espécies, cada uma com duas formas por descobrir. Quando encontras um mineral pela primeira vez, revelas a sua imagem e o seu nome. Se voltares a encontrá-lo, podes bater o teu recorde de pureza ou de peso. Cada mineral conta uma vez, incluindo a prata que recebes na expedição da guilda. Mesmo que vendas ou tritures o último exemplar, a descoberta e os recordes ficam no catálogo.</p>
-<h2 id="drops">Probabilidades por picareta</h2>
-<p>Podes encontrar qualquer um dos 271 minerais com a picareta inicial. A primeira extração usa as mesmas probabilidades que as seguintes. Na tabela podes consultar os nomes dos minerais que ainda tens por descobrir.</p>
-<details><summary>Ver os 271 minerais e as probabilidades de cada picareta</summary><div id="guide-pick-odds" style="overflow-x:auto"></div></details>
+<p>A prata é a 272.ª entrada do catálogo. Recebe-la como recompensa da <a href="#expedition">expedição da guilda</a>.</p></article><article id="missions" class="guide-topic panel" aria-labelledby="title-missions"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-missions">Missões, níveis e contratos</h2><p>No <a href="index.html?lang=pt-PT#home">Início</a>, a primeira missão pede-te que mines uma vez. Reclama as 10 moedas. Se gostares do primeiro exemplar, guarda-o e usa outro para experimentar triturar ou vender. Assim que tiveres pigmento, podes aprender a pintar um quadrado. As missões de polir e de misturar aparecem quando tens moedas para polir uma peça ou ingredientes para uma receita.</p>
+<p><span id="as-primeiras-missoes"></span></p>
+<p>Recebes <strong>1 EXP</strong> por cada extração, peça polida, mistura feita ou quadrado pintado. Os níveis 2, 3 e 4 começam aos <strong>4, 9 e 16 EXP</strong>. A barra junto ao retrato no Início mostra o teu progresso. A partir do nível 2, em <a href="index.html?lang=pt-PT#missions">Missões</a> vês os objetivos disponíveis e o próximo desbloqueio. O que já fizeste conta para as metas acumuladas.</p>
+<details><summary>Consultar todas as missões individuais</summary><div id="guide-missions"></div></details>
 
-<p>A prata tem uma entrada própria no catálogo. Recebes um exemplar ao concluir a expedição da Falha da Prata e reclamar a recompensa.</p>
-<h2 id="as-primeiras-missoes">As primeiras missões</h2>
-<p>No nível 1, o Início destaca uma missão guiada de cada vez. A primeira ensina-te a minar. Depois podes vender um exemplar ou obter pigmento. O primeiro pigmento abre a missão de pintar uma célula. As sugestões de polir e misturar aparecem quando tens uma peça que podes pagar para polir ou os ingredientes de uma receita. Podes visitar o mural logo desde o início.</p>
-<p>A partir do nível 2 (4 XP), o destaque dá lugar às missões normais. Em <strong>Missões</strong> vês os objetivos disponíveis e uma antevisão do próximo desbloqueio. Os contratos de fornecimento começam no nível 2, o de coleção no 3 e a encomenda violeta no 4. As ações anteriores contam para as metas acumuladas.</p>
-<h2 id="progression">Melhorar a picareta</h2>
-<p>Usa as moedas das missões, vendas e contratos em <strong>Oficina → Picaretas</strong>. Compara a probabilidade de cada raridade, compra uma melhoria e equipa-a para a próxima extração. Podes voltar a equipar qualquer picareta que já tenhas.</p>
-<p>A Picareta Reforçada a Cobre custa 45 moedas. Depois de a comprares, podes adquirir a de Ponta Fina por 85 ou poupar para a de Ferro Forjado por 145. Continuas na mesma mina. A tabela mostra o preço de cada picareta e a probabilidade de encontrar um mineral raro ou superior em cada extração com essa picareta equipada.</p>
-<table id="guide-pick-prices"></table>
-
-<p>Cada contrato paga uma vez. Entrega uma peça pesada de calcite em bruto, mostra uma malaquite polida com pelo menos 76% de pureza e guarda a peça, ou entrega pigmentos misturados para o Estandarte da Guilda e a Encomenda Violeta. O Véu de Menta tanto pode servir para o Estandarte da Guilda como para tingir a roupa.</p>
-<p>As missões de coleção recompensam a descoberta de 25, 100 e 272 exemplares diferentes. As de mistura recompensam 5, 25 e 50 receitas diferentes. No inventário, podes proteger um exemplar favorito de ser vendido, triturado ou entregue num contrato que o consuma. Podes retirar a proteção a qualquer momento.</p>
-<h2 id="expedition">Expedição da guilda</h2>
-<p>Depois do primeiro achado a solo, junta-te à <strong>Exploração da Falha da Prata</strong>. Espera por Mara e Ivo e parte com a equipa. Contribui uma vez em cada etapa e aguarda pelo trabalho da equipa antes de avançar. No fim, reclama a Prata e as moedas. Podes continuar a minar a solo durante a expedição. Depois de reclamares a recompensa, podes iniciar outra expedição para obter mais prata. Cada expedição exige as três etapas.</p>
-<h2 id="pigments">Faz pigmentos</h2>
-<p>Tritura hematite em bruto para obter <strong>Vermelho de Ferro</strong>, goethite para <strong>Amarelo Ocre</strong>, dolomite para <strong>Creme de Calcário</strong> e magnetite para <strong>Preto de Ferro</strong>. Em <strong>Início → Inventário → Pigmentos</strong>, cada cor que tens ocupa um espaço na grelha, incluindo as cores que obtiveste por mistura. Seleciona uma amostra para veres o nome, a quantidade e as ações disponíveis. Podes consultar várias cores sem gastar pigmento.</p>
-<p>Por exemplo, seleciona Branco de Giz para veres se tens Branco de Giz e Verde de Malaquite suficientes para fazer Véu de Menta. Podes fazer a mistura assim que tiveres as quantidades pedidas. Depois, seleciona Véu de Menta para o entregares no contrato do Estandarte da Guilda, se ainda estiver em aberto e tiveres a quantidade necessária. Também podes experimentar a cor na roupa e guardar o visual para desbloquear o tingimento. Se um dos teus murais ainda precisar da cor selecionada, aparece a opção de o pintar. A equipa simulada também troca os quatro pigmentos da Raposa Adormecida. Seleciona uma dessas cores para veres qual recebes em troca de duas unidades e confirma a troca.</p>
+<h3 id="o-que-posso-entregar">O que posso entregar?</h3>
 <table>
 <thead>
 <tr>
-<th>Receita</th>
-<th>Ingredientes</th>
-<th>Uso neste teste</th>
+<th>Nível</th>
+<th>Contrato da guilda</th>
+<th>Pedido</th>
+<th>Moedas</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Véu de Menta</td>
-<td>2 Branco de Giz + 1 Verde de Malaquite</td>
-<td>Estandarte da Guilda ou tingimento de roupa</td>
+<td>2</td>
+<td>Fornecimento da Pedreira</td>
+<td>Entrega uma calcite em bruto com pelo menos 20 g.</td>
+<td>20</td>
 </tr>
 <tr>
-<td>Ameixa</td>
-<td>2 Preto de Ferro + 1 Rosa de Pétala</td>
-<td>Tingimento ou pintura. Podes guardar a fluor-liddicoatite inteira.</td>
+<td>2</td>
+<td>Estandarte da Guilda</td>
+<td>Entrega uma unidade de <a href="#recipes">Véu de Menta</a>.</td>
+<td>16</td>
 </tr>
 <tr>
-<td>Sombra de Ardósia</td>
-<td>2 Preto de Ferro + 1 Azul de Azurite</td>
-<td>Tingimento de roupa ou um mural pessoal que peça esta cor</td>
+<td>3</td>
+<td>Estudo de Coleção</td>
+<td>Mostra uma malaquite polida com pelo menos 76,00% de pureza. Ficas com a peça.</td>
+<td>18</td>
 </tr>
 <tr>
-<td>Névoa de Glicínia</td>
-<td>2 Lilás + 1 Branco de Giz</td>
-<td>Encomenda Violeta. Tritura espodumena para obter Lilás.</td>
+<td>4</td>
+<td>Encomenda Violeta</td>
+<td>Entrega uma unidade de <a href="#recipes">Névoa de Glicínia</a>.</td>
+<td>30</td>
 </tr>
 </tbody>
 </table>
-<h2 id="finishes">Aplica um acabamento de alto brilho</h2>
-<p>Tritura um diamante em bruto para obteres uma unidade de <strong>Pó de Diamante</strong>. O pó aparece em <strong>Início → Inventário → Materiais</strong>. Seleciona um espécime polido no inventário, escolhe <strong>Aplicar acabamento de alto brilho</strong> e confirma. O acabamento gasta uma unidade de pó e dá à peça um brilho permanente na coleção. O peso, a pureza e o preço de venda mantêm-se. Para pintar e tingir roupa, usa os pigmentos.</p>
-<h2 id="mural">Pinta um mural</h2>
-<p>Depois de acabares o teu mural individual, podes escolher <strong>Começar outro padrão</strong>. A pintura concluída conserva as suas cores e continua disponível como fundo da personagem. O novo padrão usa a paleta que consegues obter nessa altura.</p>
-<h3 id="o-teu-mural-pessoal">O teu mural pessoal</h3>
-<p>Abre o separador pessoal em <strong>Mural</strong> para veres o teu padrão abstrato. O protótipo tem 96 padrões. Os pequenos usam uma grelha de 12 × 12 com três ou quatro cores. Os maiores usam uma grelha de 16 × 16. Ao escolher a paleta, o jogo tem em conta a área que cada cor ocupa e o esforço de obter os seus ingredientes com as picaretas que já tens. Pode calhar-te uma cor que ainda tens de obter ou misturar. O desenho e as cores mantêm-se quando pintas, gastas pigmento noutro sítio ou melhoras a picareta.</p>
-<p>Toca num quadrado vazio para veres a cor pedida e carrega em <strong>Aplicar pigmento</strong> para o pintar. Se escolheres primeiro uma cor na paleta, o jogo indica-te o primeiro quadrado livre dessa cor para confirmares. Em <strong>Início → Inventário → Pigmentos</strong> podes aplicar pigmento diretamente no primeiro quadrado livre dessa cor no mural selecionado. Cada unidade que usas no teu padrão sai da mesma reserva que usas para pintar o mural da guilda. Ao concluíres o padrão, podes usá-lo como fundo da personagem com as cores que pintaste.</p>
-<h3 id="murais-da-comunidade">Murais da comunidade</h3>
-<p>Em <strong>Mural → Mural da comunidade</strong>, abre <strong>Criar uma comunidade local</strong> e dá-lhe um nome. Cada comunidade tem a sua Raposa Adormecida, a sua galeria e o seu progresso. Podes alternar entre elas e continuar de onde ficaste.</p>
-<p>Escolhe um mural guardado para continuares a pintá-lo. Ao completares um mural da comunidade, podes usá-lo como fundo da personagem.</p>
-<p><strong>Aplicar pigmento</strong> pinta um único quadrado. Quando há dois ou três quadrados por pintar da mesma cor, seguidos para a direita, aparece também <strong>Pincel largo</strong>. O botão indica o custo antes de confirmares. Cada quadrado consome uma unidade, com qualquer dos pincéis.</p>
+<p>Cada contrato paga uma vez. As missões de coleção recompensam a descoberta de 25, 100 e 272 minerais diferentes. As de mistura contam 5, 25 e 50 receitas diferentes. As de polimento contam as espécies distintas que poliste.</p></article><article id="character" class="guide-topic panel" aria-labelledby="title-character"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-character">Personagem, roupa e tingimento</h2><p>Abre <a href="index.html?lang=pt-PT#edit-character">Início → Editar personagem</a>. Escolhe o rosto, o cabelo e os detalhes faciais. Depois experimenta um chapéu, uma camisa ou um casaco, calças e botas. No retrato do Início vês o conjunto guardado e a picareta que tens equipada às costas.</p>
+<p>Tens sete rostos, onze peças para vestir no tronco, sete pares de calças e sete pares de botas. Os nove chapéus juntam-se ao boné de mineiro original. Também podes andar de cabeça descoberta. Experimenta pigmentos na camisa ou no casaco, num chapéu de tecido, nas calças que aceitam tinta ou no lenço opcional.</p>
+<p>Experimentar cores é gratuito. Ao guardar, gastas <strong>uma unidade de pigmento por cada cor nova</strong>, mesmo que a tenhas aplicado a várias peças. Podes voltar a usar as cores já desbloqueadas. As camisas, os casacos, os chapéus e as calças recordam a cor guardada em cada peça. Cancelar repõe o visual anterior.</p>
+<p>Conclui um <a href="#personal-mural">mural pessoal</a> ou <a href="#mural">da guilda</a> para usares a pintura como fundo da personagem. Podes voltar ao fundo simples no editor.</p></article><article id="collection" class="guide-topic panel" aria-labelledby="title-collection"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-collection">Coleção de minerais</h2><p>A <a href="index.html?lang=pt-PT#journal">Coleção</a> regista 272 minerais. Cada um tem uma forma em bruto e uma forma polida, num total de 544 formas por descobrir.</p>
+<p>O primeiro achado revela o nome e a imagem em bruto. A forma polida conserva o «?» até polires essa espécie pela primeira vez. Um novo achado pode bater o recorde de peso ou de pureza. Os recordes e as descobertas mantêm-se mesmo depois de venderes, triturares ou entregares a peça.</p>
+<p>Há oito raridades: <strong>Comum</strong>, <strong>Incomum</strong>, <strong>Raro</strong>, <strong>Muito raro</strong>, <strong>Excecional</strong>, <strong>Lendário</strong>, <strong>Mítico</strong> e <strong>Artefacto</strong>. Se quiseres consultar pelo nome a probabilidade de um mineral ainda desconhecido, abre as <a href="#drops">probabilidades dos minerais</a>.</p>
+<p>A indicação a vermelho <strong>Cor necessária · [cor]</strong> aparece quando a cor do mineral faz falta num dos teus murais, diretamente ou como ingrediente de uma mistura. Para reservares um exemplar, seleciona-o no <a href="index.html?lang=pt-PT#inventory-minerals">inventário</a> e protege-o. A proteção impede a venda, a trituração e a entrega em contratos que fiquem com a peça. Podes retirá-la quando quiseres.</p></article><article id="drops" class="guide-topic panel" aria-labelledby="title-drops"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-drops">Probabilidades dos minerais</h2><p>Escolhe uma picareta e procura um mineral para veres a probabilidade de o encontrar em cada extração. Ao abrires a tabela, vais ver também os nomes dos minerais que ainda tens por descobrir.</p>
+<details><summary>Ver os 271 minerais da mina e as respetivas probabilidades</summary><div id="guide-pick-odds" style="overflow-x:auto"></div></details>
+
+<p>A primeira extração usa as mesmas probabilidades que as seguintes com essa picareta. A picareta influencia a espécie que sai. O peso e a pureza são sorteados em separado depois de escolhida a espécie. <a href="#progression">Comparar preços das picaretas</a>.</p></article><article id="progression" class="guide-topic panel" aria-labelledby="title-progression"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-progression">Comprar e equipar picaretas</h2><p>Em <a href="index.html?lang=pt-PT#gear">Oficina → Picaretas</a>, compara as 13 picaretas pelo preço e pela probabilidade de encontrar um mineral raro ou superior. Depois de comprares uma picareta, equipa-a para usares as novas probabilidades na próxima extração.</p>
+<p>A Picareta Reforçada a Cobre custa 45 moedas. Quando a tiveres, podes comprar a de Ponta Fina por 85 moedas ou poupar 145 para a de Ferro Forjado. Podes voltar a equipar qualquer uma das tuas picaretas. Para comparar um mineral específico, consulta as <a href="#drops">probabilidades dos minerais</a>.</p>
+<table id="guide-pick-prices"></table></article><article id="economy" class="guide-topic panel" aria-labelledby="title-economy"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-economy">Vender e polir</h2><p>Seleciona um mineral em bruto no <a href="index.html?lang=pt-PT#inventory-minerals">inventário</a>. Podes comparar três valores: quanto a loja paga agora, quanto custa polir a peça e quanto a loja pagaria por ela depois de polida.</p>
+<p><strong>Vender.</strong> O preço em bruto depende da espécie, da raridade e da pureza. Acima de 99,00% de pureza, a loja paga também um prémio de coleção. Uma azurite em bruto vale 31 moedas a 99,00%, 225 a 99,99% e 318 a 100,00%. O peso influencia o custo de polir e a <a href="#pigments">quantidade de pigmento</a>.</p>
+<p><strong>Polir.</strong> O custo depende do valor em bruto, da raridade, da pureza e do peso. Para um mineral comum ou incomum, custa até metade do valor em bruto. A partir de raro, custa mais do que receberias pela venda da peça em bruto. O exemplar conserva o peso e a pureza. Ganhas 1 EXP e revelas a forma polida na <a href="#collection">coleção</a>.</p>
+<p>No protótipo, a loja paga pela peça polida o valor em bruto mais metade do custo de polir, arredondada para baixo. Se estás a poupar para uma picareta, ficas com mais moedas ao vender em bruto. Se queres a imagem polida ou precisas dela para um contrato, consulta primeiro o custo. Para <a href="#pigments">triturar</a>, a peça tem de estar em bruto.</p></article><article id="pigments" class="guide-topic panel" aria-labelledby="title-pigments"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-pigments">Triturar minerais para obter pigmento</h2><p>Seleciona um exemplar em bruto e escolhe <strong>Triturar</strong> para o transformar em material de pintura. O protótipo tem 269 cores de pigmentos diretos e mais 50 obtidas por <a href="#recipes">receitas</a>, num total de 319 cores para pintar e tingir.</p>
+<table>
+<thead>
+<tr>
+<th>Mineral em bruto</th>
+<th>Cor que dá para a Raposa Adormecida</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hematite</td>
+<td>Vermelho de Ferro</td>
+</tr>
+<tr>
+<td>Dolomite</td>
+<td>Creme de Calcário</td>
+</tr>
+<tr>
+<td>Magnetite</td>
+<td>Preto de Ferro</td>
+</tr>
+<tr>
+<td>Goethite</td>
+<td>Amarelo Ocre</td>
+</tr>
+</tbody>
+</table>
+<p>Abre <a href="index.html?lang=pt-PT#inventory-pigments">Inventário → Pigmentos</a> e seleciona uma amostra. Vês a quantidade que tens e os usos disponíveis: pintar, misturar, tingir roupa ou entregar a cor num contrato. A equipa simulada aceita trocas entre as quatro cores da raposa. Confere qual vais receber antes de confirmares a troca.</p>
+<p><strong>Exceções.</strong> O diamante dá uma unidade de <a href="#finishes">pó para acabamentos</a>, qualquer que seja o peso. A painite e a fluor-liddicoatite são peças de coleção que se guardam inteiras.</p>
+<details><summary>Consultar os 269 pigmentos diretos e os minerais de origem</summary><label for="guide-pigment-filter">Nome da cor ou do mineral</label> <input id="guide-pigment-filter" type="search" aria-controls="guide-pigment-table"><div id="guide-pigment-table"></div></details></article><article id="recipes" class="guide-topic panel" aria-labelledby="title-recipes"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-recipes">Receitas de cores</h2><p>Na <a href="index.html?lang=pt-PT#workshop">Oficina</a> encontras as 50 cores que podes fazer por mistura. Percorre a lista, filtra por ingrediente ou vê só as misturas que já consegues fazer. Uma cor obtida por mistura também pode entrar noutra receita.</p>
+<p>Para fazer <strong>Véu de Menta</strong>, mistura duas unidades de Branco de Giz e uma de Verde de Malaquite. Podes entregar uma unidade de Véu de Menta para o Estandarte da Guilda ou guardá-la para pintar ou tingir. Para fazer <strong>Névoa de Glicínia</strong>, mistura duas unidades de Lilás e uma de Branco de Giz. Para obter Lilás, tritura espodumena em bruto.</p>
+<div id="guide-recipe-book"></div></article><article id="finishes" class="guide-topic panel" aria-labelledby="title-finishes"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-finishes">Pó de diamante e acabamentos</h2><p>Tritura um diamante em bruto para obteres uma unidade de <strong>Pó de Diamante</strong>. A quantidade disponível aparece em <a href="index.html?lang=pt-PT#inventory-materials">Inventário → Materiais</a>.</p>
+<p>Seleciona um exemplar polido, escolhe <strong>Aplicar acabamento de alto brilho</strong> e confirma. Uma unidade de pó dá um brilho permanente à peça. O peso, a pureza e o preço de venda mantêm-se.</p></article><article id="personal-mural" class="guide-topic panel" aria-labelledby="title-personal-mural"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-personal-mural">Padrões pessoais</h2><p>Abre o teu <a href="index.html?lang=pt-PT#personal-mural">mural pessoal</a> para começares uma pequena pintura abstrata. O protótipo escolhe entre 96 padrões. Os pequenos usam uma grelha de 12 × 12 com três ou quatro cores. Os maiores usam 16 × 16.</p>
+<p><span id="o-teu-mural-pessoal"></span></p>
+<p>A tua melhor picareta conta mesmo que tenhas outra equipada. Com a de cobre ou a de ponta fina, os novos padrões podem pedir entre oito e dez cores. A partir da de ferro forjado, podem chegar às dezasseis. A paleta tem em conta o pigmento que já tens e a facilidade de obter cada cor por extração ou mistura. Depois de atribuído, o padrão mantém o desenho e as cores à medida que pintas ou mudas de picareta.</p>
+<p>Toca num quadrado para veres a cor pedida e confirma em <strong>Aplicar pigmento</strong>. A reserva de pigmentos é a mesma que usas para o mural da guilda. Ao acabares um padrão, podes usar essa pintura como fundo da personagem. Escolhe <strong>Começar outro padrão</strong> para receberes um desenho com a paleta a que tens acesso nessa altura. As pinturas concluídas conservam as cores originais.</p></article><article id="mural" class="guide-topic panel" aria-labelledby="title-mural"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-mural">Murais da comunidade e Raposa Adormecida</h2><p>Cada comunidade local tem a sua Raposa Adormecida, a sua galeria e o seu progresso. Em <a href="index.html?lang=pt-PT#mural">Mural → Mural da comunidade</a>, dá um nome a uma nova comunidade ou seleciona uma que já exista para retomares a pintura.</p>
+<p><span id="murais-da-comunidade"></span></p>
 <h3 id="a-raposa-adormecida-da-guilda">A Raposa Adormecida da guilda</h3>
-<p>A Raposa Adormecida usa uma <strong>grelha de 32 × 32</strong> e começa com <strong>0 de 415 quadrados pintados</strong>. Os 609 quadrados do fundo cor de carvão já fazem parte da tela. Um esboço ténue indica onde aplicar Vermelho de Ferro (294 quadrados), Creme de Calcário (67), Preto de Ferro (44) e Amarelo Ocre (10). Cada quadrado pintado gasta uma unidade do pigmento indicado. Na paleta podes ver quantas unidades tens e quantos quadrados faltam de cada cor.</p>
-<ol>
-<li>Escolhe o mural da guilda e toca no quadrado exato que queres pintar. Vê a cor pedida e carrega em <strong>Aplicar pigmento</strong>. Também podes escolher uma cor na paleta para encontrares o primeiro quadrado livre dessa cor antes de confirmares.</li>
-<li>Em <strong>Início → Inventário → Pigmentos</strong>, seleciona a cor e escolhe <strong>Pintar mural da comunidade</strong>. Fica logo pintado o primeiro quadrado vazio que precisa dessa cor.</li>
-<li>Termina a pintura para desbloqueares <strong>Raposa Adormecida</strong> como fundo da personagem. Carrega em <strong>Usar como fundo</strong> para veres a raposa atrás do teu mineiro. Em <strong>Início → Editar personagem</strong> podes alternar entre o mural concluído e o fundo simples.</li>
-</ol>
-<p>Se já tinhas pintado o antigo mural Asa de Cobre, os pigmentos que lá gastaste voltam ao inventário. A Raposa Adormecida começa do zero e desbloqueia o seu próprio fundo quando a concluis.</p>
+<p>A Raposa Adormecida começa com <strong>0 de 415 quadrados pintados</strong> numa grelha de 32 × 32. Os 609 quadrados do fundo cor de carvão fazem parte da tela e não levam pigmento. Na paleta vês quantas unidades tens e quantas faltam de cada <a href="#pigments">cor</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Pigmento pedido</th>
+<th style="text-align: right;">Quadrados a pintar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vermelho de Ferro</td>
+<td style="text-align: right;">294</td>
+</tr>
+<tr>
+<td>Creme de Calcário</td>
+<td style="text-align: right;">67</td>
+</tr>
+<tr>
+<td>Preto de Ferro</td>
+<td style="text-align: right;">44</td>
+</tr>
+<tr>
+<td>Amarelo Ocre</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pintar um quadrado à escolha.</strong> Toca no quadrado, verifica que cor pede e confirma em <strong>Aplicar pigmento</strong>. Se escolheres a cor na paleta do mural, o jogo indica o primeiro quadrado livre dessa cor. A partir do inventário, <strong>Pintar mural da comunidade</strong> pinta logo o primeiro quadrado correspondente. Cada quadrado consome uma unidade.</p>
+<p><strong>Pintar vários de seguida.</strong> Quando há dois ou três quadrados por pintar da mesma cor, seguidos para a direita, <strong>Pincel largo</strong> mostra o custo antes de confirmares. Conclui a pintura para usares a raposa como <a href="#character">fundo da personagem</a>.</p>
 <figure class="guide-mural" id="mural-example" hidden>
   <canvas id="mural-example-canvas" width="512" height="512" role="img" aria-label="Exemplo do mural Raposa Adormecida"></canvas>
   <figcaption>
     <strong>Experimenta pintar um píxel</strong>
-    <p>Usa a amostra de Vermelho de Ferro para pintar um quadrado da raposa.</p>
+    <p>Usa esta amostra de Vermelho de Ferro para pintar um quadrado da raposa.</p>
     <output id="mural-example-status" aria-live="polite"></output>
     <button type="button" class="primary" id="mural-example-paint" data-reset="Reiniciar exemplo">Aplicar Vermelho de Ferro</button>
   </figcaption>
-</figure>
-
-<p><a href="index.html?lang=pt-PT#mural">Abre o mural no jogo</a></p>
-<h2 id="save">Progresso e âmbito</h2>
-<p>O jogo guarda os teus dados neste navegador e neste site. <strong>Reiniciar teste</strong> apaga esse progresso. As guildas, as suas obras, as trocas e as contribuições da equipa funcionam localmente. Podes acompanhar uma transmissão da Twitch enquanto jogas. As contas partilhadas entre dispositivos e as guildas multijogador ficam para uma fase posterior.</p>
-    </main>
+</figure></article><article id="expedition" class="guide-topic panel" aria-labelledby="title-expedition"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-expedition">Expedição da guilda</h2><p>Depois do primeiro achado a solo, abre a <a href="index.html?lang=pt-PT#guild-expedition">Expedição da guilda</a> e entra na <strong>Exploração da Falha da Prata</strong>. A Mara e o Ivo formam a equipa simulada. Parte quando estiverem a postos.</p>
+<ol>
+<li>Marca a zona com prata enquanto a equipa explora a fenda.</li>
+<li>Escora a frente de trabalho enquanto a equipa fixa a corda.</li>
+<li>Iça o cesto para recuperar a amostra.</li>
+</ol>
+<p>Contribui uma vez por etapa e espera pela equipa antes de avançar. No fim, reclama <strong>um exemplar de prata em bruto e 18 moedas</strong>. Podes continuar a minar no Início enquanto a equipa trabalha. Depois de receberes a recompensa, podes iniciar outra expedição.</p></article><article id="watch" class="guide-topic panel" aria-labelledby="title-watch"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-watch">Twitch e alertas de achados</h2><p>Abre <a href="index.html?lang=pt-PT#watch">Início → Assistir e jogar</a>, introduz o nome ou a ligação de um canal da Twitch, escolhe <strong>Abrir canal</strong> e inicia o vídeo. Quando a pesquisa de diretos está disponível, também podes procurar por canal ou categoria.</p>
+<p>Podes minar, consultar o inventário e usar pigmentos enquanto acompanhas a transmissão. Um achado <strong>raro</strong> ou superior faz aparecer um alerta local com o teu nome, a imagem em bruto, a raridade, a pureza, o peso e o valor na loja. As ações do jogo usam os botões do site e não enviam mensagens para o chat da Twitch.</p>
+<p><strong>Mudar canal</strong> troca o vídeo e o chat ao mesmo tempo. Se a Twitch mostrar o aviso de cookies, amplia o chat e desce até às opções. Depois podes escolher <strong>Reduzir chat</strong>. Se o leitor estiver bloqueado na pré-visualização do Workspace, segue a ligação para abrir o jogo no navegador. Num ecrã estreito, roda o telemóvel para dar mais espaço ao vídeo.</p></article><article id="save" class="guide-topic panel" aria-labelledby="title-save"><a class="guide-back" href="#topics">← Índice da wiki</a><h2 id="title-save">Progresso e jogo local</h2><p>Podes jogar no <a href="index.html?lang=pt-PT#home">Início</a> com ou sem uma transmissão da Twitch. Volta ao mesmo site no mesmo navegador para retomares a personagem, o equipamento, as missões, a coleção, as guildas e as pinturas.</p>
+<p><strong>Reiniciar teste</strong> pede confirmação antes de apagar o progresso. Os murais das comunidades, as trocas de pigmentos e as expedições usam dados locais e uma equipa simulada. Abrir um canal da Twitch muda a transmissão que acompanhas.</p></article>
+      </main>
+    </div>
   </div>
 </body>
 </html>
